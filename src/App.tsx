@@ -10,6 +10,7 @@ import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import InvoicesPage from "./pages/InvoicesPage";
+import LeadsPage from "./pages/LeadsPage";
 import { UserPlus, Users, FileText, CalendarDays, Zap, CreditCard, Briefcase, Image, BookImage, MessageSquare, Megaphone, BarChart3, Bot, Sparkles, Settings } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -22,7 +23,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/leads" element={<PlaceholderPage title="Lead Management" description="Capture and nurture leads from Instagram, WhatsApp, calls and website forms." icon={UserPlus} />} />
+          <Route path="/leads" element={<LeadsPage />} />
           <Route path="/clients" element={<PlaceholderPage title="Client Management" description="Manage client profiles, communication history and lifetime value." icon={Users} />} />
           <Route path="/quotations" element={<PlaceholderPage title="Quotations & Packages" description="Create photography packages, send quotations and track approvals." icon={FileText} />} />
           <Route path="/projects" element={<ProjectsPage />} />
