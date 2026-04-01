@@ -34,11 +34,11 @@ const reviewEdits = allFootage.filter((f) => f.editStatus === "review");
 const newLeadsCount = sampleLeads.filter((l) => l.stage === "new").length;
 const convertedValue = sampleLeads.filter((l) => l.stage === "converted").reduce((s, l) => s + (l.budget || 0), 0);
 
-const stats = [
-  { title: "Revenue Collected", value: `₹${(totalRevenue / 100000).toFixed(1)}L`, change: `₹${(totalPending / 100000).toFixed(1)}L pending`, changeType: "neutral" as const, icon: IndianRupee },
-  { title: "Upcoming Shoots", value: String(upcomingShoots.length), change: upcomingShoots[0] ? `Next: ${upcomingShoots[0].date.slice(5)}` : "None scheduled", changeType: "neutral" as const, icon: Camera },
-  { title: "Pending Edits", value: String(pendingEdits.length), change: `${reviewEdits.length} in review`, changeType: reviewEdits.length > 0 ? "positive" : "neutral" as const, icon: Film },
-  { title: "Overdue Payments", value: overduePayments.length > 0 ? `₹${(overdueAmount / 1000).toFixed(0)}K` : "₹0", change: `${overduePayments.length} invoice(s)`, changeType: overduePayments.length > 0 ? "negative" : "positive" as const, icon: AlertTriangle },
+const stats: Array<{ title: string; value: string; change: string; changeType: "positive" | "negative" | "neutral"; icon: typeof IndianRupee }> = [
+  { title: "Revenue Collected", value: `₹${(totalRevenue / 100000).toFixed(1)}L`, change: `₹${(totalPending / 100000).toFixed(1)}L pending`, changeType: "neutral", icon: IndianRupee },
+  { title: "Upcoming Shoots", value: String(upcomingShoots.length), change: upcomingShoots[0] ? `Next: ${upcomingShoots[0].date.slice(5)}` : "None scheduled", changeType: "neutral", icon: Camera },
+  { title: "Pending Edits", value: String(pendingEdits.length), change: `${reviewEdits.length} in review`, changeType: reviewEdits.length > 0 ? "positive" : "neutral", icon: Film },
+  { title: "Overdue Payments", value: overduePayments.length > 0 ? `₹${(overdueAmount / 1000).toFixed(0)}K` : "₹0", change: `${overduePayments.length} invoice(s)`, changeType: overduePayments.length > 0 ? "negative" : "positive", icon: AlertTriangle },
 ];
 
 const statusColors: Record<string, string> = {
