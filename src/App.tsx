@@ -24,10 +24,11 @@ const App = () => (
           <Route path="/leads" element={<PlaceholderPage title="Lead Management" description="Capture and nurture leads from Instagram, WhatsApp, calls and website forms." icon={UserPlus} />} />
           <Route path="/clients" element={<PlaceholderPage title="Client Management" description="Manage client profiles, communication history and lifetime value." icon={Users} />} />
           <Route path="/quotations" element={<PlaceholderPage title="Quotations & Packages" description="Create photography packages, send quotations and track approvals." icon={FileText} />} />
-          <Route path="/projects" element={<PlaceholderPage title="Projects" description="Track shoots from inquiry to delivery with full lifecycle management." icon={FolderKanban} />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/calendar" element={<PlaceholderPage title="Calendar" description="Schedule and manage shoots, team assignments and availability." icon={CalendarDays} />} />
           <Route path="/tasks" element={<PlaceholderPage title="Tasks" description="Assign and track tasks for photographers, editors and team members." icon={Zap} />} />
-          <Route path="/team" element={<PlaceholderPage title="Team Management" description="Manage team members, roles, performance and assignments." icon={UsersRound} />} />
+          <Route path="/team" element={<TeamPage />} />
           <Route path="/invoices" element={<PlaceholderPage title="Invoices & Payments" description="Track advance, milestone and final payments with auto reminders." icon={CreditCard} />} />
           <Route path="/contracts" element={<PlaceholderPage title="Contracts" description="Create, send and manage contracts with digital signatures." icon={Briefcase} />} />
           <Route path="/gallery" element={<PlaceholderPage title="Gallery & Delivery" description="Upload photos, manage client selections and share download links." icon={Image} />} />
