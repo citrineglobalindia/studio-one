@@ -64,6 +64,7 @@ export interface WeddingProject {
   paidAmount: number;
   subEvents: SubEvent[];
   footage: FootageItem[];
+  payments: Payment[];
   team: TeamMember[];
   createdAt: string;
 }
