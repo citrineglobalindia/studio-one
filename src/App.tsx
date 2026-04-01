@@ -9,6 +9,7 @@ import { PlaceholderPage } from "./pages/PlaceholderPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
+import InvoicesPage from "./pages/InvoicesPage";
 import { UserPlus, Users, FileText, CalendarDays, Zap, CreditCard, Briefcase, Image, BookImage, MessageSquare, Megaphone, BarChart3, Bot, Sparkles, Settings } from "lucide-react";
 
 const queryClient = new QueryClient();
