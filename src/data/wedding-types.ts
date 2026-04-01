@@ -109,6 +109,12 @@ export const sampleProjects: WeddingProject[] = [
       { id: "f3", subEventId: "se2", subEventName: "Haldi", handedOverBy: "Raj Patel", handedOverByRole: "photographer", handedOverDate: "2026-04-14", assignedEditor: "Priya Verma", editStatus: "in-progress", editProgress: 35, deliveryType: "photos", fileCount: 320 },
       { id: "f4", subEventId: "se2", subEventName: "Haldi", handedOverBy: "Amit Kumar", handedOverByRole: "videographer", handedOverDate: "2026-04-14", assignedEditor: "Suresh Nair", editStatus: "pending", editProgress: 0, deliveryType: "video", fileCount: 18 },
     ],
+    payments: [
+      { id: "pay1", projectId: "p1", type: "advance", label: "Booking Advance", amount: 100000, paidAmount: 100000, status: "paid", dueDate: "2026-03-05", paidDate: "2026-03-03", mode: "bank-transfer", invoiceNumber: "INV-2026-001" },
+      { id: "pay2", projectId: "p1", type: "milestone", label: "Pre-Wedding Shoot", amount: 100000, paidAmount: 100000, status: "paid", dueDate: "2026-04-10", paidDate: "2026-04-09", mode: "upi", invoiceNumber: "INV-2026-002" },
+      { id: "pay3", projectId: "p1", type: "milestone", label: "After Sangeet", amount: 75000, paidAmount: 0, status: "pending", dueDate: "2026-04-15", invoiceNumber: "INV-2026-003" },
+      { id: "pay4", projectId: "p1", type: "final", label: "Final Delivery", amount: 75000, paidAmount: 0, status: "pending", dueDate: "2026-05-15", invoiceNumber: "INV-2026-004" },
+    ],
     team: [sampleTeamMembers[0], sampleTeamMembers[1], sampleTeamMembers[2], sampleTeamMembers[3], sampleTeamMembers[4], sampleTeamMembers[5], sampleTeamMembers[6], sampleTeamMembers[7]],
     createdAt: "2026-03-01",
   },
