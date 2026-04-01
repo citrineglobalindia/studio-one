@@ -169,6 +169,11 @@ export const sampleProjects: WeddingProject[] = [
       { id: "f8", subEventId: "se12", subEventName: "Reception", handedOverBy: "Raj Patel", handedOverByRole: "photographer", handedOverDate: "2026-03-21", assignedEditor: "Neha Gupta", editStatus: "in-progress", editProgress: 30, deliveryType: "photos", fileCount: 290 },
       { id: "f9", subEventId: "se11", subEventName: "Wedding", handedOverBy: "Deepak Sharma", handedOverByRole: "videographer", handedOverDate: "2026-03-22", assignedEditor: "Suresh Nair", editStatus: "pending", editProgress: 0, deliveryType: "video", fileCount: 24 },
     ],
+    payments: [
+      { id: "pay8", projectId: "p3", type: "advance", label: "Booking Advance", amount: 60000, paidAmount: 60000, status: "paid", dueDate: "2026-02-20", paidDate: "2026-02-18", mode: "bank-transfer", invoiceNumber: "INV-2026-008" },
+      { id: "pay9", projectId: "p3", type: "milestone", label: "Wedding Day", amount: 60000, paidAmount: 60000, status: "paid", dueDate: "2026-03-20", paidDate: "2026-03-20", mode: "cash", invoiceNumber: "INV-2026-009" },
+      { id: "pay10", projectId: "p3", type: "final", label: "Final Delivery", amount: 60000, paidAmount: 60000, status: "paid", dueDate: "2026-04-20", paidDate: "2026-04-15", mode: "upi", invoiceNumber: "INV-2026-010" },
+    ],
     team: [sampleTeamMembers[0], sampleTeamMembers[1], sampleTeamMembers[2], sampleTeamMembers[3], sampleTeamMembers[4], sampleTeamMembers[5], sampleTeamMembers[8]],
     createdAt: "2026-02-15",
   },
