@@ -31,6 +31,25 @@ export interface FootageItem {
   notes?: string;
 }
 
+export type PaymentType = "advance" | "milestone" | "final";
+export type PaymentStatus = "pending" | "paid" | "overdue" | "partial";
+export type PaymentMode = "upi" | "bank-transfer" | "cash" | "cheque" | "card";
+
+export interface Payment {
+  id: string;
+  projectId: string;
+  type: PaymentType;
+  label: string;
+  amount: number;
+  paidAmount: number;
+  status: PaymentStatus;
+  dueDate: string;
+  paidDate?: string;
+  mode?: PaymentMode;
+  notes?: string;
+  invoiceNumber?: string;
+}
+
 export interface WeddingProject {
   id: string;
   clientName: string;
