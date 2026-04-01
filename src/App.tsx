@@ -5,14 +5,26 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import LeadsPage from "./pages/LeadsPage";
 import CalendarPage from "./pages/CalendarPage";
-import { UserPlus, Users, FileText, CalendarDays, Zap, CreditCard, Briefcase, Image, BookImage, MessageSquare, Megaphone, BarChart3, Bot, Sparkles, Settings } from "lucide-react";
+import ClientsPage from "./pages/ClientsPage";
+import QuotationsPage from "./pages/QuotationsPage";
+import ContractsPage from "./pages/ContractsPage";
+import GalleryPage from "./pages/GalleryPage";
+import AlbumsPage from "./pages/AlbumsPage";
+import PortalPage from "./pages/PortalPage";
+import CommunicationsPage from "./pages/CommunicationsPage";
+import MarketingPage from "./pages/MarketingPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AIAssistantPage from "./pages/AIAssistantPage";
+import AISelectionPage from "./pages/AISelectionPage";
+import TasksPage from "./pages/TasksPage";
+import AutomationPage from "./pages/AutomationPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -25,25 +37,25 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/leads" element={<LeadsPage />} />
-          <Route path="/clients" element={<PlaceholderPage title="Client Management" description="Manage client profiles, communication history and lifetime value." icon={Users} />} />
-          <Route path="/quotations" element={<PlaceholderPage title="Quotations & Packages" description="Create photography packages, send quotations and track approvals." icon={FileText} />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/quotations" element={<QuotationsPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/tasks" element={<PlaceholderPage title="Tasks" description="Assign and track tasks for photographers, editors and team members." icon={Zap} />} />
+          <Route path="/tasks" element={<TasksPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
-          <Route path="/contracts" element={<PlaceholderPage title="Contracts" description="Create, send and manage contracts with digital signatures." icon={Briefcase} />} />
-          <Route path="/gallery" element={<PlaceholderPage title="Gallery & Delivery" description="Upload photos, manage client selections and share download links." icon={Image} />} />
-          <Route path="/albums" element={<PlaceholderPage title="Albums" description="Album selection, design approval and printing workflow." icon={BookImage} />} />
-          <Route path="/portal" element={<PlaceholderPage title="Client Portal" description="Client-facing portal for projects, gallery, invoices and contracts." icon={Users} />} />
-          <Route path="/communications" element={<PlaceholderPage title="Communication Hub" description="WhatsApp, email and SMS in one central inbox." icon={MessageSquare} />} />
-          <Route path="/marketing" element={<PlaceholderPage title="Marketing & Campaigns" description="Email campaigns, festival offers and lead retargeting." icon={Megaphone} />} />
-          <Route path="/analytics" element={<PlaceholderPage title="Analytics & Reports" description="Revenue dashboard, conversion rates and business insights." icon={BarChart3} />} />
-          <Route path="/automation" element={<PlaceholderPage title="Workflow Automation" description="Auto triggers for follow-ups, reminders and feedback requests." icon={Zap} />} />
-          <Route path="/ai-assistant" element={<PlaceholderPage title="AI Assistant" description="Auto-reply to leads, suggest pricing and generate captions." icon={Bot} />} />
-          <Route path="/ai-selection" element={<PlaceholderPage title="Smart Photo Selection" description="AI-powered face recognition, best-shot suggestions and duplicate removal." icon={Sparkles} />} />
-          <Route path="/settings" element={<PlaceholderPage title="Settings" description="Manage your studio profile, team roles and integrations." icon={Settings} />} />
+          <Route path="/contracts" element={<ContractsPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/albums" element={<AlbumsPage />} />
+          <Route path="/portal" element={<PortalPage />} />
+          <Route path="/communications" element={<CommunicationsPage />} />
+          <Route path="/marketing" element={<MarketingPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/automation" element={<AutomationPage />} />
+          <Route path="/ai-assistant" element={<AIAssistantPage />} />
+          <Route path="/ai-selection" element={<AISelectionPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
