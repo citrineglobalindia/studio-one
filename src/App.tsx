@@ -9,6 +9,7 @@ import { PlaceholderPage } from "./pages/PlaceholderPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
+import InvoicesPage from "./pages/InvoicesPage";
 import { UserPlus, Users, FileText, CalendarDays, Zap, CreditCard, Briefcase, Image, BookImage, MessageSquare, Megaphone, BarChart3, Bot, Sparkles, Settings } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -29,7 +30,7 @@ const App = () => (
           <Route path="/calendar" element={<PlaceholderPage title="Calendar" description="Schedule and manage shoots, team assignments and availability." icon={CalendarDays} />} />
           <Route path="/tasks" element={<PlaceholderPage title="Tasks" description="Assign and track tasks for photographers, editors and team members." icon={Zap} />} />
           <Route path="/team" element={<TeamPage />} />
-          <Route path="/invoices" element={<PlaceholderPage title="Invoices & Payments" description="Track advance, milestone and final payments with auto reminders." icon={CreditCard} />} />
+          <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/contracts" element={<PlaceholderPage title="Contracts" description="Create, send and manage contracts with digital signatures." icon={Briefcase} />} />
           <Route path="/gallery" element={<PlaceholderPage title="Gallery & Delivery" description="Upload photos, manage client selections and share download links." icon={Image} />} />
           <Route path="/albums" element={<PlaceholderPage title="Albums" description="Album selection, design approval and printing workflow." icon={BookImage} />} />

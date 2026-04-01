@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
-import { sampleProjects } from "@/data/wedding-types";
+import { sampleProjects, type PaymentStatus, type PaymentType } from "@/data/wedding-types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -9,8 +9,29 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft, CalendarDays, MapPin, Phone, IndianRupee,
   Camera, Video, Edit3, Users, CheckCircle2, Clock, AlertCircle,
-  Upload, Eye, Send,
+  Upload, Eye, Send, FileText, CreditCard, Banknote, Smartphone, Building2, Plus,
 } from "lucide-react";
+
+const paymentStatusConfig: Record<PaymentStatus, { label: string; icon: typeof Clock; class: string }> = {
+  paid: { label: "Paid", icon: CheckCircle2, class: "text-emerald-400 bg-emerald-500/20 border-emerald-500/30" },
+  pending: { label: "Pending", icon: Clock, class: "text-muted-foreground bg-muted border-border" },
+  overdue: { label: "Overdue", icon: AlertCircle, class: "text-red-400 bg-red-500/20 border-red-500/30" },
+  partial: { label: "Partial", icon: IndianRupee, class: "text-yellow-400 bg-yellow-500/20 border-yellow-500/30" },
+};
+
+const paymentTypeConfig: Record<PaymentType, { label: string; class: string }> = {
+  advance: { label: "Advance", class: "bg-primary/15 text-primary border-primary/30" },
+  milestone: { label: "Milestone", class: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  final: { label: "Final", class: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+};
+
+const modeIcons: Record<string, typeof CreditCard> = {
+  upi: Smartphone,
+  "bank-transfer": Building2,
+  cash: Banknote,
+  cheque: FileText,
+  card: CreditCard,
+};
 
 const editStatusConfig: Record<string, { label: string; icon: typeof Clock; class: string }> = {
   pending: { label: "Pending", icon: Clock, class: "text-muted-foreground bg-muted" },
@@ -113,6 +134,7 @@ const ProjectDetailPage = () => {
             <TabsTrigger value="events">Sub-Events</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
             <TabsTrigger value="footage">Footage & Editing</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="delivery">Delivery</TabsTrigger>
           </TabsList>
 
@@ -280,6 +302,89 @@ const ProjectDetailPage = () => {
                   );
                 })}
               </div>
+            )}
+          </TabsContent>
+
+          {/* PAYMENTS TAB */}
+          <TabsContent value="payments" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display font-semibold text-foreground">Payment Schedule</h2>
+              <Button variant="outline" size="sm" className="gap-1 text-xs">
+                <Plus className="h-3 w-3" /> Add Payment
+              </Button>
+            </div>
+
+            {project.payments.length === 0 ? (
+              <div className="rounded-lg bg-card border border-border p-8 text-center text-muted-foreground">
+                No payments scheduled yet. Add advance, milestone, or final payment entries.
+              </div>
+            ) : (
+              <>
+                {/* Payment summary bar */}
+                {(() => {
+                  const totalPaid = project.payments.reduce((s, p) => s + p.paidAmount, 0);
+                  const totalDue = project.payments.reduce((s, p) => s + p.amount, 0);
+                  const pct = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : 0;
+                  return (
+                    <div className="rounded-lg bg-card border border-border p-4 flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">₹{totalPaid.toLocaleString("en-IN")} collected</span>
+                          <span className="font-medium text-foreground">₹{totalDue.toLocaleString("en-IN")} total</span>
+                        </div>
+                        <Progress value={pct} className="h-2" />
+                      </div>
+                      <span className="text-lg font-display font-bold text-primary">{pct}%</span>
+                    </div>
+                  );
+                })()}
+
+                <div className="space-y-3">
+                  {project.payments.map((payment) => {
+                    const sCfg = paymentStatusConfig[payment.status];
+                    const tCfg = paymentTypeConfig[payment.type];
+                    const StatusIcon = sCfg.icon;
+                    const ModeIcon = payment.mode ? modeIcons[payment.mode] || CreditCard : CreditCard;
+                    const isOverdue = payment.status !== "paid" && new Date(payment.dueDate) < new Date();
+
+                    return (
+                      <div key={payment.id} className="rounded-lg bg-card border border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", tCfg.class)}>
+                            <IndianRupee className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">{payment.label}</p>
+                              <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", tCfg.class)}>{tCfg.label}</Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                              {payment.invoiceNumber && <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{payment.invoiceNumber}</span>}
+                              <span className="flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" />
+                                Due {new Date(payment.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                              </span>
+                              {payment.paidDate && (
+                                <span className="flex items-center gap-1">
+                                  <ModeIcon className="h-3 w-3" />
+                                  Paid {new Date(payment.paidDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                          <p className="text-sm font-medium text-foreground">₹{payment.amount.toLocaleString("en-IN")}</p>
+                          <Badge variant="outline" className={cn("text-[10px] gap-1", isOverdue ? paymentStatusConfig.overdue.class : sCfg.class)}>
+                            <StatusIcon className="h-3 w-3" />
+                            {isOverdue ? "Overdue" : sCfg.label}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </TabsContent>
 
