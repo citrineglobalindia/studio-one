@@ -60,11 +60,6 @@ const financeItems = [
   { title: "Contracts", url: "/contracts", icon: Briefcase },
 ];
 
-const deliveryItems = [
-  { title: "Gallery", url: "/gallery", icon: Image },
-  { title: "Albums", url: "/albums", icon: BookImage },
-  { title: "Client Portal", url: "/portal", icon: Users },
-];
 
 const growthItems = [
   { title: "Communications", url: "/communications", icon: MessageSquare },
@@ -94,7 +89,6 @@ const groups = [
   { label: "Sales CRM", items: salesItems },
   { label: "Operations", items: operationsItems },
   { label: "Finance", items: financeItems },
-  { label: "Delivery", items: deliveryItems },
   { label: "Growth", items: growthItems },
   { label: "HR Module", items: hrItems },
   { label: "AI & Smart Tools", items: aiItems },
