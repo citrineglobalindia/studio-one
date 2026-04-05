@@ -163,6 +163,59 @@
     --shadow-gold: 0 4px 20px -4px hsl(210 90% 56% / 0.25);
     --shadow-card: 0 4px 24px -8px hsl(0 0% 0% / 0.4);
   }
+
+  /* === OCEAN BREEZE THEME (White & Blue Advanced) === */
+  [data-theme="ocean"] {
+    --background: 210 40% 97%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 215 85% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 30% 92%;
+    --secondary-foreground: 215 25% 25%;
+
+    --muted: 210 25% 93%;
+    --muted-foreground: 215 15% 46%;
+
+    --accent: 195 85% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 25% 88%;
+    --input: 210 25% 88%;
+    --ring: 215 85% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 215 35% 16%;
+    --sidebar-foreground: 210 20% 78%;
+    --sidebar-primary: 195 85% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 30% 22%;
+    --sidebar-accent-foreground: 210 25% 92%;
+    --sidebar-border: 215 30% 22%;
+    --sidebar-ring: 195 85% 55%;
+
+    --gold: 215 85% 50%;
+    --gold-muted: 215 40% 60%;
+    --gold-glow: 195 90% 55%;
+    --surface: 0 0% 100%;
+    --surface-elevated: 210 30% 96%;
+
+    --gradient-gold: linear-gradient(135deg, hsl(215, 85%, 50%), hsl(195, 85%, 55%));
+    --gradient-dark: linear-gradient(180deg, hsl(210, 40%, 97%), hsl(0, 0%, 100%));
+    --shadow-gold: 0 4px 20px -4px hsl(215 85% 50% / 0.18);
+    --shadow-card: 0 4px 24px -8px hsl(215 25% 50% / 0.08);
+  }
 }
 
 @layer base {

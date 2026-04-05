@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type ThemeColor = "black" | "white" | "blue";
+export type ThemeColor = "black" | "white" | "blue" | "ocean";
 
 interface ThemeContextType {
   theme: ThemeColor;

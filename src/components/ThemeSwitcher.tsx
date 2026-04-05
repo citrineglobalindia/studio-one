@@ -12,6 +12,7 @@ const themes: { value: ThemeColor; label: string; preview: string }[] = [
   { value: "black", label: "Dark Gold", preview: "bg-[hsl(220,20%,7%)]" },
   { value: "white", label: "Light", preview: "bg-[hsl(0,0%,98%)]" },
   { value: "blue", label: "Midnight Blue", preview: "bg-[hsl(222,47%,8%)]" },
+  { value: "ocean", label: "Ocean Breeze", preview: "bg-gradient-to-br from-[hsl(210,100%,97%)] to-[hsl(210,80%,92%)]" },
 ];
 
 export function ThemeSwitcher() {
