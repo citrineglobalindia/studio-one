@@ -1,15 +1,18 @@
+import { useState, useMemo } from "react";
 import {
   Users, UserPlus, Camera, IndianRupee, TrendingUp, CalendarDays,
   AlertTriangle, Clock, CheckCircle, Film, ArrowUpRight, ArrowDownRight,
-  Zap, Target, Eye, PhoneCall, BarChart3, Sparkles, ChevronRight,
+  Zap, Target, Eye, PhoneCall, BarChart3, Sparkles, ChevronRight, MapPin,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
 import { sampleProjects } from "@/data/wedding-types";
 import { sampleLeads } from "@/data/lead-types";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const today = new Date("2026-04-01");
 
