@@ -19,6 +19,11 @@ import {
   HardDrive,
   Bot,
   Sparkles,
+  Bell,
+  Wallet,
+  UserCog,
+  ClipboardList,
+  CalendarOff,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
