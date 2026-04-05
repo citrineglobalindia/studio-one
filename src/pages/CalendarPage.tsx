@@ -331,7 +331,6 @@ const CalendarPage = () => {
                       key={idx}
                       onClick={() => {
                         setSelectedDate(dateStr);
-                        if (viewMode !== "day") return;
                       }}
                       onDoubleClick={() => {
                         setSelectedDate(dateStr);
