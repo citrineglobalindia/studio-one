@@ -366,6 +366,16 @@ export default function ClientDetailPage() {
 
           {/* ═══ Events Tab ═══ */}
           <TabsContent value="events" className="mt-4 space-y-4">
+            {/* Add Event Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full rounded-xl gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
+              onClick={() => setAddEventOpen(true)}
+            >
+              <Plus className="h-4 w-4" /> Add Event
+            </Button>
+
             {/* Upcoming Events */}
             {upcomingEvents.length > 0 && (
               <div>
