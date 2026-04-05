@@ -1,15 +1,18 @@
+import { useState, useMemo } from "react";
 import {
   Users, UserPlus, Camera, IndianRupee, TrendingUp, CalendarDays,
   AlertTriangle, Clock, CheckCircle, Film, ArrowUpRight, ArrowDownRight,
-  Zap, Target, Eye, PhoneCall, BarChart3, Sparkles, ChevronRight,
+  Zap, Target, Eye, PhoneCall, BarChart3, Sparkles, ChevronRight, MapPin,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
 import { sampleProjects } from "@/data/wedding-types";
 import { sampleLeads } from "@/data/lead-types";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const today = new Date("2026-04-01");
 
@@ -46,6 +49,28 @@ const fadeUp = {
 
 const Index = () => {
   const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(today);
+
+  // Dates that have events
+  const eventDates = useMemo(() => {
+    const dates: Date[] = [];
+    allSubEvents.forEach((se) => {
+      if (se.status === "upcoming" || se.status === "in-progress") {
+        dates.push(new Date(se.date));
+      }
+    });
+    return dates;
+  }, []);
+
+  // Events for selected date
+  const selectedDateEvents = useMemo(() => {
+    if (!selectedDate) return [];
+    const sel = selectedDate.toISOString().slice(0, 10);
+    return allSubEvents.filter((se) => se.date === sel);
+  }, [selectedDate]);
+
+  // All upcoming for list
+  const upcomingList = upcomingShoots.slice(0, 5);
 
   const stats = [
     {
@@ -159,7 +184,7 @@ const Index = () => {
 
       {/* Main Content: 2-column */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Upcoming Shoots */}
+        {/* Event Calendar + Upcoming Shoots */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,48 +193,116 @@ const Index = () => {
         >
           <div className="flex items-center justify-between p-5 border-b border-border">
             <div className="flex items-center gap-2">
-              <Camera className="h-4 w-4 text-primary" />
-              <h2 className="font-display font-semibold text-foreground">Upcoming Shoots</h2>
-              <Badge variant="secondary" className="text-[10px] h-5">{upcomingShoots.length}</Badge>
+              <CalendarDays className="h-4 w-4 text-primary" />
+              <h2 className="font-display font-semibold text-foreground">Event Calendar</h2>
+              <Badge variant="secondary" className="text-[10px] h-5">{upcomingShoots.length} upcoming</Badge>
             </div>
             <Button variant="ghost" size="sm" className="text-xs text-primary gap-1" onClick={() => navigate("/calendar")}>
-              View Calendar <ChevronRight className="h-3.5 w-3.5" />
+              Full Calendar <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="divide-y divide-border">
-            {upcomingShoots.slice(0, 5).map((shoot, i) => (
-              <motion.div
-                key={shoot.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + i * 0.05 }}
-                className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors group/row cursor-pointer"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                    <Camera className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate group-hover/row:text-primary transition-colors">
-                      {shoot.name}
+          <div className="flex flex-col lg:flex-row">
+            {/* Calendar Widget */}
+            <div className="p-4 border-b lg:border-b-0 lg:border-r border-border flex justify-center shrink-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className={cn("p-3 pointer-events-auto")}
+                modifiers={{
+                  event: eventDates,
+                }}
+                modifiersClassNames={{
+                  event: "bg-primary/20 text-primary font-bold rounded-full",
+                }}
+              />
+            </div>
+            {/* Event List */}
+            <div className="flex-1 min-w-0 overflow-hidden">
+              {selectedDateEvents.length > 0 ? (
+                <>
+                  <div className="px-5 pt-4 pb-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {selectedDate?.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
                     </p>
-                    <p className="text-xs text-muted-foreground">{shoot.projectClient} · {shoot.location}</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs font-medium text-foreground">
-                      {new Date(shoot.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  <div className="divide-y divide-border">
+                    {selectedDateEvents.map((event, i) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors cursor-pointer group/row"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                            <Camera className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate group-hover/row:text-primary transition-colors">{event.name}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{event.projectClient}</span>
+                              <span>·</span>
+                              <MapPin className="h-3 w-3" />
+                              <span>{event.location}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                            {event.assignedTeam.length} crew
+                          </Badge>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="px-5 pt-4 pb-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {selectedDate
+                        ? `No events · ${selectedDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+                        : "Upcoming Shoots"}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{shoot.assignedTeam.length} crew</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover/row:text-primary transition-colors" />
-                </div>
-              </motion.div>
-            ))}
-            {upcomingShoots.length === 0 && (
-              <div className="py-12 text-center text-sm text-muted-foreground">No upcoming shoots</div>
-            )}
+                  <div className="divide-y divide-border">
+                    {upcomingList.map((shoot, i) => (
+                      <motion.div
+                        key={shoot.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 + i * 0.05 }}
+                        className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors group/row cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                            <Camera className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate group-hover/row:text-primary transition-colors">{shoot.name}</p>
+                            <p className="text-xs text-muted-foreground">{shoot.projectClient} · {shoot.location}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-xs font-medium text-foreground">
+                              {new Date(shoot.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{shoot.assignedTeam.length} crew</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover/row:text-primary transition-colors" />
+                        </div>
+                      </motion.div>
+                    ))}
+                    {upcomingList.length === 0 && (
+                      <div className="py-12 text-center text-sm text-muted-foreground">No upcoming shoots</div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </motion.div>
 
