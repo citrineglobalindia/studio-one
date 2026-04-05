@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,12 @@ import {
   ArrowLeft, CalendarDays, Sparkles, Heart, FileText,
   ChevronRight, PhoneCall, MessageSquare, Briefcase,
   Clock, Download, PenLine, Send, ExternalLink,
-  Receipt, CreditCard, PartyPopper, CheckCircle2, AlertCircle, Clock3,
+  Receipt, CreditCard, PartyPopper, CheckCircle2, AlertCircle, Clock3, Plus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sampleClients, statusConfig, type Client, type ClientActivity, type ClientInvoice, type ClientEvent } from "@/data/clients-data";
+import { AddEventSheet } from "@/components/AddEventSheet";
 
 const containerVariants = {
   hidden: {},
@@ -71,7 +73,10 @@ const eventStatusConfig: Record<string, { label: string; dot: string }> = {
 export default function ClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const client = sampleClients.find((c) => c.id === id);
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const clientData = sampleClients.find((c) => c.id === id);
+  const [events, setEvents] = useState<ClientEvent[]>(clientData?.events || []);
+  const client = clientData ? { ...clientData, events } : undefined;
 
   if (!client) {
     return (
@@ -361,6 +366,16 @@ export default function ClientDetailPage() {
 
           {/* ═══ Events Tab ═══ */}
           <TabsContent value="events" className="mt-4 space-y-4">
+            {/* Add Event Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full rounded-xl gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
+              onClick={() => setAddEventOpen(true)}
+            >
+              <Plus className="h-4 w-4" /> Add Event
+            </Button>
+
             {/* Upcoming Events */}
             {upcomingEvents.length > 0 && (
               <div>
@@ -565,6 +580,12 @@ export default function ClientDetailPage() {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      <AddEventSheet
+        open={addEventOpen}
+        onOpenChange={setAddEventOpen}
+        onAdd={(event) => setEvents((prev) => [...prev, event])}
+      />
     </motion.div>
   );
 }
