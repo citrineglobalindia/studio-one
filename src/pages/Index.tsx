@@ -302,7 +302,7 @@ const Index = () => {
 
               <div className="space-y-2.5 mb-3.5">
                 {[
-                  { label: "Completed", value: allFootage.filter(f => f.editStatus === "completed").length, dot: "bg-emerald-500", textColor: "text-emerald-500" },
+                  { label: "Completed", value: allFootage.filter(f => f.editStatus === "approved" || f.editStatus === "delivered").length, dot: "bg-emerald-500", textColor: "text-emerald-500" },
                   { label: "In Progress", value: allFootage.filter(f => f.editStatus === "in-progress").length, dot: "bg-blue-500", textColor: "text-blue-500" },
                   { label: "Pending", value: allFootage.filter(f => f.editStatus === "pending").length, dot: "bg-destructive", textColor: "text-destructive" },
                 ].map((item, i) => (
@@ -325,7 +325,7 @@ const Index = () => {
               <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
                 {(() => {
                   const total = allFootage.length || 1;
-                  const completed = allFootage.filter(f => f.editStatus === "completed").length;
+                  const completed = allFootage.filter(f => f.editStatus === "approved" || f.editStatus === "delivered").length;
                   const inProgress = allFootage.filter(f => f.editStatus === "in-progress").length;
                   const pending = allFootage.filter(f => f.editStatus === "pending").length;
                   return (
@@ -371,7 +371,7 @@ const Index = () => {
               />
               <PremiumBar
                 label="Upcoming"
-                value={sampleProjects.filter(p => p.status === "upcoming").length}
+                value={sampleProjects.filter(p => p.status === "booked" || p.status === "inquiry").length}
                 total={sampleProjects.length}
                 colorClass="bg-primary"
                 delay={0.8}
