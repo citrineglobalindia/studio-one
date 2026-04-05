@@ -49,6 +49,28 @@ const fadeUp = {
 
 const Index = () => {
   const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(today);
+
+  // Dates that have events
+  const eventDates = useMemo(() => {
+    const dates: Date[] = [];
+    allSubEvents.forEach((se) => {
+      if (se.status === "upcoming" || se.status === "in-progress") {
+        dates.push(new Date(se.date));
+      }
+    });
+    return dates;
+  }, []);
+
+  // Events for selected date
+  const selectedDateEvents = useMemo(() => {
+    if (!selectedDate) return [];
+    const sel = selectedDate.toISOString().slice(0, 10);
+    return allSubEvents.filter((se) => se.date === sel);
+  }, [selectedDate]);
+
+  // All upcoming for list
+  const upcomingList = upcomingShoots.slice(0, 5);
 
   const stats = [
     {
