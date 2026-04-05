@@ -246,7 +246,7 @@ const HRAttendance = () => {
       let bgClass = isWknd ? "bg-muted/60 text-muted-foreground" : "text-foreground";
       if (status && dayColors[status]) bgClass = dayColors[status];
       if (isToday) bgClass = "bg-primary text-primary-foreground font-bold ring-2 ring-primary/30";
-      cells.push(<div key={key} className={`size-10 rounded-lg flex items-center justify-center text-[13px] font-medium ${bgClass}`}>{format(day, "d")}</div>);
+      cells.push(<div key={key} className={`size-10 md:size-12 lg:h-14 lg:w-full rounded-lg flex items-center justify-center text-[13px] md:text-sm font-medium ${bgClass}`}>{format(day, "d")}</div>);
     });
     return cells;
   };
