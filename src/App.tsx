@@ -32,6 +32,7 @@ import HRAttendance from "./pages/hr/HRAttendance";
 import HRLeaves from "./pages/hr/HRLeaves";
 import NotificationsPage from "./pages/NotificationsPage";
 import AccountsPage from "./pages/AccountsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/hr/leaves" element={<HRLeaves />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
