@@ -99,7 +99,7 @@ export default function ClientsPage() {
             <p className="text-xs text-muted-foreground">{clients.length} clients · ₹{(totalLifetimeValue / 100000).toFixed(1)}L lifetime value</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2 rounded-xl">
+        <Button size="sm" className="gap-2 rounded-xl" onClick={() => setAddOpen(true)}>
           <Plus className="h-4 w-4" /> Add Client
         </Button>
       </motion.div>
