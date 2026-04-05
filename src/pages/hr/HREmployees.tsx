@@ -1,16 +1,15 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Search, Plus, Users, UserCheck, UserPlus, Mail, Phone, MoreVertical } from "lucide-react";
+import { Search, Plus, Users, UserCheck, UserPlus, Mail, MoreVertical, ArrowLeft } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { AddEmployeeForm, type EmployeeFormData } from "@/components/hr/AddEmployeeForm";
 
 interface Employee {
   id: string;
@@ -39,8 +38,7 @@ const HREmployees = () => {
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", department: "Engineering", designation: "" });
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const filtered = useMemo(() => {
     return employees.filter((e) => {
@@ -51,17 +49,19 @@ const HREmployees = () => {
     });
   }, [employees, search, deptFilter, statusFilter]);
 
-  const handleAdd = () => {
-    if (!form.name || !form.email) { toast.error("Name and email are required"); return; }
+  const handleAdd = (data: EmployeeFormData) => {
     const newEmp: Employee = {
       id: `EMP${String(employees.length + 1).padStart(3, "0")}`,
-      ...form,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      department: data.department,
+      designation: data.designation,
       status: "Active",
       joinDate: new Date().toISOString().split("T")[0],
     };
     setEmployees([newEmp, ...employees]);
-    setShowAdd(false);
-    setForm({ name: "", email: "", phone: "", department: "Engineering", designation: "" });
+    setShowAddForm(false);
     toast.success("Employee added successfully");
   };
 
@@ -71,6 +71,25 @@ const HREmployees = () => {
     Resigned: "bg-red-500/10 text-red-600 border-red-200",
   };
 
+  if (showAddForm) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setShowAddForm(false)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-foreground text-xl font-semibold">Add New Employee</h1>
+              <p className="text-muted-foreground text-sm">Fill in all required details to register a new employee</p>
+            </div>
+          </div>
+          <AddEmployeeForm onSubmit={handleAdd} onCancel={() => setShowAddForm(false)} />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -79,10 +98,9 @@ const HREmployees = () => {
             <h1 className="text-foreground text-xl font-semibold">Employees</h1>
             <p className="text-muted-foreground text-sm">Manage your workforce</p>
           </div>
-          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
+          <Button size="sm" onClick={() => setShowAddForm(true)}><Plus className="h-4 w-4 mr-1" /> Add Employee</Button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total", value: employees.length, icon: Users, color: "bg-primary/10 text-primary" },
@@ -102,7 +120,6 @@ const HREmployees = () => {
           ))}
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -126,7 +143,6 @@ const HREmployees = () => {
           </Select>
         </div>
 
-        {/* Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -185,28 +201,6 @@ const HREmployees = () => {
             </Table>
           </CardContent>
         </Card>
-
-        {/* Add Dialog */}
-        <Dialog open={showAdd} onOpenChange={setShowAdd}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add New Employee</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Full Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-              <div><Label>Department</Label>
-                <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["Engineering", "Marketing", "Sales", "HR", "Finance", "Operations"].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Designation</Label><Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
-            </div>
-            <DialogFooter><Button onClick={handleAdd}>Add Employee</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
   );
