@@ -63,7 +63,7 @@ export default function ClientsPage() {
   const [sortBy, setSortBy] = useState<"name" | "spend" | "recent">("recent");
 
   const filtered = useMemo(() => {
-    let result = sampleClients.filter((c) => {
+    let result = clients.filter((c) => {
       const matchSearch = `${c.name} ${c.partnerName} ${c.city} ${c.email}`.toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus === "all" || c.status === filterStatus;
       return matchSearch && matchStatus;
@@ -74,10 +74,10 @@ export default function ClientsPage() {
     return result;
   }, [search, filterStatus, sortBy]);
 
-  const totalLifetimeValue = sampleClients.reduce((s, c) => s + c.totalSpend, 0);
-  const totalPending = sampleClients.reduce((s, c) => s + c.pendingAmount, 0);
-  const activeCount = sampleClients.filter((c) => c.status === "active").length;
-  const vipCount = sampleClients.filter((c) => c.status === "vip").length;
+  const totalLifetimeValue = clients.reduce((s, c) => s + c.totalSpend, 0);
+  const totalPending = clients.reduce((s, c) => s + c.pendingAmount, 0);
+  const activeCount = clients.filter((c) => c.status === "active").length;
+  const vipCount = clients.filter((c) => c.status === "vip").length;
 
   const activeFilterCount = filterStatus !== "all" ? 1 : 0;
 
@@ -96,7 +96,7 @@ export default function ClientsPage() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Clients</h1>
-            <p className="text-xs text-muted-foreground">{sampleClients.length} clients · ₹{(totalLifetimeValue / 100000).toFixed(1)}L lifetime value</p>
+            <p className="text-xs text-muted-foreground">{clients.length} clients · ₹{(totalLifetimeValue / 100000).toFixed(1)}L lifetime value</p>
           </div>
         </div>
         <Button size="sm" className="gap-2 rounded-xl">
