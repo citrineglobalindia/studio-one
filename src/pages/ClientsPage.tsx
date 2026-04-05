@@ -373,6 +373,13 @@ export default function ClientsPage() {
           <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
         </div>
       )}
+
+      {/* Add Client Sheet */}
+      <AddClientSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdd={(client) => setClients((prev) => [client, ...prev])}
+      />
     </motion.div>
   );
 }
