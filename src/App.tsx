@@ -26,6 +26,12 @@ import AISelectionPage from "./pages/AISelectionPage";
 import TasksPage from "./pages/TasksPage";
 import AutomationPage from "./pages/AutomationPage";
 import SettingsPage from "./pages/SettingsPage";
+import HRDashboard from "./pages/hr/HRDashboard";
+import HREmployees from "./pages/hr/HREmployees";
+import HRAttendance from "./pages/hr/HRAttendance";
+import HRLeaves from "./pages/hr/HRLeaves";
+import NotificationsPage from "./pages/NotificationsPage";
+import AccountsPage from "./pages/AccountsPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +64,12 @@ const App = () => (
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
             <Route path="/ai-selection" element={<AISelectionPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/hr" element={<HRDashboard />} />
+            <Route path="/hr/employees" element={<HREmployees />} />
+            <Route path="/hr/attendance" element={<HRAttendance />} />
+            <Route path="/hr/leaves" element={<HRLeaves />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

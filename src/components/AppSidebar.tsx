@@ -19,6 +19,11 @@ import {
   HardDrive,
   Bot,
   Sparkles,
+  Bell,
+  Wallet,
+  UserCog,
+  ClipboardList,
+  CalendarOff,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -73,13 +78,27 @@ const aiItems = [
   { title: "Smart Selection", url: "/ai-selection", icon: Sparkles },
 ];
 
+const hrItems = [
+  { title: "HR Dashboard", url: "/hr", icon: UserCog },
+  { title: "Employees", url: "/hr/employees", icon: UsersRound },
+  { title: "Attendance", url: "/hr/attendance", icon: ClipboardList },
+  { title: "Leaves", url: "/hr/leaves", icon: CalendarOff },
+];
+
+const systemItems = [
+  { title: "Notifications", url: "/notifications", icon: Bell },
+  { title: "Accounts", url: "/accounts", icon: Wallet },
+];
+
 const groups = [
   { label: "Sales CRM", items: salesItems },
   { label: "Operations", items: operationsItems },
   { label: "Finance", items: financeItems },
   { label: "Delivery", items: deliveryItems },
   { label: "Growth", items: growthItems },
+  { label: "HR Module", items: hrItems },
   { label: "AI & Smart Tools", items: aiItems },
+  { label: "System", items: systemItems },
 ];
 
 export function AppSidebar() {
