@@ -150,6 +150,7 @@ const HRAttendance = () => {
   const [activeTab, setActiveTab] = useState<TabType>("calendar");
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState<string | null>(null);
+  const [checkInTimestamp, setCheckInTimestamp] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [search, setSearch] = useState("");
   const [showLeaveForm, setShowLeaveForm] = useState(false);
@@ -158,6 +159,29 @@ const HRAttendance = () => {
   const [leaveTo, setLeaveTo] = useState("");
   const [leaveReason, setLeaveReason] = useState("");
   const [reportMonth, setReportMonth] = useState(new Date());
+  const [isOnBreak, setIsOnBreak] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [clockLogs, setClockLogs] = useState<ClockLog[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Live timer effect
+  useEffect(() => {
+    if (isCheckedIn && checkInTimestamp && !isOnBreak) {
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - checkInTimestamp.getTime()) / 1000));
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isCheckedIn, checkInTimestamp, isOnBreak]);
+
+  const formatElapsed = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
 
   const today = new Date();
   const todayStr = format(today, "EEEE, dd MMM yyyy");
