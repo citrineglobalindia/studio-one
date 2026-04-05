@@ -60,6 +60,8 @@ const LeadsPage = () => {
     setDateFrom("");
     setDateTo("");
   };
+
+  const filtered = useMemo(() => {
     return leads.filter((l) => {
       const matchSearch =
         l.name.toLowerCase().includes(search.toLowerCase()) ||
