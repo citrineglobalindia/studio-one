@@ -15,9 +15,6 @@ import CalendarPage from "./pages/CalendarPage";
 import ClientsPage from "./pages/ClientsPage";
 import QuotationsPage from "./pages/QuotationsPage";
 import ContractsPage from "./pages/ContractsPage";
-import GalleryPage from "./pages/GalleryPage";
-import AlbumsPage from "./pages/AlbumsPage";
-import PortalPage from "./pages/PortalPage";
 import CommunicationsPage from "./pages/CommunicationsPage";
 import MarketingPage from "./pages/MarketingPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
@@ -55,9 +52,6 @@ const App = () => (
             <Route path="/team" element={<TeamPage />} />
             <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/contracts" element={<ContractsPage />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/albums" element={<AlbumsPage />} />
-            <Route path="/portal" element={<PortalPage />} />
             <Route path="/communications" element={<CommunicationsPage />} />
             <Route path="/marketing" element={<MarketingPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
