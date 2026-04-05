@@ -4,8 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import Index from "./pages/Index.tsx";
+import { RoleProvider } from "@/contexts/RoleContext";
+import { RoleLayoutWrapper } from "@/components/RoleLayoutWrapper";
 import NotFound from "./pages/NotFound.tsx";
+import Index from "./pages/Index.tsx";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
@@ -30,46 +32,52 @@ import HRLeaves from "./pages/hr/HRLeaves";
 import NotificationsPage from "./pages/NotificationsPage";
 import AccountsPage from "./pages/AccountsPage";
 import ProfilePage from "./pages/ProfilePage";
+import AccessControlPage from "./pages/AccessControlPage";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/leads" element={<LeadsPage />} />
-            <Route path="/clients" element={<ClientsPage />} />
-            <Route path="/quotations" element={<QuotationsPage />} />
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/projects/:id" element={<ProjectDetailPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/team" element={<TeamPage />} />
-            <Route path="/invoices" element={<InvoicesPage />} />
-            <Route path="/contracts" element={<ContractsPage />} />
-            <Route path="/communications" element={<CommunicationsPage />} />
-            <Route path="/marketing" element={<MarketingPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/automation" element={<AutomationPage />} />
-            <Route path="/ai-assistant" element={<AIAssistantPage />} />
-            <Route path="/ai-selection" element={<AISelectionPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/hr" element={<HRDashboard />} />
-            <Route path="/hr/employees" element={<HREmployees />} />
-            <Route path="/hr/attendance" element={<HRAttendance />} />
-            <Route path="/hr/leaves" element={<HRLeaves />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/accounts" element={<AccountsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <RoleProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<RoleLayoutWrapper />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/leads" element={<LeadsPage />} />
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/quotations" element={<QuotationsPage />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/team" element={<TeamPage />} />
+                <Route path="/invoices" element={<InvoicesPage />} />
+                <Route path="/contracts" element={<ContractsPage />} />
+                <Route path="/communications" element={<CommunicationsPage />} />
+                <Route path="/marketing" element={<MarketingPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/automation" element={<AutomationPage />} />
+                <Route path="/ai-assistant" element={<AIAssistantPage />} />
+                <Route path="/ai-selection" element={<AISelectionPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/access-control" element={<AccessControlPage />} />
+                <Route path="/hr" element={<HRDashboard />} />
+                <Route path="/hr/employees" element={<HREmployees />} />
+                <Route path="/hr/attendance" element={<HRAttendance />} />
+                <Route path="/hr/leaves" element={<HRLeaves />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/accounts" element={<AccountsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </RoleProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { useNavigate } from "react-router-dom";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <RoleSwitcher />
               <ThemeSwitcher />
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative" onClick={() => navigate("/notifications")}>
                 <Bell className="h-4 w-4" />
@@ -37,7 +39,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}
           </main>
         </div>
