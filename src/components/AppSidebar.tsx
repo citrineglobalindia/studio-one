@@ -6,7 +6,7 @@ import {
   CalendarDays,
   FileText,
   CreditCard,
-  Image,
+  LayoutDashboard,
   MessageSquare,
   BarChart3,
   Settings,
