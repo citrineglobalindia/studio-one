@@ -200,8 +200,33 @@ const HRAttendance = () => {
     return { present, absent, halfday, leave };
   })();
 
-  const handleCheckIn = () => { setIsCheckedIn(true); setCheckInTime(format(new Date(), "hh:mm a")); };
-  const handleCheckOut = () => { setIsCheckedIn(false); setCheckInTime(null); };
+  const handleCheckIn = () => {
+    const now = new Date();
+    setIsCheckedIn(true);
+    setCheckInTime(format(now, "hh:mm a"));
+    setCheckInTimestamp(now);
+    setElapsedSeconds(0);
+    setClockLogs(prev => [...prev, { id: crypto.randomUUID(), type: "checkin", time: now, label: "Checked In" }]);
+  };
+  const handleCheckOut = () => {
+    const now = new Date();
+    setClockLogs(prev => [...prev, { id: crypto.randomUUID(), type: "checkout", time: now, label: "Checked Out" }]);
+    setIsCheckedIn(false);
+    setCheckInTime(null);
+    setCheckInTimestamp(null);
+    setIsOnBreak(false);
+    setElapsedSeconds(0);
+  };
+  const handleBreakToggle = () => {
+    const now = new Date();
+    if (isOnBreak) {
+      setIsOnBreak(false);
+      setClockLogs(prev => [...prev, { id: crypto.randomUUID(), type: "break_end", time: now, label: "Break Ended" }]);
+    } else {
+      setIsOnBreak(true);
+      setClockLogs(prev => [...prev, { id: crypto.randomUUID(), type: "break_start", time: now, label: "Break Started" }]);
+    }
+  };
 
   // Calendar
   const monthStart = startOfMonth(currentMonth);
