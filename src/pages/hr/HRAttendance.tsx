@@ -270,60 +270,73 @@ const HRAttendance = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 max-w-5xl mx-auto">
-        {/* Hero Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative rounded-2xl p-5 overflow-hidden"
-          style={{ background: "linear-gradient(135deg, hsl(var(--sidebar-background)) 0%, hsl(var(--primary) / 0.9) 100%)" }}
-        >
-          <div className="absolute -top-10 -right-10 size-36 rounded-full bg-white/[0.04]" />
-          <div className="absolute -bottom-8 -left-8 size-28 rounded-full bg-white/[0.03]" />
-
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[12px] text-white/60">{todayStr}</p>
-              <h2 className="text-lg md:text-xl font-bold text-white mt-0.5">
-                {isCheckedIn ? "You're Checked In ✅" : "Mark Your Attendance"}
-              </h2>
-            </div>
-            <div className="size-11 rounded-full border border-white/20 flex items-center justify-center">
-              <Clock size={20} className="text-white/60" />
-            </div>
-          </div>
-
-          {isCheckedIn && checkInTime && (
-            <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 mb-3">
-              <LogIn size={14} className="text-emerald-400" />
-              <span className="text-[13px] text-white/80">Checked in at {checkInTime}</span>
-            </div>
-          )}
-
-          <button
-            onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
-            className={`w-full py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
-              isCheckedIn ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
-            }`}
+      <div className="space-y-4">
+        {/* Desktop: Hero + Quick Stats side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Hero Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative rounded-2xl p-5 md:p-6 overflow-hidden lg:col-span-2"
+            style={{ background: "linear-gradient(135deg, hsl(var(--sidebar-background)) 0%, hsl(var(--primary) / 0.9) 100%)" }}
           >
-            {isCheckedIn ? <LogOut size={18} /> : <LogIn size={18} />}
-            {isCheckedIn ? "Check Out" : "Check In"}
-          </button>
+            <div className="absolute -top-10 -right-10 size-36 rounded-full bg-white/[0.04]" />
+            <div className="absolute -bottom-8 -left-8 size-28 rounded-full bg-white/[0.03]" />
+            <div className="absolute top-1/2 right-1/4 size-48 rounded-full bg-white/[0.02]" />
 
-          <div className="grid grid-cols-4 gap-2 mt-4">
-            {[
-              { val: monthStats.present, label: "Present", color: "text-emerald-400" },
-              { val: monthStats.absent, label: "Absent", color: "text-red-400" },
-              { val: monthStats.halfday, label: "Half Day", color: "text-amber-400" },
-              { val: monthStats.leave, label: "Leave", color: "text-white/70" },
-            ].map(s => (
-              <div key={s.label} className="bg-white/[0.08] border border-white/10 rounded-xl py-2.5 text-center">
-                <span className={`text-lg font-bold ${s.color}`}>{s.val}</span>
-                <p className="text-[10px] text-white/50 mt-0.5">{s.label}</p>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[12px] md:text-sm text-white/60">{todayStr}</p>
+                <h2 className="text-lg md:text-2xl font-bold text-white mt-0.5">
+                  {isCheckedIn ? "You're Checked In ✅" : "Mark Your Attendance"}
+                </h2>
               </div>
-            ))}
-          </div>
-        </motion.div>
+              <div className="size-11 md:size-14 rounded-full border border-white/20 flex items-center justify-center">
+                <Clock size={20} className="text-white/60 md:size-6" />
+              </div>
+            </div>
+
+            {isCheckedIn && checkInTime && (
+              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 mb-3 w-fit">
+                <LogIn size={14} className="text-emerald-400" />
+                <span className="text-[13px] text-white/80">Checked in at {checkInTime}</span>
+              </div>
+            )}
+
+            <button
+              onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
+              className={`w-full md:w-auto md:px-16 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
+                isCheckedIn ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+              }`}
+            >
+              {isCheckedIn ? <LogOut size={18} /> : <LogIn size={18} />}
+              {isCheckedIn ? "Check Out" : "Check In"}
+            </button>
+          </motion.div>
+
+          {/* Stats Card */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-5"
+          >
+            <h3 className="text-sm font-bold text-foreground mb-3">This Month</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { val: monthStats.present, label: "Present", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", icon: CheckCircle2 },
+                { val: monthStats.absent, label: "Absent", color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10", icon: XCircle },
+                { val: monthStats.halfday, label: "Half Day", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10", icon: Clock },
+                { val: monthStats.leave, label: "Leave", color: "text-primary", bg: "bg-primary/10", icon: Palmtree },
+              ].map(s => (
+                <div key={s.label} className={`${s.bg} rounded-xl p-3 flex items-center gap-3`}>
+                  <s.icon size={18} className={s.color} />
+                  <div>
+                    <span className={`text-xl font-bold ${s.color}`}>{s.val}</span>
+                    <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
 
         {/* Tabs */}
         <div className="flex bg-muted rounded-full p-1 overflow-x-auto scrollbar-hide">
@@ -331,8 +344,8 @@ const HRAttendance = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 flex-shrink-0 py-2 px-2 rounded-full text-[11px] md:text-xs font-semibold capitalize transition-all whitespace-nowrap ${
-                activeTab === tab ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
+              className={`flex-1 flex-shrink-0 py-2 px-2 md:px-4 md:py-2.5 rounded-full text-[11px] md:text-xs font-semibold capitalize transition-all whitespace-nowrap ${
+                activeTab === tab ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab === "clockin" ? "Clock In/Out" : tab}
@@ -342,23 +355,23 @@ const HRAttendance = () => {
 
         {/* ── Calendar Tab ── */}
         {activeTab === "calendar" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-2xl shadow-sm border border-border/50 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="size-8 rounded-full bg-muted flex items-center justify-center"><ChevronLeft size={16} /></button>
-              <h3 className="text-[15px] font-bold text-foreground">{format(currentMonth, "MMMM yyyy")}</h3>
-              <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="size-8 rounded-full bg-muted flex items-center justify-center"><ChevronRight size={16} /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-6">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="size-8 md:size-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition"><ChevronLeft size={16} /></button>
+              <h3 className="text-[15px] md:text-lg font-bold text-foreground">{format(currentMonth, "MMMM yyyy")}</h3>
+              <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="size-8 md:size-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition"><ChevronRight size={16} /></button>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {calWeekDays.map((d, i) => <div key={i} className="text-center text-[12px] font-semibold text-muted-foreground">{d}</div>)}
+            <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2 md:mb-3">
+              {calWeekDays.map((d, i) => <div key={i} className="text-center text-[12px] md:text-sm font-semibold text-muted-foreground">{d}</div>)}
             </div>
-            <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
-            <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border">
+            <div className="grid grid-cols-7 gap-1 md:gap-2">{renderCalendar()}</div>
+            <div className="flex flex-wrap gap-3 md:gap-5 mt-4 md:mt-6 pt-3 md:pt-4 border-t border-border">
               {[
                 { color: "bg-emerald-500", label: "Present" }, { color: "bg-red-500", label: "Absent" },
                 { color: "bg-amber-500", label: "Half Day" }, { color: "bg-accent", label: "Holiday" }, { color: "bg-primary", label: "Leave" },
               ].map(l => (
-                <div key={l.label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <div className={`size-2 rounded-full ${l.color}`} />{l.label}
+                <div key={l.label} className="flex items-center gap-1.5 text-[10px] md:text-xs text-muted-foreground">
+                  <div className={`size-2.5 md:size-3 rounded-full ${l.color}`} />{l.label}
                 </div>
               ))}
             </div>
