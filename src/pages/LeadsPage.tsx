@@ -395,8 +395,6 @@ const LeadsPage = () => {
               )}
             </motion.div>
           )}
-            </div>
-          </div>
 
           {/* Table */}
           <div className="rounded-xl border border-border bg-card overflow-hidden">
