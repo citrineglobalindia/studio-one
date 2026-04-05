@@ -580,6 +580,12 @@ export default function ClientDetailPage() {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      <AddEventSheet
+        open={addEventOpen}
+        onOpenChange={setAddEventOpen}
+        onAdd={(event) => setEvents((prev) => [...prev, event])}
+      />
     </motion.div>
   );
 }
