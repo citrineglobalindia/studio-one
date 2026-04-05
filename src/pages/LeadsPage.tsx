@@ -171,69 +171,230 @@ const LeadsPage = () => {
         </TabsList>
 
         <TabsContent value="table" className="mt-4 space-y-4">
-          {/* View Toggle + Search */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search + Filter Bar */}
+          <div className="flex items-center gap-2">
+            {/* View Toggle - Compact pills */}
             <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
               <button
                 onClick={() => setViewMode("all")}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors",
                   viewMode === "all" ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-muted"
-                }`}
+                )}
               >
-                <Users className="h-4 w-4" /> All Leads
+                <Users className="h-3.5 w-3.5" /> All
               </button>
               <button
                 onClick={() => setViewMode("my")}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors",
                   viewMode === "my" ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-muted"
-                }`}
+                )}
               >
-                <UserPlus className="h-4 w-4" /> My Leads
+                <UserPlus className="h-3.5 w-3.5" /> Mine
               </button>
             </div>
+
+            {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by company, contact, or POC..."
+                placeholder="Search leads..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="pl-9 h-9 text-sm"
               />
             </div>
+
+            {/* Filter Button - Mobile: Sheet, Desktop: inline */}
+            {/* Desktop Filters */}
+            <div className="hidden sm:flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-36 h-9">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {stages.map((s) => (
+                    <SelectItem key={s} value={s}>{stageConfig[s].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={userFilter} onValueChange={setUserFilter}>
+                <SelectTrigger className="w-36 h-9">
+                  <SelectValue placeholder="All Users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Users</SelectItem>
+                  {teamMembers.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Mobile Filter Button */}
+            <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="sm:hidden h-9 w-9 relative shrink-0">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-3xl pb-8 max-h-[85vh]">
+                <SheetHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="flex items-center gap-2 text-base">
+                      <SlidersHorizontal className="h-4 w-4 text-primary" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge variant="default" className="text-[10px] h-5 px-1.5">{activeFilterCount} active</Badge>
+                      )}
+                    </SheetTitle>
+                    {activeFilterCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs text-destructive hover:text-destructive gap-1">
+                        <X className="h-3 w-3" /> Clear all
+                      </Button>
+                    )}
+                  </div>
+                </SheetHeader>
+
+                <div className="space-y-5">
+                  {/* Status Filter - Chips */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 block">Status</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setStatusFilter("all")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                          statusFilter === "all"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-card text-foreground border-border hover:border-primary/40"
+                        )}
+                      >
+                        All
+                      </button>
+                      {stages.map((s) => {
+                        const cfg = stageConfig[s];
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => setStatusFilter(s)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5",
+                              statusFilter === s
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : `${cfg.bgColor} ${cfg.color} ${cfg.borderColor} hover:opacity-80`
+                            )}
+                          >
+                            <span className={cn("h-1.5 w-1.5 rounded-full", statusFilter === s ? "bg-primary-foreground" : cfg.bgColor)} />
+                            {cfg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Assigned To */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 block">Assigned To</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setUserFilter("all")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                          userFilter === "all"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-card text-foreground border-border hover:border-primary/40"
+                        )}
+                      >
+                        Everyone
+                      </button>
+                      {teamMembers.map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => setUserFilter(m)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5",
+                            userFilter === m
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card text-foreground border-border hover:border-primary/40"
+                          )}
+                        >
+                          <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary">
+                            {m.split(" ").map(n => n[0]).join("")}
+                          </span>
+                          {m.split(" ")[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Date Range */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 block flex items-center gap-1.5">
+                      <CalendarDays className="h-3 w-3" /> Date Range
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="h-10 flex-1 text-sm rounded-xl"
+                      />
+                      <span className="text-xs text-muted-foreground font-medium">to</span>
+                      <Input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="h-10 flex-1 text-sm rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Apply Button */}
+                  <Button className="w-full h-11 rounded-xl font-semibold gap-2" onClick={() => setFilterOpen(false)}>
+                    <Filter className="h-4 w-4" />
+                    Show {filtered.length} Results
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
-          {/* Filters Row */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Filters:</span>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36 h-9">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {stages.map((s) => (
-                  <SelectItem key={s} value={s}>{stageConfig[s].label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={userFilter} onValueChange={setUserFilter}>
-              <SelectTrigger className="w-36 h-9">
-                <SelectValue placeholder="All Users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Users</SelectItem>
-                {teamMembers.map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Input type="date" className="h-9 w-36 text-sm" placeholder="dd/mm/yyyy" />
-              <span className="text-sm text-muted-foreground">to</span>
-              <Input type="date" className="h-9 w-36 text-sm" placeholder="dd/mm/yyyy" />
+          {/* Active Filter Chips (mobile) */}
+          {activeFilterCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 flex-wrap sm:hidden"
+            >
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Active:</span>
+              {statusFilter !== "all" && (
+                <button
+                  onClick={() => setStatusFilter("all")}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
+                >
+                  {stageConfig[statusFilter as LeadStage]?.label}
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              {userFilter !== "all" && (
+                <button
+                  onClick={() => setUserFilter("all")}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
+                >
+                  {userFilter.split(" ")[0]}
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </motion.div>
+          )}
             </div>
           </div>
 
