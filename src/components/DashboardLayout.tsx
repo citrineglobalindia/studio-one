@@ -3,8 +3,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { useNavigate } from "react-router-dom";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -23,13 +25,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative" onClick={() => navigate("/notifications")}>
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
               </Button>
-              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
+              <button
+                onClick={() => navigate("/profile")}
+                className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary hover:bg-primary/30 transition-colors cursor-pointer"
+              >
                 AS
-              </div>
+              </button>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
