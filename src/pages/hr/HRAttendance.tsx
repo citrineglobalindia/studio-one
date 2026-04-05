@@ -381,118 +381,133 @@ const HRAttendance = () => {
         {/* ── Clock In/Out Tab ── */}
         {activeTab === "clockin" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            {/* Live Timer Card */}
-            <div className="bg-card rounded-2xl shadow-sm border border-border/50 p-5 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Timer size={18} className="text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Today's Session</h3>
+            {/* Desktop: Timer + Timeline side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* Live Timer Card */}
+              <div className="lg:col-span-3 bg-card rounded-2xl shadow-sm border border-border/50 p-5 md:p-8 text-center flex flex-col justify-center">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Timer size={20} className="text-primary" />
+                  </div>
+                  <h3 className="text-base md:text-lg font-bold text-foreground">Today's Session</h3>
+                </div>
+
+                {/* Timer ring */}
+                <div className="relative mx-auto my-6 md:my-8">
+                  <div className={`size-44 md:size-56 rounded-full border-4 ${isCheckedIn ? (isOnBreak ? "border-amber-500/30" : "border-primary/30") : "border-muted"} flex items-center justify-center`}>
+                    <div className={`size-36 md:size-48 rounded-full ${isCheckedIn ? (isOnBreak ? "bg-amber-500/5" : "bg-primary/5") : "bg-muted/30"} flex flex-col items-center justify-center`}>
+                      <span className={`text-4xl md:text-5xl font-mono font-bold tracking-wider ${isCheckedIn ? (isOnBreak ? "text-amber-500" : "text-primary") : "text-muted-foreground"}`}>
+                        {formatElapsed(elapsedSeconds)}
+                      </span>
+                      {isOnBreak && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] md:text-xs text-amber-500 font-semibold mt-1.5 flex items-center gap-1">
+                          <Coffee size={12} /> On Break
+                        </motion.p>
+                      )}
+                      {isCheckedIn && !isOnBreak && (
+                        <p className="text-[10px] md:text-xs text-primary/60 font-medium mt-1.5">Working...</p>
+                      )}
+                      {!isCheckedIn && (
+                        <p className="text-[10px] md:text-xs text-muted-foreground font-medium mt-1.5">Not clocked in</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status info */}
+                {isCheckedIn && checkInTime && (
+                  <div className="flex items-center justify-center gap-4 mb-5 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full"><LogIn size={12} className="text-emerald-500" /> {checkInTime}</span>
+                    <span className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-full"><MapPin size={12} /> Office</span>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex gap-3 max-w-md mx-auto w-full">
+                  {!isCheckedIn ? (
+                    <button onClick={handleCheckIn}
+                      className="flex-1 py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm md:text-base flex items-center justify-center gap-2 active:scale-[0.97] transition-all hover:bg-emerald-600"
+                    >
+                      <Play size={18} /> Clock In
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={handleBreakToggle}
+                        className={`flex-1 py-3.5 rounded-xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 active:scale-[0.97] transition-all ${
+                          isOnBreak ? "bg-primary text-primary-foreground hover:opacity-90" : "bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20"
+                        }`}
+                      >
+                        <Coffee size={18} /> {isOnBreak ? "Resume" : "Break"}
+                      </button>
+                      <button onClick={handleCheckOut}
+                        className="flex-1 py-3.5 rounded-xl bg-red-500 text-white font-semibold text-sm md:text-base flex items-center justify-center gap-2 active:scale-[0.97] transition-all hover:bg-red-600"
+                      >
+                        <Square size={18} /> Clock Out
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* Timer display */}
-              <motion.div
-                key={elapsedSeconds}
-                className="my-4"
-              >
-                <span className={`text-5xl md:text-6xl font-mono font-bold tracking-wider ${isCheckedIn ? (isOnBreak ? "text-amber-500" : "text-primary") : "text-muted-foreground"}`}>
-                  {formatElapsed(elapsedSeconds)}
-                </span>
-                {isOnBreak && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-amber-500 font-semibold mt-2 flex items-center justify-center gap-1">
-                    <Coffee size={14} /> On Break — Timer Paused
-                  </motion.p>
-                )}
-              </motion.div>
-
-              {/* Status info */}
-              {isCheckedIn && checkInTime && (
-                <div className="flex items-center justify-center gap-4 mb-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><LogIn size={12} className="text-emerald-500" /> {checkInTime}</span>
-                  <span className="flex items-center gap-1"><MapPin size={12} /> Office</span>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex gap-2 max-w-sm mx-auto">
-                {!isCheckedIn ? (
-                  <button
-                    onClick={handleCheckIn}
-                    className="flex-1 py-3 rounded-xl bg-emerald-500 text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
-                  >
-                    <Play size={16} /> Clock In
-                  </button>
+              {/* Today's Timeline */}
+              <div className="lg:col-span-2 bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-5">
+                <h4 className="text-sm md:text-base font-bold text-foreground mb-4">Today's Timeline</h4>
+                {clockLogs.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Clock size={32} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No activity yet today</p>
+                    <p className="text-xs mt-1">Clock in to start tracking</p>
+                  </div>
                 ) : (
-                  <>
-                    <button
-                      onClick={handleBreakToggle}
-                      className={`flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all ${
-                        isOnBreak ? "bg-primary text-primary-foreground" : "bg-amber-500/10 text-amber-600 border border-amber-500/30"
-                      }`}
-                    >
-                      <Coffee size={16} /> {isOnBreak ? "Resume" : "Break"}
-                    </button>
-                    <button
-                      onClick={handleCheckOut}
-                      className="flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
-                    >
-                      <Square size={16} /> Clock Out
-                    </button>
-                  </>
+                  <div className="relative pl-6 space-y-4">
+                    <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
+                    {[...clockLogs].reverse().map((log, i) => {
+                      const iconMap = {
+                        checkin: { icon: LogIn, color: "bg-emerald-500 text-white" },
+                        checkout: { icon: LogOut, color: "bg-red-500 text-white" },
+                        break_start: { icon: Coffee, color: "bg-amber-500 text-white" },
+                        break_end: { icon: Play, color: "bg-primary text-primary-foreground" },
+                      };
+                      const cfg = iconMap[log.type];
+                      const Icon = cfg.icon;
+                      return (
+                        <motion.div key={log.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                          className="relative flex items-center gap-3"
+                        >
+                          <div className={`absolute -left-6 size-5 rounded-full flex items-center justify-center ${cfg.color}`}>
+                            <Icon size={10} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[13px] font-semibold text-foreground">{log.label}</p>
+                            <p className="text-[11px] text-muted-foreground">{format(log.time, "hh:mm:ss a")}</p>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Today's Timeline */}
-            {clockLogs.length > 0 && (
-              <div className="bg-card rounded-2xl shadow-sm border border-border/50 p-4">
-                <h4 className="text-sm font-bold text-foreground mb-3">Today's Timeline</h4>
-                <div className="relative pl-6 space-y-3">
-                  <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
-                  {[...clockLogs].reverse().map((log, i) => {
-                    const iconMap = {
-                      checkin: { icon: LogIn, color: "bg-emerald-500 text-white" },
-                      checkout: { icon: LogOut, color: "bg-red-500 text-white" },
-                      break_start: { icon: Coffee, color: "bg-amber-500 text-white" },
-                      break_end: { icon: Play, color: "bg-primary text-primary-foreground" },
-                    };
-                    const cfg = iconMap[log.type];
-                    const Icon = cfg.icon;
-                    return (
-                      <motion.div key={log.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                        className="relative flex items-center gap-3"
-                      >
-                        <div className={`absolute -left-6 size-5 rounded-full flex items-center justify-center ${cfg.color}`}>
-                          <Icon size={10} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[13px] font-semibold text-foreground">{log.label}</p>
-                          <p className="text-[11px] text-muted-foreground">{format(log.time, "hh:mm:ss a")}</p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Daily Log History */}
             <div>
-              <h4 className="text-sm font-bold text-foreground mb-3">Daily Log History</h4>
+              <h4 className="text-sm md:text-base font-bold text-foreground mb-3">Daily Log History</h4>
 
               {/* Desktop table */}
               <div className="hidden md:block bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
-                <div className="grid grid-cols-6 gap-1 px-4 py-2.5 bg-muted/50 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="grid grid-cols-6 gap-1 px-5 py-3 bg-muted/50 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   <span>Date</span><span>Check In</span><span>Check Out</span><span>Break</span><span>Total</span><span>Status</span>
                 </div>
                 {dailyLogs.map((log, i) => (
                   <motion.div key={log.date} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-6 gap-1 px-4 py-3 border-b border-border/50 last:border-0 items-center text-[12px]"
+                    className="grid grid-cols-6 gap-1 px-5 py-3.5 border-b border-border/50 last:border-0 items-center text-sm hover:bg-muted/20 transition-colors"
                   >
                     <span className="font-semibold text-foreground">{log.date}</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-medium">{log.checkIn}</span>
                     <span className="text-red-600 dark:text-red-400 font-medium">{log.checkOut}</span>
                     <span className="text-muted-foreground">{log.breakTime}</span>
                     <span className="font-bold text-foreground">{log.totalHours}</span>
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium w-fit ${
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium w-fit ${
                       log.status === "On Time" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     }`}>{log.status}</span>
                   </motion.div>
