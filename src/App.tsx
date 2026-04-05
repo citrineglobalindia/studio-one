@@ -26,6 +26,12 @@ import AISelectionPage from "./pages/AISelectionPage";
 import TasksPage from "./pages/TasksPage";
 import AutomationPage from "./pages/AutomationPage";
 import SettingsPage from "./pages/SettingsPage";
+import HRDashboard from "./pages/hr/HRDashboard";
+import HREmployees from "./pages/hr/HREmployees";
+import HRAttendance from "./pages/hr/HRAttendance";
+import HRLeaves from "./pages/hr/HRLeaves";
+import NotificationsPage from "./pages/NotificationsPage";
+import AccountsPage from "./pages/AccountsPage";
 
 const queryClient = new QueryClient();
 
