@@ -4,12 +4,28 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths,
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, LogIn, LogOut, ChevronLeft, ChevronRight, Users, Ban, TrendingDown, AlertTriangle, CheckCircle2, XCircle, Download, Palmtree, Send } from "lucide-react";
+import { Clock, LogIn, LogOut, ChevronLeft, ChevronRight, Users, Ban, TrendingDown, AlertTriangle, CheckCircle2, XCircle, Download, Palmtree, Send, Timer, Play, Square, Coffee, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-type TabType = "calendar" | "ledger" | "team" | "report" | "leave" | "holidays";
+type TabType = "calendar" | "clockin" | "ledger" | "team" | "report" | "leave" | "holidays";
+
+type ClockLog = {
+  id: string;
+  type: "checkin" | "checkout" | "break_start" | "break_end";
+  time: Date;
+  label: string;
+};
+
+const dailyLogs: { date: string; checkIn: string; checkOut: string; breakTime: string; totalHours: string; status: string }[] = [
+  { date: "Apr 4, 2026", checkIn: "09:02 AM", checkOut: "06:18 PM", breakTime: "45m", totalHours: "8h 31m", status: "On Time" },
+  { date: "Apr 3, 2026", checkIn: "09:15 AM", checkOut: "06:05 PM", breakTime: "30m", totalHours: "8h 20m", status: "Late" },
+  { date: "Apr 2, 2026", checkIn: "08:55 AM", checkOut: "06:30 PM", breakTime: "1h", totalHours: "8h 35m", status: "On Time" },
+  { date: "Apr 1, 2026", checkIn: "09:00 AM", checkOut: "05:45 PM", breakTime: "45m", totalHours: "8h 00m", status: "On Time" },
+  { date: "Mar 31, 2026", checkIn: "09:30 AM", checkOut: "06:00 PM", breakTime: "30m", totalHours: "8h 00m", status: "Late" },
+  { date: "Mar 28, 2026", checkIn: "08:50 AM", checkOut: "06:10 PM", breakTime: "45m", totalHours: "8h 35m", status: "On Time" },
+];
 
 // ── Mock Data ──────────────────────────────────────────────────────
 const attendanceData: Record<string, string> = {
