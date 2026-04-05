@@ -66,6 +66,9 @@ export interface Client {
   tags: string[];
   activities: ClientActivity[];
   documents: ClientDocument[];
+  invoices: ClientInvoice[];
+  payments: ClientPayment[];
+  events: ClientEvent[];
   createdAt: string;
 }
 
