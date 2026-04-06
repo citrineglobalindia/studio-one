@@ -24,6 +24,12 @@ import TasksPage from "./pages/TasksPage";
 import EventsPage from "./pages/EventsPage";
 import AlbumsPage from "./pages/AlbumsPage";
 import EventDayPage from "./pages/EventDayPage";
+import CommunicationsPage from "./pages/CommunicationsPage";
+import MarketingPage from "./pages/MarketingPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AutomationPage from "./pages/AutomationPage";
+import GalleryPage from "./pages/GalleryPage";
+import PortalPage from "./pages/PortalPage";
 
 import SettingsPage from "./pages/SettingsPage";
 import HRDashboard from "./pages/hr/HRDashboard";
