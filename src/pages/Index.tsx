@@ -122,15 +122,6 @@ const Index = () => {
   const { currentRole } = useRole();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(today);
 
-  // Role-specific dashboards
-  if (currentRole === "photographer") return <PhotographerDashboard />;
-  if (currentRole === "videographer") return <VideographerDashboard />;
-  if (currentRole === "editor") return <EditorDashboard />;
-  if (currentRole === "telecaller") return <TelecallerDashboard />;
-  if (currentRole === "vendor") return <VendorDashboard />;
-  if (currentRole === "hr") return <HRDashboardRole />;
-  if (currentRole === "accounts") return <AccountsDashboard />;
-
   const eventDates = useMemo(() => {
     const dates: Date[] = [];
     allSubEvents.forEach((se) => {
@@ -148,6 +139,15 @@ const Index = () => {
   }, [selectedDate]);
 
   const upcomingList = upcomingShoots.slice(0, 5);
+
+  // Role-specific dashboards
+  if (currentRole === "photographer") return <PhotographerDashboard />;
+  if (currentRole === "videographer") return <VideographerDashboard />;
+  if (currentRole === "editor") return <EditorDashboard />;
+  if (currentRole === "telecaller") return <TelecallerDashboard />;
+  if (currentRole === "vendor") return <VendorDashboard />;
+  if (currentRole === "hr") return <HRDashboardRole />;
+  if (currentRole === "accounts") return <AccountsDashboard />;
 
   return (
     <motion.div
