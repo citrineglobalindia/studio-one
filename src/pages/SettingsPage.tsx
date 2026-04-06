@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionManager } from "@/components/SubscriptionManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -273,27 +274,7 @@ export default function SettingsPage() {
             <Button className="gap-2"><Save className="h-3.5 w-3.5" /> Save Payment Details</Button>
           </div>
 
-          <div className="rounded-xl bg-card border border-border p-6 space-y-4">
-            <h2 className="font-display font-semibold text-foreground">Subscription</h2>
-            <div className="flex items-center justify-between p-5 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground">Pro Plan</p>
-                  <Badge className="text-[9px] bg-primary text-primary-foreground">Active</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Unlimited projects, team members & automations</p>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-display font-bold text-primary">₹2,499/mo</p>
-                <p className="text-xs text-muted-foreground">Renews Apr 15, 2026</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">Change Plan</Button>
-              <Button variant="ghost" size="sm" className="text-muted-foreground">View Invoices</Button>
-            </div>
-          </div>
-        </TabsContent>
+          <SubscriptionManager />
 
         {/* ═══ ADVANCED ═══ */}
         <TabsContent value="advanced" className="space-y-6">
