@@ -72,7 +72,7 @@ export default function EventsPage() {
   const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
 
   const allEvents: EventWithClient[] = useMemo(() => {
-    return sampleClients.flatMap(client =>
+    const base = sampleClients.flatMap(client =>
       client.events.map(event => ({
         ...event,
         clientName: client.name,
@@ -81,8 +81,9 @@ export default function EventsPage() {
           .map(tid => teamMembers.find(t => t.id === tid)!)
           .filter(Boolean),
       }))
-    ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [assignments]);
+    );
+    return [...base, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [assignments, extraEvents]);
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(event => {
