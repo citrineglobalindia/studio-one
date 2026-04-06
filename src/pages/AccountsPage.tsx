@@ -802,6 +802,28 @@ const AccountsPage = () => {
               <Textarea placeholder="Additional details..." value={expNotes} onChange={(e) => setExpNotes(e.target.value)} />
             </div>
 
+            {/* Receipt Upload */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1"><Image className="h-3.5 w-3.5" /> Receipt / Bill Photo</Label>
+              {!expReceiptPreview ? (
+                <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                  <Upload className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Click to upload receipt (JPG, PNG, PDF · Max 10MB)</span>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleReceiptSelect} />
+                </label>
+              ) : (
+                <div className="relative">
+                  <img src={expReceiptPreview} alt="Receipt preview" className="w-full h-40 object-cover rounded-lg border border-border" />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button size="sm" variant="secondary" className="h-7 w-7 p-0" onClick={() => { setExpReceiptFile(null); setExpReceiptPreview(null); }}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">{expReceiptFile?.name} · {((expReceiptFile?.size || 0) / 1024).toFixed(0)} KB</p>
+                </div>
+              )}
+            </div>
+
             {/* Summary */}
             {expAmount && (
               <Card className="bg-muted/30">
@@ -812,17 +834,46 @@ const AccountsPage = () => {
                     <span className="text-sm font-bold">{fmt(parseFloat(expAmount) || 0)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Client: {expClient || "—"} · Category: {expCategory || "—"}</p>
+                  {expReceiptFile && <p className="text-[10px] text-emerald-500 flex items-center gap-1"><Check className="h-3 w-3" /> Receipt attached</p>}
                   <Badge variant="outline" className={statusColors.pending + " text-[10px] mt-1"}>Will be sent for approval</Badge>
                 </CardContent>
               </Card>
             )}
 
-            <Button className="w-full" onClick={handleSubmitExpense}>
-              <Plus className="h-4 w-4 mr-1" /> Submit Expense
+            <Button className="w-full" onClick={handleSubmitExpense} disabled={uploading}>
+              {uploading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Uploading...</> : <><Plus className="h-4 w-4 mr-1" /> Submit Expense</>}
             </Button>
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ═══ RECEIPT VIEWER DIALOG ═══ */}
+      <Dialog open={!!viewReceiptUrl} onOpenChange={(o) => !o && setViewReceiptUrl(null)}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="h-4 w-4 text-primary" /> Receipt / Bill
+            </DialogTitle>
+          </DialogHeader>
+          {viewReceiptUrl && (
+            <div className="p-4 pt-2 space-y-3">
+              <img src={viewReceiptUrl} alt="Receipt" className="w-full max-h-[60vh] object-contain rounded-lg border border-border bg-muted/20" />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1" asChild>
+                  <a href={viewReceiptUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open Full Size
+                  </a>
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1" asChild>
+                  <a href={viewReceiptUrl} download>
+                    <Download className="h-3.5 w-3.5 mr-1" /> Download
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
