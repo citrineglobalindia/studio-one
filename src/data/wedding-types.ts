@@ -14,6 +14,24 @@ export interface TeamMember {
   type: "in-office" | "vendor";
   phone?: string;
   avatar?: string;
+  email?: string;
+  gender?: "male" | "female" | "other";
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  aadhaarNumber?: string;
+  panNumber?: string;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankIfsc?: string;
+  experience?: string;
+  specialization?: string;
+  dailyRate?: number;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  joiningDate?: string;
+  notes?: string;
 }
 
 export interface FootageItem {
