@@ -59,7 +59,9 @@ const operationsItems = [
 ];
 
 const financeItems = [
+  { title: "Accounts", url: "/accounts", icon: Wallet },
   { title: "Invoices", url: "/invoices", icon: CreditCard },
+  { title: "Quotations", url: "/quotations", icon: FileText },
   { title: "Contracts", url: "/contracts", icon: Briefcase },
 ];
 
