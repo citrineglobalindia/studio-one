@@ -14,6 +14,14 @@ import { sampleLeads } from "@/data/lead-types";
 import { useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useRole } from "@/contexts/RoleContext";
+import { PhotographerDashboard } from "@/components/dashboards/PhotographerDashboard";
+import { VideographerDashboard } from "@/components/dashboards/VideographerDashboard";
+import { EditorDashboard } from "@/components/dashboards/EditorDashboard";
+import { TelecallerDashboard } from "@/components/dashboards/TelecallerDashboard";
+import { VendorDashboard } from "@/components/dashboards/VendorDashboard";
+import { HRDashboardRole } from "@/components/dashboards/HRDashboardRole";
+import { AccountsDashboard } from "@/components/dashboards/AccountsDashboard";
 
 const today = new Date("2026-04-01");
 
@@ -111,6 +119,7 @@ const PremiumBar = ({ label, value, total, colorClass, delay, labelColor }: {
 
 const Index = () => {
   const navigate = useNavigate();
+  const { currentRole } = useRole();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(today);
 
   const eventDates = useMemo(() => {
@@ -130,6 +139,15 @@ const Index = () => {
   }, [selectedDate]);
 
   const upcomingList = upcomingShoots.slice(0, 5);
+
+  // Role-specific dashboards
+  if (currentRole === "photographer") return <PhotographerDashboard />;
+  if (currentRole === "videographer") return <VideographerDashboard />;
+  if (currentRole === "editor") return <EditorDashboard />;
+  if (currentRole === "telecaller") return <TelecallerDashboard />;
+  if (currentRole === "vendor") return <VendorDashboard />;
+  if (currentRole === "hr") return <HRDashboardRole />;
+  if (currentRole === "accounts") return <AccountsDashboard />;
 
   return (
     <motion.div
