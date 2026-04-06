@@ -10,6 +10,8 @@ import { RoleLayoutWrapper } from "@/components/RoleLayoutWrapper";
 import NotFound from "./pages/NotFound.tsx";
 import Index from "./pages/Index.tsx";
 import AuthPage from "./pages/AuthPage";
+import LandingPage from "./pages/LandingPage";
+import OnboardingPage from "./pages/OnboardingPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
