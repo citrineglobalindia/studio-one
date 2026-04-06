@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Bell, User, Search } from "lucide-react";
+import { FloatingAIButton } from "@/components/FloatingAIButton";
 import {
   LayoutDashboard, UserPlus, Users, FolderKanban, CalendarDays,
   Zap, CreditCard, Briefcase, MessageSquare, Megaphone, BarChart3,
@@ -129,6 +130,7 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+      <FloatingAIButton />
     </div>
   );
 }

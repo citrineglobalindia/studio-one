@@ -4,6 +4,7 @@ import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
+import { FloatingAIButton } from "@/components/FloatingAIButton";
 import { useNavigate } from "react-router-dom";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
+        <FloatingAIButton />
       </div>
     </SidebarProvider>
   );
