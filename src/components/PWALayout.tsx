@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bell, User, MoreHorizontal, X, ChevronRight, Grip } from "lucide-react";
+import { Bell, User, MoreHorizontal, X, ChevronRight, Grip, LogOut } from "lucide-react";
 import { FloatingAIButton } from "@/components/FloatingAIButton";
 import {
   LayoutDashboard, UserPlus, Users, FolderKanban, CalendarDays,
@@ -12,6 +12,7 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { useState, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const moduleConfig: Record<AppModule, { icon: typeof LayoutDashboard; label: string; path: string; color: string }> = {
   "dashboard": { icon: LayoutDashboard, label: "Home", path: "/", color: "from-amber-500 to-orange-500" },
@@ -70,6 +71,7 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
   const { currentRole, getAccessibleModules } = useRole();
   const [moreOpen, setMoreOpen] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState(0);
+  const { signOut } = useAuth();
 
   const accessible = getAccessibleModules();
   const roleTabs = ROLE_TABS[currentRole].filter((m) => accessible.includes(m));
@@ -267,6 +269,18 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
                       </motion.button>
                     );
                   })}
+                  {/* Logout */}
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { signOut(); setMoreOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-destructive/10 active:bg-destructive/20 transition-colors"
+                  >
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center">
+                      <LogOut className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-destructive flex-1 text-left">Logout</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                  </motion.button>
                 </div>
               </div>
             </div>
