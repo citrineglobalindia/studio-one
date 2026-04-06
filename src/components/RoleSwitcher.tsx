@@ -3,7 +3,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shield } from "lucide-react";
 
 export function RoleSwitcher() {
-  const { currentRole, setCurrentRole } = useRole();
+  const { currentRole, setCurrentRole, isAdmin } = useRole();
+
+  // Only admins can switch roles (for testing)
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center gap-2">
+        <Shield className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground capitalize">{currentRole}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">

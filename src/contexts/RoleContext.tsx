@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "vendor" | "editor" | "telecaller" | "videographer" | "photographer" | "hr" | "accounts";
 
@@ -69,13 +71,44 @@ interface RoleContextType {
   hasAccess: (module: AppModule) => boolean;
   getAccessibleModules: () => AppModule[];
   isAdmin: boolean;
+  roleLoading: boolean;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [currentRole, setCurrentRole] = useState<AppRole>("admin");
   const [roleAccess, setRoleAccess] = useState<Record<AppRole, AppModule[]>>(DEFAULT_ACCESS);
+  const [roleLoading, setRoleLoading] = useState(true);
+
+  // Fetch role from profile when user changes
+  useEffect(() => {
+    if (!user) {
+      setCurrentRole("admin");
+      setRoleLoading(false);
+      return;
+    }
+
+    const fetchRole = async () => {
+      setRoleLoading(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data?.role) {
+        const validRoles: AppRole[] = ["admin", "vendor", "editor", "telecaller", "videographer", "photographer", "hr", "accounts"];
+        if (validRoles.includes(data.role as AppRole)) {
+          setCurrentRole(data.role as AppRole);
+        }
+      }
+      setRoleLoading(false);
+    };
+
+    fetchRole();
+  }, [user]);
 
   const hasAccess = useCallback(
     (module: AppModule) => {
@@ -100,6 +133,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         hasAccess,
         getAccessibleModules,
         isAdmin: currentRole === "admin",
+        roleLoading,
       }}
     >
       {children}
