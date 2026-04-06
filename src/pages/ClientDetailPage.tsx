@@ -300,9 +300,9 @@ export default function ClientDetailPage() {
       </div>
 
       {/* ═══ Tabs Section ═══ */}
-      <motion.div variants={cardVariants}>
+      <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border overflow-hidden">
         <Tabs defaultValue="invoices">
-          <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-1 h-auto p-0 overflow-x-auto">
+          <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-1 h-auto p-0 px-5 overflow-x-auto">
             {[
               { value: "invoices", icon: Receipt, label: "Invoices", count: client.invoices.length, alert: dueInvoices.length },
               { value: "payments", icon: CreditCard, label: "Payments", count: client.payments.length },
