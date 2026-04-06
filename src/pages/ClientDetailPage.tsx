@@ -406,7 +406,7 @@ export default function ClientDetailPage() {
           </TabsContent>
 
           {/* ═══ Payments Tab ═══ */}
-          <TabsContent value="payments" className="mt-5 space-y-4">
+          <TabsContent value="payments" className="mt-0 space-y-4">
             <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 p-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -464,7 +464,7 @@ export default function ClientDetailPage() {
           </TabsContent>
 
           {/* ═══ Events Tab ═══ */}
-          <TabsContent value="events" className="mt-5 space-y-4">
+          <TabsContent value="events" className="mt-0 space-y-4">
             <Button
               variant="outline"
               size="sm"
@@ -564,7 +564,7 @@ export default function ClientDetailPage() {
           </TabsContent>
 
           {/* ═══ Activity Timeline ═══ */}
-          <TabsContent value="activity" className="mt-5">
+          <TabsContent value="activity" className="mt-0">
             <div className="space-y-0">
               {client.activities.map((activity, i) => {
                 const Icon = activityIconMap[activity.type] || FileText;
@@ -608,7 +608,7 @@ export default function ClientDetailPage() {
           </TabsContent>
 
           {/* ═══ Contact Info ═══ */}
-          <TabsContent value="contact" className="mt-5 space-y-3">
+          <TabsContent value="contact" className="mt-0 space-y-3">
             {[
               { icon: Phone, label: "Phone", value: client.phone, action: "Call" },
               { icon: Mail, label: "Email", value: client.email, action: "Send" },
@@ -655,7 +655,7 @@ export default function ClientDetailPage() {
           </TabsContent>
 
           {/* ═══ Documents ═══ */}
-          <TabsContent value="documents" className="mt-5 space-y-2.5">
+          <TabsContent value="documents" className="mt-0 space-y-2.5">
             {client.documents.map((doc, i) => (
               <motion.div
                 key={doc.id}
@@ -693,6 +693,7 @@ export default function ClientDetailPage() {
               </div>
             )}
           </TabsContent>
+          </div>
         </Tabs>
       </motion.div>
 
