@@ -62,6 +62,66 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          category: string
+          client_name: string
+          created_at: string
+          description: string
+          event_name: string | null
+          expense_date: string
+          id: string
+          notes: string | null
+          paid_to: string | null
+          project_name: string | null
+          receipt_url: string | null
+          submitted_by: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string
+          client_name: string
+          created_at?: string
+          description: string
+          event_name?: string | null
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          paid_to?: string | null
+          project_name?: string | null
+          receipt_url?: string | null
+          submitted_by?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string
+          client_name?: string
+          created_at?: string
+          description?: string
+          event_name?: string | null
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          paid_to?: string | null
+          project_name?: string | null
+          receipt_url?: string | null
+          submitted_by?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
