@@ -24,6 +24,12 @@ import TasksPage from "./pages/TasksPage";
 import EventsPage from "./pages/EventsPage";
 import AlbumsPage from "./pages/AlbumsPage";
 import EventDayPage from "./pages/EventDayPage";
+import CommunicationsPage from "./pages/CommunicationsPage";
+import MarketingPage from "./pages/MarketingPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AutomationPage from "./pages/AutomationPage";
+import GalleryPage from "./pages/GalleryPage";
+import PortalPage from "./pages/PortalPage";
 
 import SettingsPage from "./pages/SettingsPage";
 import HRDashboard from "./pages/hr/HRDashboard";
@@ -64,6 +70,12 @@ const App = () => (
                 <Route path="/contracts" element={<ContractsPage />} />
                 <Route path="/ai-assistant" element={<AIAssistantPage />} />
                 <Route path="/ai-selection" element={<AISelectionPage />} />
+                <Route path="/communications" element={<CommunicationsPage />} />
+                <Route path="/marketing" element={<MarketingPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/automation" element={<AutomationPage />} />
+                <Route path="/gallery" element={<GalleryPage />} />
+                <Route path="/portal" element={<PortalPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/access-control" element={<AccessControlPage />} />
                 <Route path="/hr" element={<HRDashboard />} />
