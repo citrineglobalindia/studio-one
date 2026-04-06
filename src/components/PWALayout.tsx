@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bell, User, MoreHorizontal, X, ChevronRight, Grip } from "lucide-react";
+import { Bell, User, MoreHorizontal, X, ChevronRight, Grip, LogOut } from "lucide-react";
 import { FloatingAIButton } from "@/components/FloatingAIButton";
 import {
   LayoutDashboard, UserPlus, Users, FolderKanban, CalendarDays,
@@ -12,6 +12,7 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { useState, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const moduleConfig: Record<AppModule, { icon: typeof LayoutDashboard; label: string; path: string; color: string }> = {
   "dashboard": { icon: LayoutDashboard, label: "Home", path: "/", color: "from-amber-500 to-orange-500" },
