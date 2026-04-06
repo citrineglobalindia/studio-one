@@ -275,6 +275,7 @@ export default function SettingsPage() {
           </div>
 
           <SubscriptionManager />
+        </TabsContent>
 
         {/* ═══ ADVANCED ═══ */}
         <TabsContent value="advanced" className="space-y-6">
