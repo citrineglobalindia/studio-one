@@ -63,13 +63,62 @@ export default function OnboardingPage() {
   const handleFinish = async () => {
     setLoading(true);
     try {
-      // Update the user's profile display name to studio name
-      if (user) {
-        await supabase
-          .from("profiles")
-          .update({ display_name: data.studioName })
-          .eq("user_id", user.id);
+      if (!user) throw new Error("Not authenticated");
+
+      // Generate slug from studio name
+      const slug = data.studioName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString(36);
+
+      // Create organization
+      const { data: org, error: orgError } = await supabase
+        .from("organizations")
+        .insert({
+          name: data.studioName,
+          slug,
+          owner_id: user.id,
+          city: data.city || null,
+          phone: data.phone || null,
+          website: data.website || null,
+          instagram: data.instagram || null,
+          team_size: data.teamSize,
+          specialties: data.selectedSpecialties,
+          primary_color: data.primaryColor,
+        })
+        .select()
+        .single();
+      if (orgError) throw orgError;
+
+      // Add user as owner member
+      const { error: memberError } = await supabase
+        .from("organization_members")
+        .insert({
+          organization_id: org.id,
+          user_id: user.id,
+          role: "owner",
+        });
+      if (memberError) throw memberError;
+
+      // Get starter plan and create trial subscription
+      const { data: starterPlan } = await supabase
+        .from("subscription_plans")
+        .select("id")
+        .eq("slug", "starter")
+        .single();
+
+      if (starterPlan) {
+        await supabase.from("subscriptions").insert({
+          organization_id: org.id,
+          plan_id: starterPlan.id,
+          status: "trial",
+          trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        });
       }
+
+      // Update profile
+      await supabase
+        .from("profiles")
+        .update({ display_name: data.studioName })
+        .eq("user_id", user.id);
+
       toast.success("Welcome to StudioAi! Your workspace is ready.");
       navigate("/");
     } catch (err: any) {
