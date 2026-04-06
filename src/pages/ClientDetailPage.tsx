@@ -117,191 +117,187 @@ export default function ClientDetailPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-4xl mx-auto space-y-5"
+      className="max-w-7xl mx-auto space-y-5"
     >
-      {/* Back Button */}
-      <motion.div variants={cardVariants} className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground -ml-2" onClick={() => navigate("/clients")}>
-          <ArrowLeft className="h-4 w-4" /> Clients
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem><Edit className="h-3.5 w-3.5 mr-2" /> Edit Client</DropdownMenuItem>
-            <DropdownMenuItem><Copy className="h-3.5 w-3.5 mr-2" /> Copy Details</DropdownMenuItem>
-            <DropdownMenuItem><Share2 className="h-3.5 w-3.5 mr-2" /> Share Profile</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive"><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Client</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </motion.div>
-
-      {/* ═══ Profile Header Card ═══ */}
-      <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border overflow-hidden shadow-lg shadow-black/5">
-        {/* Top gradient accent bar */}
-        <div className={cn(
-          "h-2 rounded-t-2xl",
-          client.status === "vip"
-            ? "bg-gradient-to-r from-primary via-primary/70 to-primary/40"
-            : client.status === "active"
-            ? "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500/40"
-            : "bg-gradient-to-r from-muted-foreground/30 to-muted/20"
-        )} />
-        <div className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-            {/* Avatar */}
-            <div className="relative">
-              <div className={cn(
-                "h-[72px] w-[72px] rounded-2xl flex items-center justify-center font-bold text-2xl ring-3 shrink-0 shadow-md",
-                client.status === "vip"
-                  ? "bg-gradient-to-br from-primary/20 to-primary/5 text-primary ring-primary/25"
-                  : "bg-gradient-to-br from-muted to-muted/50 text-foreground ring-border"
-              )}>
-                {client.name.split(" ").map(n => n[0]).join("")}
-              </div>
-              {client.status === "vip" && (
-                <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center shadow-sm">
-                  <Crown className="h-3 w-3 text-primary-foreground" />
-                </div>
+      {/* ═══ Header ═══ */}
+      <motion.div variants={cardVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl" onClick={() => navigate("/clients")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">{client.name}</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Heart className="h-3 w-3 text-rose-400" /> {client.partnerName}
+              <span className="mx-1">·</span>
+              <MapPin className="h-3 w-3" /> {client.city}
+              {client.weddingDate && (
+                <>
+                  <span className="mx-1">·</span>
+                  <CalendarDays className="h-3 w-3" /> {new Date(client.weddingDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </>
               )}
-            </div>
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn(
+            "text-xs shrink-0 px-3 py-1 rounded-full font-semibold",
+            cfg.bgColor, cfg.color, cfg.borderColor
+          )}>
+            {client.status === "vip" && <Crown className="h-3 w-3 mr-1" />}
+            {cfg.label}
+          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem><Edit className="h-3.5 w-3.5 mr-2" /> Edit Client</DropdownMenuItem>
+              <DropdownMenuItem><Copy className="h-3.5 w-3.5 mr-2" /> Copy Details</DropdownMenuItem>
+              <DropdownMenuItem><Share2 className="h-3.5 w-3.5 mr-2" /> Share Profile</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive"><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Client</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </motion.div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl font-display font-bold text-foreground tracking-tight">{client.name}</h1>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                    <Heart className="h-3.5 w-3.5 text-rose-400" /> {client.partnerName}
-                  </p>
-                </div>
-                <Badge variant="outline" className={cn(
-                  "text-xs shrink-0 px-3 py-1 rounded-full font-semibold",
-                  cfg.bgColor, cfg.color, cfg.borderColor
+      {/* ═══ Profile + Financial Summary — 2 Column ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Profile Card */}
+        <motion.div variants={cardVariants} className="lg:col-span-2 rounded-2xl bg-card border border-border overflow-hidden">
+          <div className={cn(
+            "h-1.5",
+            client.status === "vip"
+              ? "bg-gradient-to-r from-primary via-primary/70 to-primary/40"
+              : client.status === "active"
+              ? "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500/40"
+              : "bg-gradient-to-r from-muted-foreground/30 to-muted/20"
+          )} />
+          <div className="p-5">
+            <div className="flex items-start gap-4">
+              {/* Avatar */}
+              <div className="relative">
+                <div className={cn(
+                  "h-16 w-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-2 shrink-0",
+                  client.status === "vip"
+                    ? "bg-gradient-to-br from-primary/20 to-primary/5 text-primary ring-primary/25"
+                    : "bg-gradient-to-br from-muted to-muted/50 text-foreground ring-border"
                 )}>
-                  {cfg.label}
-                </Badge>
+                  {client.name.split(" ").map(n => n[0]).join("")}
+                </div>
+                {client.status === "vip" && (
+                  <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                    <Crown className="h-3 w-3 text-primary-foreground" />
+                  </div>
+                )}
               </div>
 
-              {/* Info chips */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                {[
-                  { icon: MapPin, text: client.city },
-                  { icon: Sparkles, text: client.source },
-                  ...(client.weddingDate ? [{ icon: CalendarDays, text: new Date(client.weddingDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) }] : []),
-                  { icon: Briefcase, text: `${client.projects} project${client.projects !== 1 ? "s" : ""}` },
-                ].map((chip, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border/50 hover:border-border transition-colors">
-                    <chip.icon className="h-3 w-3" /> {chip.text}
-                  </span>
-                ))}
-              </div>
+              <div className="flex-1 min-w-0">
+                {/* Info chips */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { icon: Sparkles, text: client.source },
+                    { icon: Briefcase, text: `${client.projects} project${client.projects !== 1 ? "s" : ""}` },
+                  ].map((chip, i) => (
+                    <span key={i} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full border border-border/50">
+                      <chip.icon className="h-3 w-3" /> {chip.text}
+                    </span>
+                  ))}
+                </div>
 
-              {/* Star rating */}
-              <div className="flex items-center gap-1.5 mt-3">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <Star key={j} className={cn(
-                    "h-5 w-5 transition-colors",
-                    j < client.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"
-                  )} />
-                ))}
+                {/* Star rating */}
+                <div className="flex items-center gap-1 mt-3">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <Star key={j} className={cn(
+                      "h-4 w-4",
+                      j < client.rating ? "text-primary fill-primary" : "text-muted-foreground/20"
+                    )} />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2.5 mt-6 flex-wrap">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 rounded-full px-5 hover:shadow-md transition-all">
-                  <PhoneCall className="h-4 w-4" /> Call
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Call {client.phone}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 rounded-full px-5 hover:shadow-md transition-all">
-                  <Send className="h-4 w-4" /> WhatsApp
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Open WhatsApp</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 rounded-full px-5 hover:shadow-md transition-all">
-                  <Mail className="h-4 w-4" /> Email
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{client.email}</TooltipContent>
-            </Tooltip>
-            <Button size="sm" className="gap-2 rounded-full px-5 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all">
-              <Briefcase className="h-4 w-4" /> New Project
-            </Button>
+            {/* Action buttons */}
+            <div className="flex gap-2 mt-5 flex-wrap">
+              {[
+                { icon: PhoneCall, label: "Call", tooltip: client.phone },
+                { icon: Send, label: "WhatsApp", tooltip: "Open WhatsApp" },
+                { icon: Mail, label: "Email", tooltip: client.email },
+              ].map((action) => (
+                <Tooltip key={action.label}>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 rounded-xl px-4">
+                      <action.icon className="h-3.5 w-3.5" /> {action.label}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{action.tooltip}</TooltipContent>
+                </Tooltip>
+              ))}
+              <Button size="sm" className="gap-2 rounded-xl px-4">
+                <Briefcase className="h-3.5 w-3.5" /> New Project
+              </Button>
+            </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* ═══ Financial Summary Cards ═══ */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          {
-            label: "TOTAL PAID",
-            value: `₹${((client.totalSpend - client.pendingAmount) / 1000).toFixed(0)}K`,
-            color: "text-foreground",
-            gradient: "from-emerald-500/12 to-emerald-500/4",
-            ring: "ring-emerald-500/15",
-            border: "border-emerald-500/20",
-          },
-          {
-            label: "PENDING",
-            value: `₹${(client.pendingAmount / 1000).toFixed(0)}K`,
-            color: "text-amber-500",
-            gradient: "from-amber-500/12 to-amber-500/4",
-            ring: "ring-amber-500/15",
-            border: "border-amber-500/20",
-          },
-          {
-            label: "TOTAL VALUE",
-            value: `₹${(client.totalSpend / 1000).toFixed(0)}K`,
-            color: "text-foreground",
-            gradient: "from-primary/12 to-primary/4",
-            ring: "ring-primary/15",
-            border: "border-primary/20",
-          },
-        ].map((card, i) => (
-          <motion.div
-            key={card.label}
-            variants={cardVariants}
-            className={cn(
-              "bg-gradient-to-b rounded-2xl p-5 ring-1 border shadow-sm hover:shadow-md transition-shadow",
-              card.gradient, card.ring, card.border
-            )}
-          >
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold">{card.label}</p>
-            <p className={cn("text-2xl font-display font-extrabold mt-2 tracking-tight", card.color)}>{card.value}</p>
-          </motion.div>
-        ))}
+        {/* Financial Summary Column */}
+        <motion.div variants={cardVariants} className="space-y-3">
+          {[
+            {
+              label: "TOTAL PAID",
+              value: `₹${((client.totalSpend - client.pendingAmount) / 1000).toFixed(0)}K`,
+              color: "text-foreground",
+              accent: "from-emerald-500/20 to-emerald-500/5",
+              ring: "ring-emerald-500/15",
+            },
+            {
+              label: "PENDING",
+              value: `₹${(client.pendingAmount / 1000).toFixed(0)}K`,
+              color: "text-amber-500",
+              accent: "from-amber-500/20 to-amber-500/5",
+              ring: "ring-amber-500/15",
+            },
+            {
+              label: "TOTAL VALUE",
+              value: `₹${(client.totalSpend / 1000).toFixed(0)}K`,
+              color: "text-foreground",
+              accent: "from-primary/20 to-primary/5",
+              ring: "ring-primary/15",
+            },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className={cn(
+                "bg-gradient-to-b rounded-2xl p-4 ring-1 border border-border",
+                card.accent, card.ring
+              )}
+            >
+              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold">{card.label}</p>
+              <p className={cn("text-xl font-display font-extrabold mt-1.5 tracking-tight", card.color)}>{card.value}</p>
+            </div>
+          ))}
+
+          {/* Payment Progress */}
+          <div className="rounded-2xl bg-card border border-border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-foreground">Payment Progress</span>
+              <span className="text-xs font-bold text-foreground tabular-nums">{paidPercent}%</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${paidPercent}%` }}
+                transition={{ delay: 0.3, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+              />
+            </div>
+          </div>
+        </motion.div>
       </div>
-
-      {/* ═══ Payment Progress ═══ */}
-      <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-foreground">Payment Progress</span>
-          <span className="text-sm font-bold text-foreground tabular-nums">{paidPercent}%</span>
-        </div>
-        <div className="h-3 rounded-full bg-muted overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${paidPercent}%` }}
-            transition={{ delay: 0.3, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-sm shadow-emerald-500/30"
-          />
-        </div>
-      </motion.div>
 
       {/* ═══ Tabs Section ═══ */}
       <motion.div variants={cardVariants}>
