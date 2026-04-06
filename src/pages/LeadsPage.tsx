@@ -176,7 +176,7 @@ const LeadsPage = () => {
           <Button variant="outline" size="sm" className="gap-2">
             <Upload className="h-3.5 w-3.5" /> Import/Export
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2" onClick={() => setAddLeadOpen(true)}>
             <Plus className="h-4 w-4" /> New Lead
           </Button>
         </div>
