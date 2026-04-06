@@ -64,6 +64,12 @@ export default function EventsPage() {
   const [assignSheetOpen, setAssignSheetOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventWithClient | null>(null);
   const [assignments, setAssignments] = useState<Record<string, string[]>>({});
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    clientId: "", name: "", type: "wedding" as ClientEvent["type"],
+    date: "", venue: "", notes: "",
+  });
+  const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
 
   const allEvents: EventWithClient[] = useMemo(() => {
     return sampleClients.flatMap(client =>
