@@ -18,17 +18,16 @@ export function FloatingAIButton() {
       whileTap={{ scale: 0.9 }}
       onClick={() => navigate("/ai-assistant")}
       className={cn(
-        "fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full",
+        "fixed bottom-24 right-4 z-[55] h-10 w-10 rounded-full",
         "bg-gradient-to-br from-primary to-primary/80",
-        "text-primary-foreground shadow-lg shadow-primary/25",
+        "text-primary-foreground shadow-md shadow-primary/20",
         "flex items-center justify-center",
-        "hover:shadow-xl hover:shadow-primary/30 transition-shadow",
-        "ring-2 ring-primary/20 ring-offset-2 ring-offset-background"
+        "hover:shadow-lg hover:shadow-primary/30 transition-shadow"
       )}
       title="AI Assistant"
     >
-      <Bot className="h-6 w-6" />
-      <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-background" />
+      <Bot className="h-4 w-4" />
+      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-[1.5px] border-background" />
     </motion.button>
   );
 }
