@@ -5,6 +5,7 @@ import {
   Search, Filter, BarChart3, ListTodo, LayoutGrid, GripVertical,
   ChevronDown, ChevronRight, Pencil, Trash2, X, Check,
   CircleDot, ArrowUp, ArrowRight, ArrowDown, Eye, MessageSquare,
+  UserCheck, Users, Send, Shield,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,14 +18,25 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useRole, AppRole } from "@/contexts/RoleContext";
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: AppRole;
+  avatar?: string;
+}
 
 interface Task {
   id: string;
   title: string;
   description: string;
   project: string;
-  assignee: string;
+  assigneeId: string;
+  assigneeName: string;
+  assigneeRole: AppRole;
   priority: "high" | "medium" | "low";
   status: "todo" | "in-progress" | "review" | "done";
   dueDate: string;
@@ -33,6 +45,8 @@ interface Task {
   comments: Comment[];
   subtasks: Subtask[];
   createdAt: string;
+  assignedBy: string;
+  assignedAt: string;
 }
 
 interface Comment {
@@ -48,54 +62,76 @@ interface Subtask {
   done: boolean;
 }
 
+const teamMembers: TeamMember[] = [
+  { id: "tm1", name: "Priya Verma", role: "editor" },
+  { id: "tm2", name: "Neha Gupta", role: "editor" },
+  { id: "tm3", name: "Amit Kumar", role: "photographer" },
+  { id: "tm4", name: "Raj Patel", role: "videographer" },
+  { id: "tm5", name: "Kiran Joshi", role: "photographer" },
+  { id: "tm6", name: "Suresh Nair", role: "editor" },
+  { id: "tm7", name: "Anjali Sharma", role: "telecaller" },
+  { id: "tm8", name: "Deepak Rao", role: "videographer" },
+];
+
+const roleColors: Record<AppRole, string> = {
+  admin: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  editor: "bg-sky-500/10 text-sky-500 border-sky-500/20",
+  photographer: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  videographer: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  telecaller: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+  vendor: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  hr: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+  accounts: "bg-teal-500/10 text-teal-500 border-teal-500/20",
+};
+
 const sampleTasks: Task[] = [
   {
-    id: "t1", title: "Edit Mehendi photos", description: "Cull and edit 500+ photos from the Mehendi ceremony. Apply consistent color grading.", project: "Priya & Rahul", assignee: "Priya Verma", priority: "high", status: "in-progress", dueDate: "2026-04-05", category: "editing", progress: 65, createdAt: "2026-03-28",
+    id: "t1", title: "Edit Mehendi photos", description: "Cull and edit 500+ photos from the Mehendi ceremony. Apply consistent color grading.", project: "Priya & Rahul", assigneeId: "tm1", assigneeName: "Priya Verma", assigneeRole: "editor", priority: "high", status: "in-progress", dueDate: "2026-04-05", category: "editing", progress: 65, createdAt: "2026-03-28", assignedBy: "Admin", assignedAt: "2026-03-28",
     subtasks: [{ id: "s1", title: "Cull photos", done: true }, { id: "s2", title: "Color grading", done: true }, { id: "s3", title: "Retouching", done: false }, { id: "s4", title: "Export & upload", done: false }],
     comments: [{ id: "c1", author: "Priya Verma", text: "Color grading done, starting retouching now.", date: "2026-04-02" }],
   },
   {
-    id: "t2", title: "Haldi video rough cut", description: "Create first rough cut of Haldi ceremony video with background music.", project: "Priya & Rahul", assignee: "Neha Gupta", priority: "high", status: "in-progress", dueDate: "2026-04-04", category: "editing", progress: 40, createdAt: "2026-03-29",
+    id: "t2", title: "Haldi video rough cut", description: "Create first rough cut of Haldi ceremony video with background music.", project: "Priya & Rahul", assigneeId: "tm2", assigneeName: "Neha Gupta", assigneeRole: "editor", priority: "high", status: "in-progress", dueDate: "2026-04-04", category: "editing", progress: 40, createdAt: "2026-03-29", assignedBy: "Admin", assignedAt: "2026-03-29",
     subtasks: [{ id: "s5", title: "Footage sync", done: true }, { id: "s6", title: "Rough cut", done: false }, { id: "s7", title: "Add music", done: false }],
     comments: [{ id: "c2", author: "Neha Gupta", text: "Footage synced. Working on timeline.", date: "2026-04-01" }],
   },
   {
-    id: "t3", title: "Send gallery link to Meera", description: "Upload final gallery and share the link with the client for review.", project: "Meera & Aditya", assignee: "Amit Kumar", priority: "medium", status: "todo", dueDate: "2026-04-03", category: "delivery", progress: 0, createdAt: "2026-03-30",
+    id: "t3", title: "Send gallery link to Meera", description: "Upload final gallery and share the link with the client for review.", project: "Meera & Aditya", assigneeId: "tm3", assigneeName: "Amit Kumar", assigneeRole: "photographer", priority: "medium", status: "todo", dueDate: "2026-04-03", category: "delivery", progress: 0, createdAt: "2026-03-30", assignedBy: "Admin", assignedAt: "2026-03-30",
     subtasks: [{ id: "s8", title: "Upload to gallery", done: false }, { id: "s9", title: "Send email", done: false }],
     comments: [],
   },
   {
-    id: "t4", title: "Confirm venue access for Sangeet", description: "Contact venue manager and confirm entry for equipment setup.", project: "Priya & Rahul", assignee: "Raj Patel", priority: "high", status: "done", dueDate: "2026-04-01", category: "shoot-prep", progress: 100, createdAt: "2026-03-25",
+    id: "t4", title: "Confirm venue access for Sangeet", description: "Contact venue manager and confirm entry for equipment setup.", project: "Priya & Rahul", assigneeId: "tm4", assigneeName: "Raj Patel", assigneeRole: "videographer", priority: "high", status: "done", dueDate: "2026-04-01", category: "shoot-prep", progress: 100, createdAt: "2026-03-25", assignedBy: "Admin", assignedAt: "2026-03-25",
     subtasks: [{ id: "s10", title: "Call venue", done: true }, { id: "s11", title: "Get permission letter", done: true }],
     comments: [{ id: "c3", author: "Raj Patel", text: "Venue confirmed. Entry from 2 PM.", date: "2026-03-31" }],
   },
   {
-    id: "t5", title: "Follow up on Sneha's inquiry", description: "Reach out regarding wedding photography package inquiry.", project: "Sneha & Rohan", assignee: "Amit Studio", priority: "medium", status: "todo", dueDate: "2026-04-02", category: "communication", progress: 0, createdAt: "2026-03-28",
+    id: "t5", title: "Follow up on Sneha's inquiry", description: "Reach out regarding wedding photography package inquiry.", project: "Sneha & Rohan", assigneeId: "tm7", assigneeName: "Anjali Sharma", assigneeRole: "telecaller", priority: "medium", status: "todo", dueDate: "2026-04-02", category: "communication", progress: 0, createdAt: "2026-03-28", assignedBy: "Admin", assignedAt: "2026-03-28",
     subtasks: [{ id: "s12", title: "Call client", done: false }, { id: "s13", title: "Send quotation", done: false }],
     comments: [],
   },
   {
-    id: "t6", title: "Wedding ceremony photos review", description: "Review all ceremony shots and shortlist the best 200 for album.", project: "Meera & Aditya", assignee: "Priya Verma", priority: "medium", status: "review", dueDate: "2026-04-06", category: "editing", progress: 85, createdAt: "2026-03-27",
+    id: "t6", title: "Wedding ceremony photos review", description: "Review all ceremony shots and shortlist the best 200 for album.", project: "Meera & Aditya", assigneeId: "tm1", assigneeName: "Priya Verma", assigneeRole: "editor", priority: "medium", status: "review", dueDate: "2026-04-06", category: "editing", progress: 85, createdAt: "2026-03-27", assignedBy: "Admin", assignedAt: "2026-03-27",
     subtasks: [{ id: "s14", title: "Shortlist photos", done: true }, { id: "s15", title: "Client review", done: false }],
     comments: [{ id: "c4", author: "Priya Verma", text: "Shortlisted 220 photos. Waiting for client feedback.", date: "2026-04-03" }],
   },
   {
-    id: "t7", title: "Update contract for Ananya", description: "Revise the contract with updated package details and payment terms.", project: "Ananya & Vikram", assignee: "Amit Studio", priority: "low", status: "todo", dueDate: "2026-04-08", category: "admin", progress: 0, createdAt: "2026-03-30",
+    id: "t7", title: "Update contract for Ananya", description: "Revise the contract with updated package details and payment terms.", project: "Ananya & Vikram", assigneeId: "tm7", assigneeName: "Anjali Sharma", assigneeRole: "telecaller", priority: "low", status: "todo", dueDate: "2026-04-08", category: "admin", progress: 0, createdAt: "2026-03-30", assignedBy: "Admin", assignedAt: "2026-03-30",
     subtasks: [{ id: "s16", title: "Draft contract", done: false }, { id: "s17", title: "Legal review", done: false }, { id: "s18", title: "Send to client", done: false }],
     comments: [],
   },
   {
-    id: "t8", title: "Order album prints", description: "Place order for 12x36 album prints with the printing vendor.", project: "Kavya & Arjun", assignee: "Kiran Joshi", priority: "medium", status: "todo", dueDate: "2026-04-10", category: "delivery", progress: 0, createdAt: "2026-04-01",
+    id: "t8", title: "Order album prints", description: "Place order for 12x36 album prints with the printing vendor.", project: "Kavya & Arjun", assigneeId: "tm5", assigneeName: "Kiran Joshi", assigneeRole: "photographer", priority: "medium", status: "todo", dueDate: "2026-04-10", category: "delivery", progress: 0, createdAt: "2026-04-01", assignedBy: "Admin", assignedAt: "2026-04-01",
     subtasks: [{ id: "s19", title: "Finalize layout", done: false }, { id: "s20", title: "Place order", done: false }],
     comments: [],
   },
   {
-    id: "t9", title: "Reception highlights edit", description: "Create a 5-min highlight reel from the reception footage.", project: "Meera & Aditya", assignee: "Suresh Nair", priority: "high", status: "review", dueDate: "2026-04-07", category: "editing", progress: 90, createdAt: "2026-03-26",
+    id: "t9", title: "Reception highlights edit", description: "Create a 5-min highlight reel from the reception footage.", project: "Meera & Aditya", assigneeId: "tm6", assigneeName: "Suresh Nair", assigneeRole: "editor", priority: "high", status: "review", dueDate: "2026-04-07", category: "editing", progress: 90, createdAt: "2026-03-26", assignedBy: "Admin", assignedAt: "2026-03-26",
     subtasks: [{ id: "s21", title: "Select clips", done: true }, { id: "s22", title: "Edit timeline", done: true }, { id: "s23", title: "Color grade", done: true }, { id: "s24", title: "Final export", done: false }],
     comments: [{ id: "c5", author: "Suresh Nair", text: "Almost done. Final color pass remaining.", date: "2026-04-04" }],
   },
   {
-    id: "t10", title: "Pack gear for Jaipur wedding", description: "Prepare all camera bodies, lenses, lighting, and backup equipment.", project: "Ananya & Vikram", assignee: "Kiran Joshi", priority: "high", status: "todo", dueDate: "2026-04-25", category: "shoot-prep", progress: 0, createdAt: "2026-04-01",
+    id: "t10", title: "Pack gear for Jaipur wedding", description: "Prepare all camera bodies, lenses, lighting, and backup equipment.", project: "Ananya & Vikram", assigneeId: "tm5", assigneeName: "Kiran Joshi", assigneeRole: "photographer", priority: "high", status: "todo", dueDate: "2026-04-25", category: "shoot-prep", progress: 0, createdAt: "2026-04-01", assignedBy: "Admin", assignedAt: "2026-04-01",
     subtasks: [{ id: "s25", title: "Check camera bodies", done: false }, { id: "s26", title: "Pack lenses", done: false }, { id: "s27", title: "Charge batteries", done: false }, { id: "s28", title: "Backup cards", done: false }],
     comments: [],
   },
@@ -122,48 +158,97 @@ const categoryConfig: Record<string, { emoji: string; label: string }> = {
   "shoot-prep": { emoji: "📸", label: "Shoot Prep" },
 };
 
-const teamMembers = ["Priya Verma", "Neha Gupta", "Amit Kumar", "Raj Patel", "Amit Studio", "Kiran Joshi", "Suresh Nair"];
-
 export default function TasksPage() {
+  const { currentRole, isAdmin } = useRole();
   const [tasks, setTasks] = useState<Task[]>(sampleTasks);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterAssignee, setFilterAssignee] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
+  const [activeTab, setActiveTab] = useState("all");
   const [detailSheet, setDetailSheet] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addSheet, setAddSheet] = useState(false);
+  const [assignSheet, setAssignSheet] = useState(false);
+  const [reassignTaskId, setReassignTaskId] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
-  // New task form
   const [newTask, setNewTask] = useState({
-    title: "", description: "", project: "", assignee: "", priority: "medium" as Task["priority"],
+    title: "", description: "", project: "", assigneeId: "", priority: "medium" as Task["priority"],
     category: "editing" as Task["category"], dueDate: "",
   });
 
   const today = new Date("2026-04-06");
 
+  // For non-admin roles, simulate "current user" as first team member with that role
+  const currentUserMember = useMemo(() => {
+    if (isAdmin) return null;
+    return teamMembers.find(m => m.role === currentRole) || null;
+  }, [currentRole, isAdmin]);
+
+  // Role-based filtering: non-admin sees only their assigned tasks
+  const roleTasks = useMemo(() => {
+    if (isAdmin) return tasks;
+    if (!currentUserMember) return tasks.filter(t => t.assigneeRole === currentRole);
+    return tasks.filter(t => t.assigneeId === currentUserMember.id);
+  }, [tasks, isAdmin, currentRole, currentUserMember]);
+
   const filtered = useMemo(() => {
-    return tasks.filter(t => {
+    let list = roleTasks;
+    // Tab filter
+    if (activeTab === "my-tasks" && isAdmin) {
+      // Admin viewing tasks they assigned
+    } else if (activeTab === "unassigned") {
+      list = list.filter(t => !t.assigneeId);
+    } else if (activeTab === "editors") {
+      list = list.filter(t => t.assigneeRole === "editor");
+    } else if (activeTab === "photographers") {
+      list = list.filter(t => t.assigneeRole === "photographer");
+    } else if (activeTab === "videographers") {
+      list = list.filter(t => t.assigneeRole === "videographer");
+    }
+
+    return list.filter(t => {
       const matchSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
         t.project.toLowerCase().includes(search.toLowerCase()) ||
-        t.assignee.toLowerCase().includes(search.toLowerCase());
+        t.assigneeName.toLowerCase().includes(search.toLowerCase());
       const matchPriority = filterPriority === "all" || t.priority === filterPriority;
       const matchCategory = filterCategory === "all" || t.category === filterCategory;
-      const matchAssignee = filterAssignee === "all" || t.assignee === filterAssignee;
-      return matchSearch && matchPriority && matchCategory && matchAssignee;
+      const matchAssignee = filterAssignee === "all" || t.assigneeId === filterAssignee;
+      const matchRole = filterRole === "all" || t.assigneeRole === filterRole;
+      return matchSearch && matchPriority && matchCategory && matchAssignee && matchRole;
     });
-  }, [tasks, search, filterPriority, filterCategory, filterAssignee]);
+  }, [roleTasks, search, filterPriority, filterCategory, filterAssignee, filterRole, activeTab, isAdmin]);
 
   const stats = useMemo(() => {
-    const total = tasks.length;
-    const done = tasks.filter(t => t.status === "done").length;
-    const overdue = tasks.filter(t => new Date(t.dueDate) < today && t.status !== "done").length;
-    const highPriority = tasks.filter(t => t.priority === "high" && t.status !== "done").length;
-    const avgProgress = Math.round(tasks.reduce((sum, t) => sum + t.progress, 0) / total);
-    return { total, done, overdue, highPriority, avgProgress, completionRate: Math.round((done / total) * 100) };
+    const list = roleTasks;
+    const total = list.length;
+    const done = list.filter(t => t.status === "done").length;
+    const overdue = list.filter(t => new Date(t.dueDate) < today && t.status !== "done").length;
+    const highPriority = list.filter(t => t.priority === "high" && t.status !== "done").length;
+    const avgProgress = total > 0 ? Math.round(list.reduce((sum, t) => sum + t.progress, 0) / total) : 0;
+    const editorTasks = list.filter(t => t.assigneeRole === "editor").length;
+    const photographerTasks = list.filter(t => t.assigneeRole === "photographer").length;
+    const videographerTasks = list.filter(t => t.assigneeRole === "videographer").length;
+    return { total, done, overdue, highPriority, avgProgress, completionRate: total > 0 ? Math.round((done / total) * 100) : 0, editorTasks, photographerTasks, videographerTasks };
+  }, [roleTasks]);
+
+  // Workload per member
+  const workload = useMemo(() => {
+    const map: Record<string, { member: TeamMember; total: number; inProgress: number; done: number; overdue: number }> = {};
+    teamMembers.forEach(m => { map[m.id] = { member: m, total: 0, inProgress: 0, done: 0, overdue: 0 }; });
+    tasks.forEach(t => {
+      if (map[t.assigneeId]) {
+        map[t.assigneeId].total++;
+        if (t.status === "in-progress") map[t.assigneeId].inProgress++;
+        if (t.status === "done") map[t.assigneeId].done++;
+        if (new Date(t.dueDate) < today && t.status !== "done") map[t.assigneeId].overdue++;
+      }
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total);
   }, [tasks]);
 
   const handleDrop = (newStatus: string) => {
@@ -192,7 +277,8 @@ export default function TasksPage() {
 
   const addComment = () => {
     if (!selectedTask || !newComment.trim()) return;
-    const comment: Comment = { id: `c${Date.now()}`, author: "Admin", text: newComment.trim(), date: new Date().toISOString().slice(0, 10) };
+    const author = isAdmin ? "Admin" : currentUserMember?.name || currentRole;
+    const comment: Comment = { id: `c${Date.now()}`, author, text: newComment.trim(), date: new Date().toISOString().slice(0, 10) };
     setTasks(prev => prev.map(t => {
       if (t.id !== selectedTask.id) return t;
       const updated = { ...t, comments: [...t.comments, comment] };
@@ -214,16 +300,35 @@ export default function TasksPage() {
     toast.success(`Task moved to ${status}`);
   };
 
+  const reassignTask = (taskId: string, memberId: string) => {
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) return;
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const updated = { ...t, assigneeId: member.id, assigneeName: member.name, assigneeRole: member.role, assignedAt: new Date().toISOString().slice(0, 10), assignedBy: "Admin" };
+      if (selectedTask?.id === taskId) setSelectedTask(updated);
+      return updated;
+    }));
+    toast.success(`Task reassigned to ${member.name}`);
+    setAssignSheet(false);
+    setReassignTaskId(null);
+  };
+
   const createTask = () => {
     if (!newTask.title.trim()) { toast.error("Title is required"); return; }
+    const member = teamMembers.find(m => m.id === newTask.assigneeId);
     const task: Task = {
-      id: `t${Date.now()}`, ...newTask, status: "todo", progress: 0,
-      subtasks: [], comments: [], createdAt: new Date().toISOString().slice(0, 10),
+      id: `t${Date.now()}`, title: newTask.title, description: newTask.description, project: newTask.project,
+      assigneeId: member?.id || "", assigneeName: member?.name || "Unassigned", assigneeRole: member?.role || "admin",
+      priority: newTask.priority, category: newTask.category, dueDate: newTask.dueDate,
+      status: "todo", progress: 0, subtasks: [], comments: [],
+      createdAt: new Date().toISOString().slice(0, 10),
+      assignedBy: "Admin", assignedAt: new Date().toISOString().slice(0, 10),
     };
     setTasks(prev => [task, ...prev]);
     setAddSheet(false);
-    setNewTask({ title: "", description: "", project: "", assignee: "", priority: "medium", category: "editing", dueDate: "" });
-    toast.success("Task created");
+    setNewTask({ title: "", description: "", project: "", assigneeId: "", priority: "medium", category: "editing", dueDate: "" });
+    toast.success("Task created & assigned");
   };
 
   const deleteTask = (taskId: string) => {
@@ -232,14 +337,24 @@ export default function TasksPage() {
     toast.success("Task deleted");
   };
 
+  const openReassign = (taskId: string) => {
+    setReassignTaskId(taskId);
+    setAssignSheet(true);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Task Manager</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            {isAdmin ? <Shield className="h-5 w-5 text-primary" /> : <UserCheck className="h-5 w-5 text-primary" />}
+            {isAdmin ? "Task Manager" : "My Tasks"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {stats.total} tasks · {stats.done} completed · {stats.overdue > 0 && <span className="text-red-500">{stats.overdue} overdue</span>}
+            {!isAdmin && currentUserMember && <span className="text-primary font-medium">{currentUserMember.name} · </span>}
+            {stats.total} tasks · {stats.done} completed
+            {stats.overdue > 0 && <span className="text-red-500"> · {stats.overdue} overdue</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -247,7 +362,7 @@ export default function TasksPage() {
             <button onClick={() => setViewMode("board")} className={`p-2 ${viewMode === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}><LayoutGrid className="h-4 w-4" /></button>
             <button onClick={() => setViewMode("list")} className={`p-2 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}><ListTodo className="h-4 w-4" /></button>
           </div>
-          <Button onClick={() => setAddSheet(true)} className="gap-2"><Plus className="h-4 w-4" /> Add Task</Button>
+          {isAdmin && <Button onClick={() => setAddSheet(true)} className="gap-2"><Plus className="h-4 w-4" /> Assign Task</Button>}
         </div>
       </div>
 
@@ -257,8 +372,13 @@ export default function TasksPage() {
           { label: "Overall Progress", value: `${stats.avgProgress}%`, sub: <Progress value={stats.avgProgress} className="h-1.5 mt-1" />, icon: BarChart3, color: "text-primary" },
           { label: "Completion Rate", value: `${stats.completionRate}%`, sub: `${stats.done}/${stats.total} done`, icon: CheckCircle2, color: "text-emerald-500" },
           { label: "Overdue", value: stats.overdue, sub: "Need attention", icon: AlertTriangle, color: "text-red-500" },
-          { label: "High Priority", value: stats.highPriority, sub: "Active tasks", icon: ArrowUp, color: "text-amber-500" },
-          { label: "In Review", value: tasks.filter(t => t.status === "review").length, sub: "Awaiting approval", icon: Eye, color: "text-blue-500" },
+          ...(isAdmin ? [
+            { label: "Editor Tasks", value: stats.editorTasks, sub: `${tasks.filter(t => t.assigneeRole === "editor" && t.status === "done").length} done`, icon: Pencil, color: "text-sky-500" },
+            { label: "High Priority", value: stats.highPriority, sub: "Active tasks", icon: ArrowUp, color: "text-amber-500" },
+          ] : [
+            { label: "High Priority", value: stats.highPriority, sub: "Active tasks", icon: ArrowUp, color: "text-amber-500" },
+            { label: "In Review", value: roleTasks.filter(t => t.status === "review").length, sub: "Awaiting approval", icon: Eye, color: "text-blue-500" },
+          ]),
         ].map(s => (
           <Card key={s.label} className="border-border/50">
             <CardContent className="p-4">
@@ -272,6 +392,54 @@ export default function TasksPage() {
           </Card>
         ))}
       </div>
+
+      {/* Admin: Team Workload Overview */}
+      {isAdmin && (
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-primary" /> Team Workload
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {workload.filter(w => w.total > 0).map(w => (
+                <div key={w.member.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {w.member.name.split(" ").map(n => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{w.member.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge variant="outline" className={`text-[9px] ${roleColors[w.member.role]}`}>
+                        {w.member.role}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                      <span>{w.total} tasks</span>
+                      <span>·</span>
+                      <span className="text-blue-500">{w.inProgress} active</span>
+                      {w.overdue > 0 && <><span>·</span><span className="text-red-500">{w.overdue} overdue</span></>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tabs for role filtering (Admin only) */}
+      {isAdmin && (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto bg-muted/30">
+            <TabsTrigger value="all" className="text-xs">All Tasks</TabsTrigger>
+            <TabsTrigger value="editors" className="text-xs gap-1"><Pencil className="h-3 w-3" /> Editors</TabsTrigger>
+            <TabsTrigger value="photographers" className="text-xs gap-1">📸 Photographers</TabsTrigger>
+            <TabsTrigger value="videographers" className="text-xs gap-1">🎥 Videographers</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -297,13 +465,15 @@ export default function TasksPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-          <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Assignees</SelectItem>
-            {teamMembers.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {isAdmin && (
+          <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignees</SelectItem>
+              {teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Board View */}
@@ -339,42 +509,54 @@ export default function TasksPage() {
                             </Badge>
                           </div>
                           <p className="text-sm font-medium text-foreground leading-snug mb-1">{task.title}</p>
-                          <p className="text-xs text-muted-foreground mb-2.5">{task.project}</p>
+                          <p className="text-xs text-muted-foreground mb-2">{task.project}</p>
 
-                          {/* Progress */}
-                          <div className="mb-2.5">
+                          <div className="mb-2">
                             <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                              <span>Progress</span>
-                              <span>{task.progress}%</span>
+                              <span>Progress</span><span>{task.progress}%</span>
                             </div>
                             <Progress value={task.progress} className="h-1.5" />
                           </div>
 
-                          {/* Subtask count */}
                           {task.subtasks.length > 0 && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2.5">
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2">
                               <CheckCircle2 className="h-3 w-3" />
                               <span>{task.subtasks.filter(s => s.done).length}/{task.subtasks.length} subtasks</span>
                             </div>
                           )}
 
+                          {/* Assignee with role badge */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
                               <Avatar className="h-5 w-5">
                                 <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                                  {task.assignee.split(" ").map(n => n[0]).join("")}
+                                  {task.assigneeName.split(" ").map(n => n[0]).join("")}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.assignee.split(" ")[0]}</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">{task.assigneeName.split(" ")[0]}</span>
+                              <Badge variant="outline" className={`text-[8px] px-1 py-0 ${roleColors[task.assigneeRole]}`}>
+                                {task.assigneeRole}
+                              </Badge>
                             </div>
                             <div className={`flex items-center gap-1 text-[10px] ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
                               {isOverdue ? <AlertTriangle className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
                               <span>{task.dueDate.slice(5)}</span>
                             </div>
                           </div>
+
+                          {/* Reassign button for admin */}
+                          {isAdmin && (
+                            <div className="mt-2 pt-2 border-t border-border/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 w-full text-muted-foreground hover:text-primary"
+                                onClick={(e) => { e.stopPropagation(); openReassign(task.id); }}>
+                                <UserCheck className="h-3 w-3" /> Reassign
+                              </Button>
+                            </div>
+                          )}
+
                           {task.comments.length > 0 && (
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                              <MessageSquare className="h-3 w-3" /><span>{task.comments.length} comment{task.comments.length > 1 ? "s" : ""}</span>
+                              <MessageSquare className="h-3 w-3" /><span>{task.comments.length}</span>
                             </div>
                           )}
                         </motion.div>
@@ -398,10 +580,12 @@ export default function TasksPage() {
                   <th className="text-left p-3 font-medium text-muted-foreground">Task</th>
                   <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Project</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Assignee</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground hidden sm:table-cell">Role</th>
                   <th className="text-left p-3 font-medium text-muted-foreground hidden sm:table-cell">Priority</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                   <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Progress</th>
                   <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Due</th>
+                  {isAdmin && <th className="text-left p-3 font-medium text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -422,11 +606,16 @@ export default function TasksPage() {
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
                             <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                              {task.assignee.split(" ").map(n => n[0]).join("")}
+                              {task.assigneeName.split(" ").map(n => n[0]).join("")}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-foreground">{task.assignee}</span>
+                          <span className="text-foreground text-xs">{task.assigneeName}</span>
                         </div>
+                      </td>
+                      <td className="p-3 hidden sm:table-cell">
+                        <Badge variant="outline" className={`text-[10px] ${roleColors[task.assigneeRole]}`}>
+                          {task.assigneeRole}
+                        </Badge>
                       </td>
                       <td className="p-3 hidden sm:table-cell">
                         <Badge variant="outline" className={`${priorityConfig[task.priority].bg} text-[10px]`}>
@@ -453,6 +642,14 @@ export default function TasksPage() {
                         {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-1" />}
                         {new Date(task.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                       </td>
+                      {isAdmin && (
+                        <td className="p-3">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                            onClick={(e) => { e.stopPropagation(); openReassign(task.id); }}>
+                            <UserCheck className="h-3 w-3" /> Reassign
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -468,13 +665,11 @@ export default function TasksPage() {
           {selectedTask && (
             <>
               <SheetHeader>
-                <div className="flex items-start justify-between">
-                  <SheetTitle className="text-left text-lg pr-4">{selectedTask.title}</SheetTitle>
-                </div>
+                <SheetTitle className="text-left text-lg pr-4">{selectedTask.title}</SheetTitle>
               </SheetHeader>
 
               <div className="mt-6 space-y-5">
-                {/* Status & Priority */}
+                {/* Status & Priority & Role */}
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className={priorityConfig[selectedTask.priority].bg}>
                     {React.createElement(priorityConfig[selectedTask.priority].icon, { className: "h-3 w-3 mr-1" })}
@@ -493,19 +688,44 @@ export default function TasksPage() {
                   </Badge>
                 </div>
 
-                {/* Description */}
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-1">Description</p>
-                  <p className="text-sm text-muted-foreground">{selectedTask.description}</p>
-                </div>
+                <p className="text-sm text-muted-foreground">{selectedTask.description}</p>
+
+                {/* Assignment Info */}
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <UserCheck className="h-3.5 w-3.5" /> Assignment Details
+                    </h4>
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                          {selectedTask.assigneeName.split(" ").map(n => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{selectedTask.assigneeName}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className={`text-[10px] ${roleColors[selectedTask.assigneeRole]}`}>
+                            {selectedTask.assigneeRole}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">Assigned by {selectedTask.assignedBy} · {selectedTask.assignedAt}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <Button variant="outline" size="sm" className="gap-1.5 text-xs w-full"
+                        onClick={() => openReassign(selectedTask.id)}>
+                        <UserCheck className="h-3.5 w-3.5" /> Reassign Task
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Meta Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: "Project", value: selectedTask.project },
-                    { label: "Assignee", value: selectedTask.assignee },
                     { label: "Due Date", value: new Date(selectedTask.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
-                    { label: "Created", value: new Date(selectedTask.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
                   ].map(m => (
                     <div key={m.label} className="bg-muted/30 rounded-lg p-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</p>
@@ -601,13 +821,76 @@ export default function TasksPage() {
 
                 <Separator />
 
-                {/* Delete */}
-                <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => deleteTask(selectedTask.id)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete Task
-                </Button>
+                {isAdmin && (
+                  <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => deleteTask(selectedTask.id)}>
+                    <Trash2 className="h-3.5 w-3.5" /> Delete Task
+                  </Button>
+                )}
               </div>
             </>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Reassign Sheet */}
+      <Sheet open={assignSheet} onOpenChange={setAssignSheet}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-left flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-primary" /> Reassign Task
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-2">
+            {reassignTaskId && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Select a team member to assign: <span className="font-medium text-foreground">{tasks.find(t => t.id === reassignTaskId)?.title}</span>
+              </p>
+            )}
+            {/* Group by role */}
+            {(["editor", "photographer", "videographer", "telecaller"] as AppRole[]).map(role => {
+              const members = teamMembers.filter(m => m.role === role);
+              if (members.length === 0) return null;
+              const currentTask = tasks.find(t => t.id === reassignTaskId);
+              return (
+                <div key={role} className="mb-4">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                    <Badge variant="outline" className={`text-[10px] ${roleColors[role]}`}>{role}</Badge>
+                    <span>{members.length} members</span>
+                  </h4>
+                  <div className="space-y-1.5">
+                    {members.map(m => {
+                      const memberTasks = tasks.filter(t => t.assigneeId === m.id && t.status !== "done").length;
+                      const isCurrentAssignee = currentTask?.assigneeId === m.id;
+                      return (
+                        <motion.div key={m.id}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          onClick={() => !isCurrentAssignee && reassignTask(reassignTaskId!, m.id)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                            isCurrentAssignee ? "border-primary bg-primary/5" : "border-border/50 hover:border-primary/30 hover:bg-muted/30"
+                          }`}>
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {m.name.split(" ").map(n => n[0]).join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{m.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{memberTasks} active tasks</p>
+                          </div>
+                          {isCurrentAssignee ? (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Current</Badge>
+                          ) : (
+                            <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -615,7 +898,7 @@ export default function TasksPage() {
       <Sheet open={addSheet} onOpenChange={setAddSheet}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="text-left">Create New Task</SheetTitle>
+            <SheetTitle className="text-left">Create & Assign Task</SheetTitle>
           </SheetHeader>
           <div className="mt-6 space-y-4">
             <div>
@@ -636,15 +919,51 @@ export default function TasksPage() {
                 <Input className="mt-1" type="date" value={newTask.dueDate} onChange={e => setNewTask(p => ({ ...p, dueDate: e.target.value }))} />
               </div>
             </div>
+
+            {/* Assign to team member with role info */}
             <div>
-              <label className="text-sm font-medium text-foreground">Assignee</label>
-              <Select value={newTask.assignee} onValueChange={v => setNewTask(p => ({ ...p, assignee: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select assignee" /></SelectTrigger>
+              <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <UserCheck className="h-3.5 w-3.5" /> Assign To *
+              </label>
+              <Select value={newTask.assigneeId} onValueChange={v => setNewTask(p => ({ ...p, assigneeId: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select team member" /></SelectTrigger>
                 <SelectContent>
-                  {teamMembers.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  {(["editor", "photographer", "videographer", "telecaller"] as AppRole[]).map(role => {
+                    const members = teamMembers.filter(m => m.role === role);
+                    if (members.length === 0) return null;
+                    return (
+                      <React.Fragment key={role}>
+                        <div className="px-2 py-1.5 text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">
+                          {role}
+                        </div>
+                        {members.map(m => (
+                          <SelectItem key={m.id} value={m.id}>
+                            <span className="flex items-center gap-2">
+                              {m.name}
+                              <Badge variant="outline" className={`text-[8px] px-1 py-0 ${roleColors[m.role]}`}>{m.role}</Badge>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              {newTask.assigneeId && (
+                <div className="mt-2 p-2 rounded-lg bg-muted/30 border border-border/50 flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                      {teamMembers.find(m => m.id === newTask.assigneeId)?.name.split(" ").map(n => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-foreground">{teamMembers.find(m => m.id === newTask.assigneeId)?.name}</span>
+                  <Badge variant="outline" className={`text-[8px] ml-auto ${roleColors[teamMembers.find(m => m.id === newTask.assigneeId)?.role || "admin"]}`}>
+                    {teamMembers.find(m => m.id === newTask.assigneeId)?.role}
+                  </Badge>
+                </div>
+              )}
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-foreground">Priority</label>
@@ -667,7 +986,7 @@ export default function TasksPage() {
                 </Select>
               </div>
             </div>
-            <Button className="w-full mt-4 gap-2" onClick={createTask}><Plus className="h-4 w-4" /> Create Task</Button>
+            <Button className="w-full mt-4 gap-2" onClick={createTask}><Plus className="h-4 w-4" /> Create & Assign Task</Button>
           </div>
         </SheetContent>
       </Sheet>
