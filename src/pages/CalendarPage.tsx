@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { sampleProjects } from "@/data/wedding-types";
+import { sampleProjects, sampleTeamMembers } from "@/data/wedding-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -9,16 +9,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, MapPin, Users, Camera,
   CalendarDays as CalIcon, Clock, Plus, Filter, Search,
-  LayoutGrid, List, CalendarRange, Eye, Phone, X,
+  LayoutGrid, List, CalendarRange, Eye, Phone, X, Check,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 interface CalendarEvent {
   id: string;
@@ -26,11 +31,13 @@ interface CalendarEvent {
   clientLabel: string;
   subEventName: string;
   date: string;
+  time?: string;
   location: string;
   status: "upcoming" | "in-progress" | "completed";
   teamCount: number;
   team: { name: string; role: string }[];
   category: string;
+  notes?: string;
 }
 
 const categoryColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
@@ -44,12 +51,24 @@ const categoryColors: Record<string, { bg: string; text: string; border: string;
   default: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", dot: "bg-primary" },
 };
 
+const eventTypeOptions = [
+  { value: "Wedding Ceremony", category: "Wedding" },
+  { value: "Mehendi", category: "Mehendi" },
+  { value: "Sangeet", category: "Sangeet" },
+  { value: "Haldi", category: "Haldi" },
+  { value: "Reception", category: "Reception" },
+  { value: "Engagement", category: "Engagement" },
+  { value: "Pre-Wedding Shoot", category: "Pre-Wedding" },
+  { value: "Ring Ceremony", category: "Engagement" },
+  { value: "Cocktail Party", category: "Reception" },
+];
+
 const getCategory = (name: string): string => {
   const lower = name.toLowerCase();
   if (lower.includes("wedding") && !lower.includes("pre")) return "Wedding";
   if (lower.includes("pre-wedding") || lower.includes("pre wedding")) return "Pre-Wedding";
-  if (lower.includes("engagement")) return "Engagement";
-  if (lower.includes("reception")) return "Reception";
+  if (lower.includes("engagement") || lower.includes("ring")) return "Engagement";
+  if (lower.includes("reception") || lower.includes("cocktail")) return "Reception";
   if (lower.includes("mehendi") || lower.includes("mehndi")) return "Mehendi";
   if (lower.includes("sangeet")) return "Sangeet";
   if (lower.includes("haldi")) return "Haldi";
@@ -88,7 +107,21 @@ const CalendarPage = () => {
     return d;
   });
 
-  const allEvents: CalendarEvent[] = useMemo(() => {
+  // Schedule Event state
+  const [scheduleSheet, setScheduleSheet] = useState(false);
+  const [customEvents, setCustomEvents] = useState<CalendarEvent[]>([]);
+  const [newEvent, setNewEvent] = useState({
+    projectId: "",
+    eventName: "",
+    customName: "",
+    date: "",
+    time: "09:00",
+    location: "",
+    notes: "",
+    selectedTeam: [] as string[],
+  });
+
+  const baseEvents: CalendarEvent[] = useMemo(() => {
     return sampleProjects.flatMap((project) =>
       project.subEvents.map((se) => ({
         id: se.id,
@@ -104,6 +137,8 @@ const CalendarPage = () => {
       }))
     );
   }, []);
+
+  const allEvents = useMemo(() => [...baseEvents, ...customEvents], [baseEvents, customEvents]);
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter((ev) => {
@@ -159,8 +194,7 @@ const CalendarPage = () => {
     return days;
   }, [weekStart]);
 
-  // Time slots for week/day view
-  const timeSlots = Array.from({ length: 14 }, (_, i) => i + 7); // 7 AM to 8 PM
+  const timeSlots = Array.from({ length: 14 }, (_, i) => i + 7);
 
   const prevMonth = () => {
     if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
@@ -204,10 +238,75 @@ const CalendarPage = () => {
 
   const uniqueCategories = [...new Set(allEvents.map((e) => e.category))];
 
-  // Event dates for mini calendar
   const eventDatesForMini = useMemo(() => {
     return filteredEvents.map((e) => new Date(e.date));
   }, [filteredEvents]);
+
+  // Open schedule sheet, optionally pre-fill date
+  const openSchedule = (preDate?: string) => {
+    setNewEvent({
+      projectId: "",
+      eventName: "",
+      customName: "",
+      date: preDate || "",
+      time: "09:00",
+      location: "",
+      notes: "",
+      selectedTeam: [],
+    });
+    setScheduleSheet(true);
+  };
+
+  const toggleTeamMember = (id: string) => {
+    setNewEvent(prev => ({
+      ...prev,
+      selectedTeam: prev.selectedTeam.includes(id)
+        ? prev.selectedTeam.filter(t => t !== id)
+        : [...prev.selectedTeam, id],
+    }));
+  };
+
+  const handleScheduleEvent = () => {
+    const eventName = newEvent.eventName === "custom" ? newEvent.customName : newEvent.eventName;
+    if (!eventName) { toast.error("Please select or enter an event name"); return; }
+    if (!newEvent.date) { toast.error("Please select a date"); return; }
+    if (!newEvent.location) { toast.error("Please enter a location"); return; }
+
+    const project = sampleProjects.find(p => p.id === newEvent.projectId);
+    const clientLabel = project
+      ? `${project.clientName} & ${project.partnerName}`
+      : "Studio Event";
+
+    const selectedMembers = sampleTeamMembers.filter(m => newEvent.selectedTeam.includes(m.id));
+
+    const event: CalendarEvent = {
+      id: `custom-${Date.now()}`,
+      projectId: newEvent.projectId || "",
+      clientLabel,
+      subEventName: eventName,
+      date: newEvent.date,
+      time: newEvent.time,
+      location: newEvent.location,
+      status: "upcoming",
+      teamCount: selectedMembers.length,
+      team: selectedMembers.map(m => ({ name: m.name, role: m.role })),
+      category: getCategory(eventName),
+      notes: newEvent.notes,
+    };
+
+    setCustomEvents(prev => [...prev, event]);
+    setScheduleSheet(false);
+    toast.success(`"${eventName}" scheduled on ${new Date(newEvent.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`);
+
+    // Navigate to the event date
+    const d = new Date(newEvent.date);
+    setCurrentMonth(d.getMonth());
+    setCurrentYear(d.getFullYear());
+    setSelectedDate(newEvent.date);
+  };
+
+  // Selected project info for the form
+  const selectedProject = sampleProjects.find(p => p.id === newEvent.projectId);
 
   return (
     <div className="max-w-full mx-auto space-y-4">
@@ -225,7 +324,6 @@ const CalendarPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* View Mode Toggle */}
           <div className="flex rounded-lg border border-border overflow-hidden">
             {([
               { mode: "month" as ViewMode, icon: LayoutGrid, label: "Month" },
@@ -243,7 +341,7 @@ const CalendarPage = () => {
               </button>
             ))}
           </div>
-          <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2" onClick={() => openSchedule()}>
             <Plus className="h-4 w-4" /> Add Event
           </Button>
         </div>
@@ -329,13 +427,8 @@ const CalendarPage = () => {
                   return (
                     <div
                       key={idx}
-                      onClick={() => {
-                        setSelectedDate(dateStr);
-                      }}
-                      onDoubleClick={() => {
-                        setSelectedDate(dateStr);
-                        setViewMode("day");
-                      }}
+                      onClick={() => setSelectedDate(dateStr)}
+                      onDoubleClick={() => { setSelectedDate(dateStr); setViewMode("day"); }}
                       className={cn(
                         "border-r border-b border-border min-h-[100px] p-1.5 cursor-pointer transition-all hover:bg-muted/20 relative group/cell",
                         !cell.isCurrentMonth && "opacity-25",
@@ -351,11 +444,13 @@ const CalendarPage = () => {
                         )}>
                           {cell.day}
                         </div>
-                        {dayEvents.length > 0 && (
-                          <span className="text-[9px] text-muted-foreground opacity-0 group-hover/cell:opacity-100 transition-opacity">
-                            {dayEvents.length} event{dayEvents.length > 1 ? "s" : ""}
-                          </span>
-                        )}
+                        {/* Quick add button on hover */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openSchedule(dateStr); }}
+                          className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-opacity hover:bg-primary/20"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
                       </div>
                       <div className="space-y-0.5">
                         {dayEvents.slice(0, 3).map((ev) => {
@@ -390,7 +485,6 @@ const CalendarPage = () => {
           {/* ===== WEEK VIEW ===== */}
           {viewMode === "week" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-border bg-card overflow-hidden">
-              {/* Day headers */}
               <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
                 <div className="border-r border-border" />
                 {weekDays.map((day) => {
@@ -424,7 +518,6 @@ const CalendarPage = () => {
                   );
                 })}
               </div>
-              {/* Time grid */}
               <div className="max-h-[500px] overflow-y-auto">
                 {timeSlots.map((hour) => (
                   <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/50 min-h-[60px]">
@@ -434,16 +527,16 @@ const CalendarPage = () => {
                     {weekDays.map((day) => {
                       const ds = formatDateStr(day.getFullYear(), day.getMonth(), day.getDate());
                       const dayEvts = eventsByDate[ds] || [];
-                      // Show events in this time slot (simplified: show all events in morning)
                       const slotEvents = hour === 9 ? dayEvts : [];
                       return (
-                        <div key={ds + hour} className="border-r border-border/50 last:border-r-0 p-0.5 hover:bg-muted/10 transition-colors cursor-pointer">
+                        <div key={ds + hour} className="border-r border-border/50 last:border-r-0 p-0.5 hover:bg-muted/10 transition-colors cursor-pointer"
+                          onClick={() => openSchedule(ds)}>
                           {slotEvents.map((ev) => {
                             const catColor = getCatColor(ev.category);
                             return (
                               <div
                                 key={ev.id}
-                                onClick={() => setSelectedEvent(ev)}
+                                onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
                                 className={cn(
                                   "text-[9px] px-1.5 py-1 rounded-md border mb-0.5 cursor-pointer truncate hover:scale-[1.02] transition-transform",
                                   catColor.bg, catColor.text, catColor.border,
@@ -481,7 +574,7 @@ const CalendarPage = () => {
                         >
                           <div className="flex items-start gap-4">
                             <div className="text-center shrink-0 w-16">
-                              <p className="text-xs text-muted-foreground">9:00 AM</p>
+                              <p className="text-xs text-muted-foreground">{ev.time || "9:00 AM"}</p>
                               <p className="text-[10px] text-muted-foreground mt-0.5">All Day</p>
                             </div>
                             <div className={cn("w-1 self-stretch rounded-full shrink-0", catColor.dot)} />
@@ -500,7 +593,6 @@ const CalendarPage = () => {
                                   {statusConfig[ev.status].label}
                                 </Badge>
                               </div>
-                              {/* Team Avatars */}
                               <div className="flex items-center gap-1 mt-3">
                                 {ev.team.slice(0, 5).map((t, idx) => (
                                   <Avatar key={idx} className="h-7 w-7 border-2 border-card -ml-1 first:ml-0">
@@ -526,7 +618,7 @@ const CalendarPage = () => {
                     <p className="text-sm text-muted-foreground">
                       {selectedDate ? "No events on this day" : "Select a date to view events"}
                     </p>
-                    <Button variant="outline" size="sm" className="mt-3 gap-2">
+                    <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => openSchedule(selectedDate || undefined)}>
                       <Plus className="h-4 w-4" /> Schedule Event
                     </Button>
                   </div>
@@ -536,9 +628,8 @@ const CalendarPage = () => {
           )}
         </div>
 
-        {/* Right Sidebar: Mini Calendar + Event List */}
+        {/* Right Sidebar */}
         <div className="w-80 shrink-0 hidden xl:flex flex-col gap-4">
-          {/* Mini Calendar */}
           <div className="rounded-xl bg-card border border-border overflow-hidden">
             <Calendar
               mode="single"
@@ -557,15 +648,19 @@ const CalendarPage = () => {
             />
           </div>
 
-          {/* Selected Date Events */}
           <div className="rounded-xl bg-card border border-border overflow-hidden flex-1">
-            <div className="p-4 border-b border-border">
+            <div className="p-4 border-b border-border flex items-center justify-between">
               <h3 className="text-sm font-display font-semibold text-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4 text-primary" />
                 {selectedDate
                   ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })
                   : "Select a date"}
               </h3>
+              {selectedDate && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={() => openSchedule(selectedDate)}>
+                  <Plus className="h-3 w-3" /> Add
+                </Button>
+              )}
             </div>
             {selectedEvents.length > 0 ? (
               <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
@@ -598,7 +693,6 @@ const CalendarPage = () => {
             )}
           </div>
 
-          {/* Monthly Stats */}
           <div className="rounded-xl bg-card border border-border p-4 space-y-3">
             <h3 className="text-sm font-display font-semibold text-foreground">This Month</h3>
             <div className="grid grid-cols-3 gap-2">
@@ -652,9 +746,17 @@ const CalendarPage = () => {
                         {selectedEvent.location}
                       </div>
                     </div>
+                    {selectedEvent.time && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {selectedEvent.time}
+                      </div>
+                    )}
+                    {selectedEvent.notes && (
+                      <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-2">{selectedEvent.notes}</p>
+                    )}
                   </div>
 
-                  {/* Team */}
                   <div>
                     <p className="text-sm font-semibold text-foreground mb-2">Assigned Team ({selectedEvent.team.length})</p>
                     <div className="space-y-2">
@@ -676,13 +778,18 @@ const CalendarPage = () => {
                           </Button>
                         </div>
                       ))}
+                      {selectedEvent.team.length === 0 && (
+                        <p className="text-xs text-muted-foreground p-3 text-center bg-muted/20 rounded-lg">No team assigned yet</p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    <Button className="flex-1 gap-2" onClick={() => navigate(`/projects/${selectedEvent.projectId}`)}>
-                      <Eye className="h-4 w-4" /> View Project
-                    </Button>
+                    {selectedEvent.projectId && (
+                      <Button className="flex-1 gap-2" onClick={() => navigate(`/projects/${selectedEvent.projectId}`)}>
+                        <Eye className="h-4 w-4" /> View Project
+                      </Button>
+                    )}
                     <Button variant="outline" className="flex-1 gap-2">
                       <Camera className="h-4 w-4" /> Edit Event
                     </Button>
@@ -693,6 +800,198 @@ const CalendarPage = () => {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* ===== SCHEDULE EVENT SHEET ===== */}
+      <Sheet open={scheduleSheet} onOpenChange={setScheduleSheet}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-left flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" /> Schedule Event
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            {/* Link to Project (optional) */}
+            <div>
+              <label className="text-sm font-medium text-foreground">Link to Project</label>
+              <Select value={newEvent.projectId} onValueChange={v => setNewEvent(p => ({ ...p, projectId: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select project (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No project (standalone)</SelectItem>
+                  {sampleProjects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.clientName} & {p.partnerName} — {p.city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedProject && (
+                <div className="mt-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-xs font-medium text-primary">{selectedProject.clientName} & {selectedProject.partnerName}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{selectedProject.venue} · {selectedProject.package}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Event Type */}
+            <div>
+              <label className="text-sm font-medium text-foreground">Event Type *</label>
+              <Select value={newEvent.eventName} onValueChange={v => setNewEvent(p => ({ ...p, eventName: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select event type" /></SelectTrigger>
+                <SelectContent>
+                  {eventTypeOptions.map(opt => {
+                    const catColor = getCatColor(opt.category);
+                    return (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${catColor.dot}`} />
+                          {opt.value}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                  <SelectItem value="custom">✏️ Custom Event Name</SelectItem>
+                </SelectContent>
+              </Select>
+              {newEvent.eventName === "custom" && (
+                <Input className="mt-2" placeholder="Enter custom event name" value={newEvent.customName}
+                  onChange={e => setNewEvent(p => ({ ...p, customName: e.target.value }))} />
+              )}
+              {newEvent.eventName && newEvent.eventName !== "custom" && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className={`h-3 w-3 rounded-full ${getCatColor(getCategory(newEvent.eventName)).dot}`} />
+                  <Badge variant="outline" className={cn("text-[10px]",
+                    getCatColor(getCategory(newEvent.eventName)).bg,
+                    getCatColor(getCategory(newEvent.eventName)).text,
+                    getCatColor(getCategory(newEvent.eventName)).border,
+                  )}>
+                    {getCategory(newEvent.eventName)}
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Date *</label>
+                <Input className="mt-1" type="date" value={newEvent.date}
+                  onChange={e => setNewEvent(p => ({ ...p, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Time</label>
+                <Input className="mt-1" type="time" value={newEvent.time}
+                  onChange={e => setNewEvent(p => ({ ...p, time: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="text-sm font-medium text-foreground">Location *</label>
+              <Input className="mt-1" placeholder="Venue name, address..."
+                value={newEvent.location}
+                onChange={e => setNewEvent(p => ({ ...p, location: e.target.value }))} />
+            </div>
+
+            <Separator />
+
+            {/* Team Assignment */}
+            <div>
+              <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Assign Team
+              </label>
+              <p className="text-[10px] text-muted-foreground mt-0.5 mb-3">
+                {newEvent.selectedTeam.length} member{newEvent.selectedTeam.length !== 1 ? "s" : ""} selected
+              </p>
+
+              {/* Group by role */}
+              {(["photographer", "videographer", "editor", "drone-operator", "assistant"] as const).map(role => {
+                const members = sampleTeamMembers.filter(m => m.role === role);
+                if (members.length === 0) return null;
+                return (
+                  <div key={role} className="mb-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">{role.replace("-", " ")}s</p>
+                    <div className="space-y-1">
+                      {members.map(m => {
+                        const isSelected = newEvent.selectedTeam.includes(m.id);
+                        return (
+                          <div key={m.id}
+                            onClick={() => toggleTeamMember(m.id)}
+                            className={cn(
+                              "flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all",
+                              isSelected ? "border-primary/50 bg-primary/5" : "border-border/50 hover:bg-muted/30",
+                            )}>
+                            <div className={cn(
+                              "h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                              isSelected ? "bg-primary border-primary" : "border-muted-foreground/30",
+                            )}>
+                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <Avatar className="h-7 w-7">
+                              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                                {m.name.split(" ").map(n => n[0]).join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-foreground">{m.name}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">{m.type}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <Separator />
+
+            {/* Notes */}
+            <div>
+              <label className="text-sm font-medium text-foreground">Notes</label>
+              <Textarea className="mt-1 min-h-[80px]" placeholder="Special instructions, timings, equipment needs..."
+                value={newEvent.notes}
+                onChange={e => setNewEvent(p => ({ ...p, notes: e.target.value }))} />
+            </div>
+
+            {/* Summary */}
+            {(newEvent.eventName || newEvent.customName) && newEvent.date && (
+              <div className="bg-muted/30 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Event Summary</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-3 w-3 rounded-full ${getCatColor(getCategory(newEvent.eventName === "custom" ? newEvent.customName : newEvent.eventName)).dot}`} />
+                    <p className="text-sm font-semibold text-foreground">{newEvent.eventName === "custom" ? newEvent.customName : newEvent.eventName}</p>
+                  </div>
+                  {selectedProject && (
+                    <p className="text-xs text-primary ml-5">{selectedProject.clientName} & {selectedProject.partnerName}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground ml-5 flex items-center gap-1">
+                    <CalIcon className="h-3 w-3" />
+                    {new Date(newEvent.date + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                    {newEvent.time && ` at ${newEvent.time}`}
+                  </p>
+                  {newEvent.location && (
+                    <p className="text-xs text-muted-foreground ml-5 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {newEvent.location}
+                    </p>
+                  )}
+                  {newEvent.selectedTeam.length > 0 && (
+                    <p className="text-xs text-muted-foreground ml-5 flex items-center gap-1">
+                      <Users className="h-3 w-3" /> {newEvent.selectedTeam.length} team members assigned
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <Button className="w-full mt-2 gap-2" onClick={handleScheduleEvent}>
+              <CalIcon className="h-4 w-4" /> Schedule Event
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
