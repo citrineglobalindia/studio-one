@@ -15,8 +15,22 @@ import {
   BarChart3, Megaphone, Bot, Heart, Settings, Bell, FolderKanban,
   Receipt, FileText, CalendarDays, ListTodo, UsersRound,
   MessageSquare, Zap, BrainCircuit, ClipboardList, UserCheck,
-  Clock, Palmtree,
+  Clock, Palmtree, Plus, SlidersHorizontal, MoreVertical,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 const ROLE_META: Record<string, { icon: React.ElementType; color: string; description: string }> = {
@@ -76,6 +90,7 @@ export default function AccessControlPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [hasChanges, setHasChanges] = useState(false);
+  const [advancedEditRole, setAdvancedEditRole] = useState<AppRole | null>(null);
 
   const nonAdminRoles = ALL_ROLES.filter((r) => r.value !== "admin");
   const groups = [...new Set(ALL_MODULES.map((m) => m.group))];
@@ -143,6 +158,45 @@ export default function AccessControlPage() {
       ...prev,
       [selectedRole]: defaultAccess[selectedRole] ?? [],
     }));
+    setHasChanges(true);
+  };
+
+  const enableAllForRole = (role: AppRole) => {
+    setLocalAccess((prev) => ({
+      ...prev,
+      [role]: ALL_MODULES.map((m) => m.value),
+    }));
+    setHasChanges(true);
+    toast.success(`All modules enabled for ${ALL_ROLES.find((r) => r.value === role)?.label}`);
+  };
+
+  const disableAllForRole = (role: AppRole) => {
+    setLocalAccess((prev) => ({ ...prev, [role]: [] }));
+    setHasChanges(true);
+    toast.success(`All modules disabled for ${ALL_ROLES.find((r) => r.value === role)?.label}`);
+  };
+
+  const toggleModuleForRole = (role: AppRole, mod: AppModule) => {
+    setLocalAccess((prev) => {
+      const current = prev[role] ?? [];
+      const updated = current.includes(mod)
+        ? current.filter((m) => m !== mod)
+        : [...current, mod];
+      return { ...prev, [role]: updated };
+    });
+    setHasChanges(true);
+  };
+
+  const toggleGroupForRole = (role: AppRole, group: string) => {
+    const groupModules = ALL_MODULES.filter((m) => m.group === group).map((m) => m.value);
+    const current = localAccess[role] ?? [];
+    const allEnabled = groupModules.every((m) => current.includes(m));
+    setLocalAccess((prev) => {
+      const updated = allEnabled
+        ? current.filter((m) => !groupModules.includes(m))
+        : [...new Set([...current, ...groupModules])];
+      return { ...prev, [role]: updated };
+    });
     setHasChanges(true);
   };
 
@@ -228,9 +282,8 @@ export default function AccessControlPage() {
           const isSelected = selectedRole === r.value;
           const count = (localAccess[r.value] ?? []).length;
           return (
-            <motion.button
+            <motion.div
               key={r.value}
-              onClick={() => setSelectedRole(r.value)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={cn(
@@ -240,31 +293,63 @@ export default function AccessControlPage() {
                   : "bg-card border-border hover:border-primary/20 hover:bg-muted/50"
               )}
             >
-              <div className={cn(
-                "h-10 w-10 rounded-xl flex items-center justify-center transition-colors",
-                isSelected ? "bg-primary/20" : "bg-muted"
-              )}>
-                <Icon className={cn("h-5 w-5", isSelected ? "text-primary" : meta?.color || "text-muted-foreground")} />
-              </div>
-              <span className={cn("text-xs font-semibold", isSelected ? "text-foreground" : "text-muted-foreground")}>
-                {r.label}
-              </span>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[10px] px-1.5",
-                  isSelected ? "border-primary/40 text-primary" : "border-border text-muted-foreground"
-                )}
+              {/* Dropdown menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="absolute top-2 right-2 h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted/80 transition-colors z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => { enableAllForRole(r.value); setSelectedRole(r.value); }}>
+                    <CheckCheck className="h-3.5 w-3.5 mr-2 text-green-500" />
+                    Enable All Modules
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { disableAllForRole(r.value); setSelectedRole(r.value); }}>
+                    <XCircle className="h-3.5 w-3.5 mr-2 text-destructive" />
+                    Disable All Modules
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setAdvancedEditRole(r.value)}>
+                    <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-primary" />
+                    Advanced Edit
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <button
+                onClick={() => setSelectedRole(r.value)}
+                className="flex flex-col items-center gap-2 w-full"
               >
-                {count}/{totalModules}
-              </Badge>
+                <div className={cn(
+                  "h-10 w-10 rounded-xl flex items-center justify-center transition-colors",
+                  isSelected ? "bg-primary/20" : "bg-muted"
+                )}>
+                  <Icon className={cn("h-5 w-5", isSelected ? "text-primary" : meta?.color || "text-muted-foreground")} />
+                </div>
+                <span className={cn("text-xs font-semibold", isSelected ? "text-foreground" : "text-muted-foreground")}>
+                  {r.label}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[10px] px-1.5",
+                    isSelected ? "border-primary/40 text-primary" : "border-border text-muted-foreground"
+                  )}
+                >
+                  {count}/{totalModules}
+                </Badge>
+              </button>
               {isSelected && (
                 <motion.div
                   layoutId="roleIndicator"
                   className="absolute -bottom-px left-3 right-3 h-0.5 bg-primary rounded-full"
                 />
               )}
-            </motion.button>
+            </motion.div>
           );
         })}
       </div>
@@ -553,6 +638,111 @@ export default function AccessControlPage() {
           </table>
         </div>
       )}
+
+      {/* ═══ ADVANCED EDIT DIALOG ═══ */}
+      <Dialog open={!!advancedEditRole} onOpenChange={(open) => !open && setAdvancedEditRole(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {advancedEditRole && ROLE_META[advancedEditRole] && (
+                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center bg-primary/15")}>
+                  {React.createElement(ROLE_META[advancedEditRole]?.icon ?? Shield, {
+                    className: cn("h-5 w-5", ROLE_META[advancedEditRole]?.color),
+                  })}
+                </div>
+              )}
+              <div>
+                <span className="text-lg font-bold">
+                  Advanced Edit — {ALL_ROLES.find((r) => r.value === advancedEditRole)?.label}
+                </span>
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                  {advancedEditRole && ROLE_META[advancedEditRole]?.description}
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          {advancedEditRole && (
+            <div className="space-y-4 mt-2">
+              {/* Quick actions */}
+              <div className="flex items-center gap-2 pb-3 border-b border-border">
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => enableAllForRole(advancedEditRole)}>
+                  <CheckCheck className="h-3.5 w-3.5" /> Enable All
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => disableAllForRole(advancedEditRole)}>
+                  <XCircle className="h-3.5 w-3.5" /> Disable All
+                </Button>
+                <div className="ml-auto text-xs text-muted-foreground">
+                  {(localAccess[advancedEditRole] ?? []).length}/{totalModules} enabled
+                </div>
+              </div>
+
+              {/* Group-by-group module list */}
+              {groups.map((group) => {
+                const modules = ALL_MODULES.filter((m) => m.group === group);
+                const currentRoleModules = localAccess[advancedEditRole] ?? [];
+                const groupModuleValues = modules.map((m) => m.value);
+                const allGroupEnabled = groupModuleValues.every((m) => currentRoleModules.includes(m));
+                const someGroupEnabled = groupModuleValues.some((m) => currentRoleModules.includes(m));
+                const GroupIcon = GROUP_ICONS[group] ?? Settings;
+
+                return (
+                  <div key={group} className="rounded-lg border border-border overflow-hidden">
+                    <div
+                      className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => toggleGroupForRole(advancedEditRole, group)}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <GroupIcon className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="text-sm font-semibold text-foreground">{group}</span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {groupModuleValues.filter((m) => currentRoleModules.includes(m)).length}/{modules.length}
+                        </Badge>
+                      </div>
+                      <Checkbox
+                        checked={allGroupEnabled}
+                        className={someGroupEnabled && !allGroupEnabled ? "opacity-60" : ""}
+                        onCheckedChange={() => toggleGroupForRole(advancedEditRole, group)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    <div className="divide-y divide-border/50">
+                      {modules.map((mod) => {
+                        const enabled = currentRoleModules.includes(mod.value);
+                        const ModIcon = MODULE_ICONS[mod.value] ?? Settings;
+                        return (
+                          <div
+                            key={mod.value}
+                            className={cn(
+                              "flex items-center justify-between px-4 py-2.5 cursor-pointer transition-colors",
+                              enabled ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"
+                            )}
+                            onClick={() => toggleModuleForRole(advancedEditRole, mod.value)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <ModIcon className={cn("h-4 w-4", enabled ? "text-primary" : "text-muted-foreground")} />
+                              <span className={cn("text-sm", enabled ? "text-foreground font-medium" : "text-muted-foreground")}>
+                                {mod.label}
+                              </span>
+                            </div>
+                            <Checkbox
+                              checked={enabled}
+                              onCheckedChange={() => toggleModuleForRole(advancedEditRole, mod.value)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
