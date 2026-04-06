@@ -127,6 +127,29 @@ const AccountsPage = () => {
       toast.error("Fill all required fields");
       return;
     }
+
+    let receiptUrl: string | null = null;
+
+    // Upload receipt if attached
+    if (expReceiptFile) {
+      setUploading(true);
+      const fileExt = expReceiptFile.name.split(".").pop();
+      const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("expense-receipts")
+        .upload(filePath, expReceiptFile);
+      if (uploadError) {
+        toast.error("Failed to upload receipt");
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage
+        .from("expense-receipts")
+        .getPublicUrl(filePath);
+      receiptUrl = urlData.publicUrl;
+      setUploading(false);
+    }
+
     const { error } = await supabase.from("expenses").insert({
       client_name: expClient,
       event_name: expEvent || null,
@@ -137,6 +160,7 @@ const AccountsPage = () => {
       submitted_by: expSubmittedBy,
       paid_to: expPaidTo || null,
       notes: expNotes || null,
+      receipt_url: receiptUrl,
     });
     if (error) { toast.error("Failed to submit expense"); return; }
     toast.success("Expense submitted for approval!");
@@ -148,6 +172,20 @@ const AccountsPage = () => {
   const resetExpenseForm = () => {
     setExpClient(""); setExpEvent(""); setExpProject(""); setExpCategory("");
     setExpDescription(""); setExpAmount(""); setExpPaidTo(""); setExpNotes("");
+    setExpReceiptFile(null); setExpReceiptPreview(null);
+  };
+
+  const handleReceiptSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Max 10MB.");
+      return;
+    }
+    setExpReceiptFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setExpReceiptPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   // Approve / Reject
