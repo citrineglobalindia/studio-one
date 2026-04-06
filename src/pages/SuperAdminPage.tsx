@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateStudioDialog } from "@/components/superadmin/CreateStudioDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -204,6 +205,10 @@ export default function SuperAdminPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <CreateStudioDialog
+              plans={Object.entries(plans).map(([id, name]) => ({ id, name }))}
+              onCreated={fetchData}
+            />
             <Button variant="outline" size="sm" onClick={() => navigate("/")}>
               <Building2 className="h-4 w-4 mr-2" /> My Dashboard
             </Button>
