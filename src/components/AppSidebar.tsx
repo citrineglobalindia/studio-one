@@ -52,6 +52,7 @@ const salesItems = [
 const operationsItems = [
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Events", url: "/events", icon: CalendarCheck },
+  { title: "Albums", url: "/albums", icon: BookImage },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Tasks", url: "/tasks", icon: Zap },
   { title: "Team", url: "/team", icon: UsersRound },
