@@ -77,8 +77,7 @@ const modeIcons: Record<string, typeof CreditCard> = {
 // ─── Component ───
 const AccountsPage = () => {
   const navigate = useNavigate();
-  const { role } = useRole();
-  const isAdmin = role === "Admin";
+  const { currentRole, isAdmin } = useRole();
   const [activeTab, setActiveTab] = useState("overview");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -97,7 +96,7 @@ const AccountsPage = () => {
   const [expAmount, setExpAmount] = useState("");
   const [expPaidTo, setExpPaidTo] = useState("");
   const [expNotes, setExpNotes] = useState("");
-  const [expSubmittedBy, setExpSubmittedBy] = useState(role || "Staff");
+  const [expSubmittedBy, setExpSubmittedBy] = useState(currentRole || "Staff");
 
   // Approval dialog
   const [approvalExpense, setApprovalExpense] = useState<Expense | null>(null);
