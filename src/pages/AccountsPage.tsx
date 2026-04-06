@@ -25,6 +25,7 @@ import {
   Plus, CalendarDays, Building2, Banknote, Smartphone, Eye,
   ThumbsUp, ThumbsDown, Wallet, BookOpen, Filter,
   BarChart3, PieChart, ArrowDownRight, ArrowUpDown, X, Check,
+  Upload, Image, Loader2, ExternalLink,
 } from "lucide-react";
 
 // ─── Types ───
