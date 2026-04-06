@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -18,14 +20,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  sampleLeads, stageConfig, type Lead, type LeadStage,
+  sampleLeads, stageConfig, sourceConfig, eventTypeLabels, type Lead, type LeadStage, type LeadSource, type EventType,
 } from "@/data/lead-types";
 import {
   Plus, Search, RefreshCw, Upload, Download, Filter,
   Eye, PhoneCall, Pencil, Trash2, Bell, UserPlus,
   Sparkles, Users, TrendingUp, Target, ChevronDown,
   LayoutGrid, BarChart3, Clock, FileText, ExternalLink,
-  X, SlidersHorizontal, CalendarDays,
+  X, SlidersHorizontal, CalendarDays, IndianRupee,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -33,6 +35,8 @@ import { cn } from "@/lib/utils";
 
 const stages: LeadStage[] = ["new", "contacted", "proposal-sent", "converted", "lost"];
 const teamMembers = ["Raj Patel", "Vikram Singh", "Neha Sharma", "Amit Verma"];
+const sources: LeadSource[] = ["instagram", "whatsapp", "call", "website", "referral", "facebook"];
+const eventTypes: EventType[] = ["wedding", "pre-wedding", "engagement", "reception", "corporate", "birthday"];
 
 const LeadsPage = () => {
   const [leads, setLeads] = useState<Lead[]>(sampleLeads);
@@ -46,6 +50,15 @@ const LeadsPage = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  // Add Lead Sheet
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [newLead, setNewLead] = useState({
+    name: "", phone: "", email: "", company: "", city: "",
+    source: "instagram" as LeadSource,
+    eventType: "wedding" as EventType,
+    eventDate: "", budget: "", notes: "", assignedTo: "",
+  });
 
   const activeFilterCount = [
     statusFilter !== "all" ? 1 : 0,
