@@ -106,15 +106,17 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col bg-background overflow-hidden">
       {/* Top Header - Role-themed */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between safe-area-top">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <motion.div
             whileTap={{ scale: 0.9 }}
-            className={`h-9 w-9 rounded-2xl bg-gradient-to-br ${theme.accent} flex items-center justify-center shadow-lg`}
+            className="h-9 w-9 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg"
           >
-            <span className="text-sm">{theme.emoji}</span>
+            <span className="text-primary-foreground font-black text-sm tracking-tight">S</span>
           </motion.div>
           <div>
-            <p className="text-sm font-semibold text-foreground leading-tight font-[var(--font-display)]">StudioAi</p>
+            <p className="text-sm font-bold text-foreground leading-tight tracking-tight">
+              Studio<span className="text-primary">Ai</span>
+            </p>
             <p className="text-[10px] text-muted-foreground font-medium">{roleLabel}</p>
           </div>
         </div>

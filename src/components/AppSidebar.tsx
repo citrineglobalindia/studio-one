@@ -101,13 +101,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <Camera className="h-4 w-4 text-primary-foreground" />
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground font-black text-xs tracking-tight">S</span>
           </div>
           {!collapsed && (
             <div>
-              <h1 className="font-display text-sm font-semibold text-foreground">StudioAi</h1>
+              <h1 className="text-sm font-bold text-foreground tracking-tight">
+                Studio<span className="text-primary">Ai</span>
+              </h1>
               <p className="text-[10px] text-muted-foreground">Photography Studio</p>
             </div>
           )}
