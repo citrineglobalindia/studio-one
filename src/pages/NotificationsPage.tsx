@@ -116,25 +116,6 @@ const NotificationsPage = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total", value: notifications.length, icon: Bell, color: "bg-primary/10 text-primary" },
-            { label: "Unread", value: notifications.filter(n => !n.readAt).length, icon: BellRing, color: "bg-amber-500/10 text-amber-600" },
-            { label: "Critical", value: notifications.filter(n => n.priority === "critical").length, icon: AlertTriangle, color: "bg-red-500/10 text-red-600" },
-            { label: "Read", value: notifications.filter(n => n.readAt).length, icon: CheckCircle2, color: "bg-green-500/10 text-green-600" },
-          ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center`}><s.icon className="h-5 w-5" /></div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-card border border-border">
