@@ -129,6 +129,7 @@ const App = () => (
                   <Route path="/landing" element={<LandingPage />} />
                   <Route path="/auth" element={<AuthRoute />} />
                   <Route path="/onboarding" element={<OnboardingPage />} />
+                  <Route path="/super-admin" element={<SuperAdminPage />} />
                   <Route path="/*" element={<ProtectedRoutes />} />
                 </Routes>
               </BrowserRouter>
