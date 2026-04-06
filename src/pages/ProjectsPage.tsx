@@ -1,8 +1,21 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { sampleProjects } from "@/data/wedding-types";
+import { sampleProjects, sampleTeamMembers, type WeddingProject } from "@/data/wedding-types";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, MapPin, Users, IndianRupee, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -14,116 +27,265 @@ const statusConfig: Record<string, { label: string; class: string }> = {
   completed: { label: "Completed", class: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
 };
 
+const packages = ["Basic Package", "Standard Package", "Premium Package", "Royal Wedding Package", "Destination Wedding Package"];
+
 const ProjectsPage = () => {
   const navigate = useNavigate();
+  const [projects, setProjects] = useState(sampleProjects);
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({
+    clientName: "", partnerName: "", clientPhone: "", weddingDate: "",
+    city: "", venue: "", package: "Standard Package", totalAmount: "",
+    status: "inquiry" as WeddingProject["status"],
+    selectedTeam: [] as string[],
+    notes: "",
+  });
+
+  const toggleTeam = (id: string) => {
+    setForm((p) => ({
+      ...p,
+      selectedTeam: p.selectedTeam.includes(id)
+        ? p.selectedTeam.filter((t) => t !== id)
+        : [...p.selectedTeam, id],
+    }));
+  };
+
+  const handleAdd = () => {
+    if (!form.clientName || !form.partnerName || !form.weddingDate) {
+      toast.error("Client name, partner name, and wedding date are required");
+      return;
+    }
+    const project: WeddingProject = {
+      id: `p-${Date.now()}`,
+      clientName: form.clientName,
+      partnerName: form.partnerName,
+      clientPhone: form.clientPhone,
+      weddingDate: form.weddingDate,
+      city: form.city,
+      venue: form.venue,
+      status: form.status,
+      package: form.package,
+      totalAmount: parseInt(form.totalAmount) || 0,
+      paidAmount: 0,
+      subEvents: [],
+      footage: [],
+      payments: [],
+      team: sampleTeamMembers.filter((m) => form.selectedTeam.includes(m.id)),
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+    setProjects((prev) => [project, ...prev]);
+    setAddOpen(false);
+    setForm({ clientName: "", partnerName: "", clientPhone: "", weddingDate: "", city: "", venue: "", package: "Standard Package", totalAmount: "", status: "inquiry", selectedTeam: [], notes: "" });
+    toast.success("Project created!");
+  };
 
   return (
-    
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Wedding Projects</h1>
-            <p className="text-sm text-muted-foreground mt-1">Manage all marriage events and their lifecycle.</p>
-          </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Wedding Projects</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage all marriage events and their lifecycle.</p>
         </div>
+        <Button className="gap-2" onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4" />
+          New Project
+        </Button>
+      </div>
 
-        {/* Status summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {Object.entries(statusConfig).map(([key, config]) => {
-            const count = sampleProjects.filter((p) => p.status === key).length;
-            return (
-              <div key={key} className="rounded-lg bg-card border border-border p-3 text-center">
-                <div className="text-xl font-display font-bold text-foreground">{count}</div>
-                <div className="text-xs text-muted-foreground mt-1">{config.label}</div>
-              </div>
-            );
-          })}
-        </div>
+      {/* Status summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {Object.entries(statusConfig).map(([key, config]) => {
+          const count = projects.filter((p) => p.status === key).length;
+          return (
+            <div key={key} className="rounded-lg bg-card border border-border p-3 text-center">
+              <div className="text-xl font-display font-bold text-foreground">{count}</div>
+              <div className="text-xs text-muted-foreground mt-1">{config.label}</div>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Projects list */}
-        <div className="space-y-3">
-          {sampleProjects.map((project) => {
-            const status = statusConfig[project.status];
-            const paymentPercent = project.totalAmount > 0 ? Math.round((project.paidAmount / project.totalAmount) * 100) : 0;
+      {/* Projects list */}
+      <div className="space-y-3">
+        {projects.map((project) => {
+          const status = statusConfig[project.status];
+          const paymentPercent = project.totalAmount > 0 ? Math.round((project.paidAmount / project.totalAmount) * 100) : 0;
 
-            return (
-              <div
-                key={project.id}
-                onClick={() => navigate(`/projects/${project.id}`)}
-                className="rounded-lg bg-card border border-border p-5 hover:border-primary/30 transition-all cursor-pointer group"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-base font-display font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {project.clientName} & {project.partnerName}
-                      </h3>
-                      <Badge variant="outline" className={status.class}>
-                        {status.label}
-                      </Badge>
+          return (
+            <div
+              key={project.id}
+              onClick={() => navigate(`/projects/${project.id}`)}
+              className="rounded-lg bg-card border border-border p-5 hover:border-primary/30 transition-all cursor-pointer group"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-base font-display font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {project.clientName} & {project.partnerName}
+                    </h3>
+                    <Badge variant="outline" className={status?.class}>
+                      {status?.label}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {new Date(project.weddingDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {project.venue}, {project.city}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {project.team.length} team · {project.subEvents.length} events
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6 shrink-0">
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-foreground flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {(project.paidAmount / 1000).toFixed(0)}K / {(project.totalAmount / 1000).toFixed(0)}K
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" />
-                        {new Date(project.weddingDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {project.venue}, {project.city}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {project.team.length} team · {project.subEvents.length} events
-                      </span>
+                    <div className="w-24 h-1.5 rounded-full bg-muted mt-1.5 overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all", paymentPercent >= 100 ? "bg-emerald-500" : "bg-primary")}
+                        style={{ width: `${paymentPercent}%` }}
+                      />
                     </div>
+                    <span className="text-[10px] text-muted-foreground">{paymentPercent}% paid</span>
                   </div>
 
-                  <div className="flex items-center gap-6 shrink-0">
-                    {/* Payment progress */}
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-foreground flex items-center gap-1">
-                        <IndianRupee className="h-3 w-3" />
-                        {(project.paidAmount / 1000).toFixed(0)}K / {(project.totalAmount / 1000).toFixed(0)}K
-                      </div>
-                      <div className="w-24 h-1.5 rounded-full bg-muted mt-1.5 overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full transition-all", paymentPercent >= 100 ? "bg-emerald-500" : "bg-primary")}
-                          style={{ width: `${paymentPercent}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{paymentPercent}% paid</span>
-                    </div>
-
-                    {/* Sub-events mini */}
-                    <div className="hidden lg:flex items-center gap-1">
-                      {project.subEvents.slice(0, 4).map((se) => (
-                        <div
-                          key={se.id}
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            se.status === "completed" && "bg-emerald-500",
-                            se.status === "in-progress" && "bg-blue-500",
-                            se.status === "upcoming" && "bg-muted-foreground/30",
-                          )}
-                          title={`${se.name}: ${se.status}`}
-                        />
-                      ))}
-                      {project.subEvents.length > 4 && (
-                        <span className="text-[10px] text-muted-foreground">+{project.subEvents.length - 4}</span>
-                      )}
-                    </div>
+                  <div className="hidden lg:flex items-center gap-1">
+                    {project.subEvents.slice(0, 4).map((se) => (
+                      <div
+                        key={se.id}
+                        className={cn(
+                          "h-2 w-2 rounded-full",
+                          se.status === "completed" && "bg-emerald-500",
+                          se.status === "in-progress" && "bg-blue-500",
+                          se.status === "upcoming" && "bg-muted-foreground/30",
+                        )}
+                        title={`${se.name}: ${se.status}`}
+                      />
+                    ))}
+                    {project.subEvents.length > 4 && (
+                      <span className="text-[10px] text-muted-foreground">+{project.subEvents.length - 4}</span>
+                    )}
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
-    
+
+      {/* ═══ ADD PROJECT SHEET ═══ */}
+      <Sheet open={addOpen} onOpenChange={setAddOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" /> New Wedding Project
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Client Name *</Label>
+                <Input placeholder="Bride/Groom" value={form.clientName} onChange={(e) => setForm((p) => ({ ...p, clientName: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Partner Name *</Label>
+                <Input placeholder="Partner" value={form.partnerName} onChange={(e) => setForm((p) => ({ ...p, partnerName: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Phone</Label>
+                <Input placeholder="+91 98765 43210" value={form.clientPhone} onChange={(e) => setForm((p) => ({ ...p, clientPhone: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Wedding Date *</Label>
+                <Input type="date" value={form.weddingDate} onChange={(e) => setForm((p) => ({ ...p, weddingDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">City</Label>
+                <Input placeholder="City" value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Venue</Label>
+                <Input placeholder="Venue name" value={form.venue} onChange={(e) => setForm((p) => ({ ...p, venue: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v as WeddingProject["status"] }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(statusConfig).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Package</Label>
+                <Select value={form.package} onValueChange={(v) => setForm((p) => ({ ...p, package: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {packages.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Total Amount (₹)</Label>
+                <Input type="number" placeholder="350000" value={form.totalAmount} onChange={(e) => setForm((p) => ({ ...p, totalAmount: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Team Selection */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Assign Team</Label>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {sampleTeamMembers.map((m) => {
+                  const selected = form.selectedTeam.includes(m.id);
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => toggleTeam(m.id)}
+                      className={cn(
+                        "flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all",
+                        selected ? "border-primary/30 bg-primary/5" : "border-border/50 hover:bg-muted/50"
+                      )}
+                    >
+                      <Checkbox checked={selected} className="pointer-events-none" />
+                      <Avatar className="h-7 w-7">
+                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
+                          {m.name.split(" ").map((n) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground">{m.name}</p>
+                        <p className="text-[10px] text-muted-foreground capitalize">{m.role.replace("-", " ")} · {m.type}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-1" /> Create Project
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 };
 
