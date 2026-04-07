@@ -4,14 +4,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, Aperture, Focus, Sun } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, Loader2, Aperture, Camera, Scan } from "lucide-react";
+
+const FloatingParticle = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
+  <motion.div
+    className="absolute rounded-full bg-primary/20 blur-sm pointer-events-none"
+    style={{ left: x, top: y, width: size, height: size }}
+    animate={{
+      y: [0, -30, 0],
+      opacity: [0.2, 0.6, 0.2],
+      scale: [1, 1.3, 1],
+    }}
+    transition={{ duration: 4 + Math.random() * 3, delay, repeat: Infinity, ease: "easeInOut" }}
+  />
+);
+
+const ScanLine = () => (
+  <motion.div
+    className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent pointer-events-none z-10"
+    initial={{ top: "0%" }}
+    animate={{ top: ["0%", "100%", "0%"] }}
+    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+  />
+);
+
+const HUDCorner = ({ position }: { position: string }) => {
+  const corners: Record<string, string> = {
+    "top-left": "top-4 left-4 border-t-2 border-l-2 rounded-tl-md",
+    "top-right": "top-4 right-4 border-t-2 border-r-2 rounded-tr-md",
+    "bottom-left": "bottom-4 left-4 border-b-2 border-l-2 rounded-bl-md",
+    "bottom-right": "bottom-4 right-4 border-b-2 border-r-2 rounded-br-md",
+  };
+  return (
+    <motion.div
+      className={`absolute w-8 h-8 border-primary/25 pointer-events-none ${corners[position]}`}
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.5 + Math.random() * 0.5, duration: 0.6 }}
+    />
+  );
+};
 
 const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,261 +68,280 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-background relative overflow-hidden">
-      {/* Floating lens/camera elements */}
-      {[
-        { x: "8%", y: "12%", delay: 0, size: 60, opacity: 0.06 },
-        { x: "82%", y: "18%", delay: 1, size: 80, opacity: 0.04 },
-        { x: "12%", y: "78%", delay: 0.5, size: 50, opacity: 0.05 },
-        { x: "88%", y: "75%", delay: 1.5, size: 70, opacity: 0.04 },
-      ].map((orb, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full border border-primary/10 pointer-events-none"
-          style={{ left: orb.x, top: orb.y, width: orb.size, height: orb.size, opacity: orb.opacity }}
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{ duration: 12, delay: orb.delay, repeat: Infinity, ease: "linear" }}
-        >
-          <div className="absolute inset-2 rounded-full border border-primary/20" />
-          <div className="absolute inset-4 rounded-full border border-primary/10" />
-        </motion.div>
-      ))}
-
-      {/* Ambient light glow */}
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden" style={{ perspective: "1200px" }}>
+      {/* Deep background layers for depth */}
       <motion.div
-        className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-primary/4 blur-[120px] pointer-events-none"
-        animate={{ opacity: [0.3, 0.6, 0.3], scale: [0.9, 1.1, 0.9] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      {/* Left — Studio branding panel */}
-      <motion.div
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="hidden lg:flex w-[55%] flex-col justify-center items-center relative"
+        className="absolute inset-0 pointer-events-none"
+        style={{ transformStyle: "preserve-3d" }}
       >
-        {/* Camera viewfinder overlay */}
-        <div className="absolute inset-12 border border-border/20 rounded-xl pointer-events-none">
-          {/* Corner marks */}
-          {["top-0 left-0 border-t border-l", "top-0 right-0 border-t border-r", "bottom-0 left-0 border-b border-l", "bottom-0 right-0 border-b border-r"].map((pos, i) => (
-            <motion.div
-              key={i}
-              className={`absolute ${pos} border-primary/30 w-8 h-8 rounded-sm`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 + i * 0.15 }}
-            />
-          ))}
-          {/* Center crosshair */}
-          <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 0.2, scale: 1 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-          >
-            <div className="w-12 h-px bg-primary/40" />
-            <div className="w-px h-12 bg-primary/40 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            <div className="w-6 h-6 rounded-full border border-primary/20 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </motion.div>
-        </div>
-
-        <div className="relative z-10 max-w-sm text-center">
-          {/* Aperture logo */}
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.3, duration: 0.7, type: "spring" }}
-            className="relative mx-auto mb-8"
-          >
-            <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center mx-auto">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Aperture className="h-12 w-12 text-primary/60" strokeWidth={1} />
-              </motion.div>
-            </div>
-            <motion.div
-              className="absolute -inset-3 rounded-full border border-dashed border-primary/15"
-              animate={{ rotate: -360 }}
-              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            />
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="text-4xl font-bold tracking-tight mb-2"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Studio<span className="text-primary">Ai</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="text-muted-foreground leading-relaxed mb-10 text-sm"
-          >
-            Capture moments. Manage everything.
-            <br />
-            Your photography studio, streamlined.
-          </motion.p>
-
-          {/* Specs strip — like camera settings */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="flex items-center justify-center gap-6 text-xs text-muted-foreground font-mono"
-          >
-            {[
-              { icon: Aperture, label: "f/1.4" },
-              { icon: Sun, label: "ISO 100" },
-              { icon: Focus, label: "∞ Focus" },
-            ].map(({ icon: Icon, label }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 + i * 0.15 }}
-                className="flex items-center gap-1.5 text-muted-foreground/60"
-              >
-                <Icon className="h-3 w-3" />
-                <span>{label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Divider line */}
+        {/* Radial depth glow */}
         <motion.div
-          className="absolute right-0 top-[15%] bottom-[15%] w-px bg-gradient-to-b from-transparent via-border/40 to-transparent"
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.08)_0%,transparent_70%)]"
+          animate={{ scale: [1, 1.05, 1], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        {/* Grid floor — VR-style */}
+        <motion.div
+          className="absolute bottom-0 left-0 right-0 h-[60%] opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(hsl(var(--primary)) 1px, transparent 1px),
+              linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)
+            `,
+            backgroundSize: "60px 60px",
+            transform: "perspective(500px) rotateX(60deg)",
+            transformOrigin: "bottom center",
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.04 }}
+          transition={{ delay: 0.3, duration: 1.5 }}
+        />
+
+        {/* Horizon line */}
+        <motion.div
+          className="absolute left-0 right-0 top-[52%] h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.8, duration: 1.2 }}
         />
       </motion.div>
 
-      {/* Right — Login form */}
-      <div className="w-full lg:w-[45%] flex items-center justify-center px-6 py-12">
+      {/* Floating bokeh particles */}
+      {[
+        { x: "10%", y: "20%", size: 6, delay: 0 },
+        { x: "85%", y: "15%", size: 8, delay: 1.2 },
+        { x: "20%", y: "70%", size: 5, delay: 0.6 },
+        { x: "75%", y: "80%", size: 7, delay: 2 },
+        { x: "50%", y: "10%", size: 4, delay: 0.8 },
+        { x: "90%", y: "50%", size: 6, delay: 1.5 },
+        { x: "5%", y: "45%", size: 5, delay: 2.3 },
+        { x: "60%", y: "90%", size: 8, delay: 0.3 },
+      ].map((p, i) => (
+        <FloatingParticle key={i} {...p} />
+      ))}
+
+      {/* Scan line overlay */}
+      <ScanLine />
+
+      {/* HUD corners */}
+      <HUDCorner position="top-left" />
+      <HUDCorner position="top-right" />
+      <HUDCorner position="bottom-left" />
+      <HUDCorner position="bottom-right" />
+
+      {/* Top-left HUD info */}
+      <motion.div
+        className="absolute top-6 left-12 text-[10px] font-mono text-primary/30 hidden md:flex flex-col gap-1 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+      >
+        <span>SYS://STUDIO.AI</span>
+        <span>MODE: AUTH_VERIFY</span>
+        <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
+          STATUS: AWAITING_INPUT ●
+        </motion.span>
+      </motion.div>
+
+      {/* Top-right HUD info */}
+      <motion.div
+        className="absolute top-6 right-12 text-[10px] font-mono text-primary/30 text-right hidden md:flex flex-col gap-1 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4 }}
+      >
+        <span>RES: 4K_RAW</span>
+        <span>f/1.4 · ISO 100</span>
+        <span>LENS: 85mm</span>
+      </motion.div>
+
+      {/* Central auth card with 3D hover */}
+      <motion.div
+        initial={{ opacity: 0, z: -200, rotateX: 15 }}
+        animate={{ opacity: 1, z: 0, rotateX: 0 }}
+        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-20 w-full max-w-md mx-4"
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        {/* Outer glow ring */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-full max-w-sm"
-        >
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", delay: 0.1 }}
-              className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center mx-auto mb-4"
-            >
-              <Aperture className="h-8 w-8 text-primary/70" strokeWidth={1.5} />
-            </motion.div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Studio<span className="text-primary">Ai</span>
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1">Photography Studio Management</p>
-          </div>
+          className="absolute -inset-px rounded-3xl bg-gradient-to-b from-primary/20 via-primary/5 to-primary/20 blur-sm pointer-events-none"
+          animate={{ opacity: [0.4, 0.8, 0.4] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
 
-          {/* Form card */}
+        <div className="relative bg-card/70 backdrop-blur-2xl border border-primary/10 rounded-3xl shadow-[0_0_80px_-20px_hsl(var(--primary)/0.15)] overflow-hidden">
+          {/* Inner scan line */}
           <motion.div
-            className="bg-card/60 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl shadow-black/10 p-8"
-            whileHover={{ borderColor: "hsl(var(--primary) / 0.2)" }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="mb-6">
-              <h2 className="text-xl font-bold tracking-tight">Welcome back</h2>
-              <p className="text-sm text-muted-foreground mt-1">Sign in to your studio workspace</p>
-            </div>
+            className="absolute left-0 right-0 h-16 bg-gradient-to-b from-primary/[0.03] to-transparent pointer-events-none"
+            animate={{ top: ["-64px", "110%"] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatDelay: 2 }}
+          />
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@studio.com"
-                  className="mt-1.5 h-11 bg-background/50 border-border/50 focus:border-primary/40 transition-colors"
-                  required
+          <div className="relative p-8 md:p-10">
+            {/* Logo section */}
+            <motion.div
+              className="flex flex-col items-center mb-8"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <motion.div className="relative mb-5">
+                {/* Outer rotating ring */}
+                <motion.div
+                  className="absolute -inset-4 rounded-full border border-dashed border-primary/15"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 />
+                {/* Middle pulse ring */}
+                <motion.div
+                  className="absolute -inset-2 rounded-full border border-primary/10"
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
+                {/* Core icon */}
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Aperture className="h-10 w-10 text-primary/70" strokeWidth={1.2} />
+                  </motion.div>
+                </div>
               </motion.div>
 
+              <h1 className="text-3xl font-bold tracking-tight">
+                Studio<span className="text-primary">Ai</span>
+              </h1>
+              <p className="text-xs text-muted-foreground/60 mt-1.5 font-mono tracking-widest uppercase">
+                Immersive Studio Access
+              </p>
+            </motion.div>
+
+            {/* Viewfinder line */}
+            <motion.div
+              className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-8"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+            />
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <Label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Password
+                <Label htmlFor="email" className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                  <Scan className="h-3 w-3" />
+                  Identity
                 </Label>
-                <div className="relative mt-1.5">
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocused("email")}
+                    onBlur={() => setFocused(null)}
+                    placeholder="you@studio.com"
+                    className="h-12 bg-background/40 border-primary/10 focus:border-primary/30 focus:bg-background/60 transition-all duration-300 pl-4 font-mono text-sm"
+                    required
+                  />
+                  <AnimatePresence>
+                    {focused === "email" && (
+                      <motion.div
+                        className="absolute left-0 bottom-0 h-px bg-primary/50"
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        exit={{ width: "0%" }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Label htmlFor="password" className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                  <Camera className="h-3 w-3" />
+                  Access Key
+                </Label>
+                <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setFocused("password")}
+                    onBlur={() => setFocused(null)}
                     placeholder="••••••••"
-                    className="pr-10 h-11 bg-background/50 border-border/50 focus:border-primary/40 transition-colors"
+                    className="pr-10 h-12 bg-background/40 border-primary/10 focus:border-primary/30 focus:bg-background/60 transition-all duration-300 pl-4 font-mono text-sm"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
+                  <AnimatePresence>
+                    {focused === "password" && (
+                      <motion.div
+                        className="absolute left-0 bottom-0 h-px bg-primary/50"
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        exit={{ width: "0%" }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
 
               <motion.div
+                className="flex justify-end"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="flex justify-end"
+                transition={{ delay: 0.7 }}
               >
-                <button type="button" className="text-xs text-primary/80 hover:text-primary transition-colors">
-                  Forgot password?
+                <button type="button" className="text-[10px] font-mono text-primary/50 hover:text-primary transition-colors tracking-wider uppercase">
+                  Reset Access
                 </button>
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                whileTap={{ scale: 0.98 }}
+                transition={{ delay: 0.8 }}
               >
                 <Button
                   type="submit"
-                  className="w-full h-11 text-sm font-semibold gap-2 shadow-lg shadow-primary/15 transition-all"
+                  className="w-full h-12 text-sm font-semibold gap-2 relative overflow-hidden group"
                   disabled={loading}
                 >
+                  {/* Button scan effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  />
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      Sign In
+                      <span className="font-mono tracking-wider">AUTHENTICATE</span>
                       <motion.span
-                        animate={{ x: [0, 3, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                       >
                         →
                       </motion.span>
@@ -291,19 +350,27 @@ const AuthPage = () => {
                 </Button>
               </motion.div>
             </form>
-          </motion.div>
+          </div>
+        </div>
+      </motion.div>
 
-          {/* Footer */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="text-center text-[11px] text-muted-foreground/60 mt-8"
-          >
-            Powered by Studio<span className="text-primary/60">Ai</span> • Photography Studio Management
-          </motion.p>
-        </motion.div>
-      </div>
+      {/* Bottom HUD bar */}
+      <motion.div
+        className="absolute bottom-5 left-0 right-0 flex justify-center pointer-events-none"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5 }}
+      >
+        <div className="flex items-center gap-4 text-[9px] font-mono text-muted-foreground/30 tracking-widest uppercase">
+          <span>Studio<span className="text-primary/40">Ai</span></span>
+          <span className="w-px h-3 bg-muted-foreground/15" />
+          <span>Immersive Studio Platform</span>
+          <span className="w-px h-3 bg-muted-foreground/15" />
+          <motion.span animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
+            ● SECURE
+          </motion.span>
+        </div>
+      </motion.div>
     </div>
   );
 };
