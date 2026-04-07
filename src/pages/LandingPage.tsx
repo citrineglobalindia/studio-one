@@ -11,9 +11,39 @@ import { toast } from "sonner";
 import {
   Camera, Users, Calendar, BarChart3, FileText, Zap, Shield, Globe,
   ArrowRight, Check, Star, Play, ChevronRight, Sparkles, Layers,
-  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User
+  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User, Aperture
 } from "lucide-react";
 
+/* ── shared VR helpers ── */
+const FloatingOrb = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
+  <motion.div
+    className="absolute rounded-full blur-3xl pointer-events-none"
+    style={{ left: x, top: y, width: size, height: size, background: color }}
+    animate={{ y: [0, -40, 0], x: [0, 20, 0], opacity: [0.25, 0.5, 0.25], scale: [1, 1.15, 1] }}
+    transition={{ duration: 6 + Math.random() * 4, delay, repeat: Infinity, ease: "easeInOut" }}
+  />
+);
+
+const FloatingParticle = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
+  <motion.div
+    className="absolute rounded-full blur-sm pointer-events-none"
+    style={{ left: x, top: y, width: size, height: size, background: color }}
+    animate={{ y: [0, -25, 0], opacity: [0.2, 0.7, 0.2], scale: [1, 1.3, 1] }}
+    transition={{ duration: 4 + Math.random() * 3, delay, repeat: Infinity, ease: "easeInOut" }}
+  />
+);
+
+const ScanLine = () => (
+  <motion.div
+    className="absolute left-0 right-0 h-px pointer-events-none z-10"
+    style={{ background: "linear-gradient(90deg, transparent, rgba(168,85,247,0.3), rgba(59,130,246,0.3), transparent)" }}
+    initial={{ top: "0%" }}
+    animate={{ top: ["0%", "100%", "0%"] }}
+    transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+  />
+);
+
+/* ── animation variants ── */
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
@@ -22,6 +52,7 @@ const fadeUp = {
   })
 };
 
+/* ── data ── */
 const features = [
   { icon: Users, title: "Lead & Client CRM", desc: "Track leads from inquiry to booking with automated follow-ups and pipeline management." },
   { icon: Calendar, title: "Smart Scheduling", desc: "Manage events, team availability, and shoot schedules in one unified calendar." },
@@ -49,7 +80,6 @@ const stats = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
-
   const [enquiry, setEnquiry] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -60,7 +90,6 @@ export default function LandingPage() {
       return;
     }
     setSubmitting(true);
-    // Simulate submission
     await new Promise(r => setTimeout(r, 1000));
     toast.success("Thank you! We'll get back to you shortly.");
     setEnquiry({ name: "", email: "", phone: "", message: "" });
@@ -68,54 +97,72 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+    <div
+      className="min-h-screen overflow-x-hidden relative"
+      style={{ background: "linear-gradient(135deg, #0f0c29 0%, #1a0a2e 25%, #16213e 60%, #0d1b2a 100%)", color: "#e2e8f0" }}
+    >
+      {/* ── Global VR Effects ── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <FloatingOrb delay={0} x="10%" y="15%" size={280} color="radial-gradient(circle, rgba(168,85,247,0.35), transparent 70%)" />
+        <FloatingOrb delay={2} x="70%" y="10%" size={220} color="radial-gradient(circle, rgba(59,130,246,0.3), transparent 70%)" />
+        <FloatingOrb delay={4} x="80%" y="60%" size={200} color="radial-gradient(circle, rgba(236,72,153,0.25), transparent 70%)" />
+        <FloatingOrb delay={1} x="20%" y="70%" size={180} color="radial-gradient(circle, rgba(6,182,212,0.25), transparent 70%)" />
+        <FloatingOrb delay={3} x="50%" y="45%" size={160} color="radial-gradient(circle, rgba(245,158,11,0.2), transparent 70%)" />
+        <FloatingParticle delay={0.5} x="15%" y="25%" size={6} color="#a855f7" />
+        <FloatingParticle delay={1.2} x="80%" y="35%" size={5} color="#3b82f6" />
+        <FloatingParticle delay={0.8} x="45%" y="55%" size={4} color="#ec4899" />
+        <FloatingParticle delay={2} x="60%" y="20%" size={5} color="#06b6d4" />
+        <FloatingParticle delay={1.5} x="30%" y="80%" size={6} color="#f59e0b" />
+        <ScanLine />
+      </div>
+
+      {/* ── Navbar ── */}
+      <nav className="fixed top-0 w-full z-50 backdrop-blur-xl border-b" style={{ background: "rgba(15,12,41,0.7)", borderColor: "rgba(168,85,247,0.15)" }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-              <span className="text-primary-foreground font-black text-sm">S</span>
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
+              <Aperture className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight">Studio<span className="text-primary">Ai</span></span>
+            <span className="text-lg font-bold tracking-tight text-white">Studio<span style={{ color: "#a855f7" }}>Ai</span></span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-            <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
-            <a href="#enquiry" className="hover:text-foreground transition-colors">Enquiry</a>
+          <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "rgba(226,232,240,0.6)" }}>
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#testimonials" className="hover:text-white transition-colors">Testimonials</a>
+            <a href="#enquiry" className="hover:text-white transition-colors">Enquiry</a>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>Log in</Button>
-            <Button size="sm" onClick={() => navigate("/auth?mode=signup")} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Log in</Button>
+            <Button size="sm" onClick={() => navigate("/auth?mode=signup")} className="gap-1 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
               Start Free Trial <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.08),transparent_60%)]" />
+      {/* ── Hero ── */}
+      <section className="pt-32 pb-20 px-6 relative z-10">
         <div className="max-w-5xl mx-auto text-center relative">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-            <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-xs font-medium gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> AI-Powered Studio Management
+            <Badge className="mb-6 px-4 py-1.5 text-xs font-medium gap-1.5 border-0" style={{ background: "rgba(168,85,247,0.15)", color: "#c084fc" }}>
+              <Sparkles className="h-3.5 w-3.5" /> AI-Powered Studio Management
             </Badge>
           </motion.div>
           <motion.h1
             initial="hidden" animate="visible" variants={fadeUp} custom={1}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6 text-white"
             style={{ fontFamily: "var(--font-display)" }}
           >
             Run Your Photography
             <br />
-            <span className="bg-gradient-to-r from-primary via-primary to-[hsl(var(--gold-glow))] bg-clip-text text-transparent">
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(135deg, #a855f7, #3b82f6, #06b6d4)" }}>
               Studio Like a Pro
             </span>
           </motion.h1>
           <motion.p
             initial="hidden" animate="visible" variants={fadeUp} custom={2}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+            style={{ color: "rgba(226,232,240,0.6)" }}
           >
             All-in-one platform for leads, clients, projects, invoicing, team management, and AI-powered workflows — built exclusively for photography & videography studios.
           </motion.p>
@@ -123,10 +170,10 @@ export default function LandingPage() {
             initial="hidden" animate="visible" variants={fadeUp} custom={3}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2">
+            <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
               Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="text-base px-8 h-12 gap-2">
+            <Button size="lg" variant="outline" className="text-base px-8 h-12 gap-2 text-white" style={{ borderColor: "rgba(168,85,247,0.3)", background: "rgba(168,85,247,0.08)" }}>
               <Play className="h-4 w-4" /> Watch Demo
             </Button>
           </motion.div>
@@ -138,47 +185,39 @@ export default function LandingPage() {
           >
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-2xl md:text-3xl font-bold text-primary">{stat.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+                <div className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>{stat.value}</div>
+                <div className="text-sm mt-1" style={{ color: "rgba(226,232,240,0.5)" }}>{stat.label}</div>
               </div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-24 px-6">
+      {/* ── Features ── */}
+      <section id="features" className="py-24 px-6 relative z-10">
         <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }}
-            variants={fadeUp} custom={0}
-            className="text-center mb-16"
-          >
-            <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
+            <Badge className="mb-4 px-3 py-1 text-xs border-0" style={{ background: "rgba(59,130,246,0.15)", color: "#93c5fd" }}>
               <Layers className="h-3.5 w-3.5 mr-1.5" /> Platform Features
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white" style={{ fontFamily: "var(--font-display)" }}>
               Everything Your Studio Needs
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="max-w-xl mx-auto" style={{ color: "rgba(226,232,240,0.5)" }}>
               From first inquiry to final delivery — manage every aspect of your photography business.
             </p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i}
-              >
-                <Card className="bg-card/60 border-border/50 hover:border-primary/30 transition-all duration-300 h-full group">
+              <motion.div key={f.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
+                <Card className="h-full group border transition-all duration-300 hover:scale-[1.02]" style={{ background: "rgba(22,33,62,0.5)", borderColor: "rgba(168,85,247,0.12)", backdropFilter: "blur(12px)" }}>
                   <CardContent className="p-6">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                      <f.icon className="h-5 w-5 text-primary" />
+                    <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-4 transition-colors" style={{ background: "rgba(168,85,247,0.15)" }}>
+                      <f.icon className="h-5 w-5" style={{ color: "#a855f7" }} />
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2">{f.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                    <h3 className="font-semibold text-white mb-2">{f.title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: "rgba(226,232,240,0.5)" }}>{f.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -187,70 +226,62 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-24 px-6 bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }}
-            variants={fadeUp} custom={0}
-            className="text-center mb-16"
-          >
-            <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs">Pricing</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
+      {/* ── Pricing ── */}
+      <section id="pricing" className="py-24 px-6 relative z-10">
+        <div className="absolute inset-0" style={{ background: "rgba(15,12,41,0.4)" }} />
+        <div className="max-w-6xl mx-auto relative">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
+            <Badge className="mb-4 px-3 py-1 text-xs border-0" style={{ background: "rgba(236,72,153,0.15)", color: "#f9a8d4" }}>Pricing</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white" style={{ fontFamily: "var(--font-display)" }}>
               Plans That Grow With You
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="max-w-xl mx-auto" style={{ color: "rgba(226,232,240,0.5)" }}>
               Start free, upgrade as your studio grows. No hidden fees.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              {
-                name: "Starter", price: "Free", period: "14 days", desc: "Perfect for trying out StudioAi",
-                features: ["Up to 10 clients", "Basic CRM & leads", "5 projects", "1 team member", "Email support"],
-                cta: "Start Free Trial", popular: false
-              },
-              {
-                name: "Professional", price: "₹2,999", period: "/month", desc: "For growing photography studios",
-                features: ["Unlimited clients", "Full CRM & automation", "Unlimited projects", "Up to 10 team members", "AI assistant", "Contracts & invoicing", "Priority support"],
-                cta: "Get Started", popular: true
-              },
-              {
-                name: "Enterprise", price: "₹7,999", period: "/month", desc: "For large studios & agencies",
-                features: ["Everything in Pro", "Unlimited team members", "White-label branding", "API access", "Custom integrations", "Dedicated account manager", "SSO & advanced security"],
-                cta: "Contact Sales", popular: false
-              },
+              { name: "Starter", price: "Free", period: "14 days", desc: "Perfect for trying out StudioAi", features: ["Up to 10 clients", "Basic CRM & leads", "5 projects", "1 team member", "Email support"], cta: "Start Free Trial", popular: false },
+              { name: "Professional", price: "₹2,999", period: "/month", desc: "For growing photography studios", features: ["Unlimited clients", "Full CRM & automation", "Unlimited projects", "Up to 10 team members", "AI assistant", "Contracts & invoicing", "Priority support"], cta: "Get Started", popular: true },
+              { name: "Enterprise", price: "₹7,999", period: "/month", desc: "For large studios & agencies", features: ["Everything in Pro", "Unlimited team members", "White-label branding", "API access", "Custom integrations", "Dedicated account manager", "SSO & advanced security"], cta: "Contact Sales", popular: false },
             ].map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i}
-              >
-                <Card className={`relative h-full ${plan.popular ? "border-primary shadow-lg shadow-primary/10 scale-[1.02]" : "border-border/50"}`}>
+              <motion.div key={plan.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
+                <Card
+                  className={`relative h-full border transition-all duration-300 ${plan.popular ? "scale-[1.02]" : ""}`}
+                  style={{
+                    background: plan.popular ? "rgba(168,85,247,0.1)" : "rgba(22,33,62,0.5)",
+                    borderColor: plan.popular ? "rgba(168,85,247,0.4)" : "rgba(168,85,247,0.12)",
+                    boxShadow: plan.popular ? "0 0 40px rgba(168,85,247,0.15)" : "none",
+                    backdropFilter: "blur(12px)",
+                  }}
+                >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground px-3">Most Popular</Badge>
+                      <Badge className="px-3 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>Most Popular</Badge>
                     </div>
                   )}
                   <CardContent className="p-6 pt-8 flex flex-col h-full">
-                    <h3 className="text-lg font-bold">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{plan.desc}</p>
+                    <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                    <p className="text-sm mt-1" style={{ color: "rgba(226,232,240,0.5)" }}>{plan.desc}</p>
                     <div className="mt-5 mb-6">
-                      <span className="text-3xl font-extrabold">{plan.price}</span>
-                      <span className="text-muted-foreground text-sm">{plan.period}</span>
+                      <span className="text-3xl font-extrabold text-white">{plan.price}</span>
+                      <span className="text-sm" style={{ color: "rgba(226,232,240,0.5)" }}>{plan.period}</span>
                     </div>
                     <ul className="space-y-3 flex-1">
                       {plan.features.map((f) => (
                         <li key={f} className="flex items-start gap-2 text-sm">
-                          <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                          <span className="text-muted-foreground">{f}</span>
+                          <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#a855f7" }} />
+                          <span style={{ color: "rgba(226,232,240,0.6)" }}>{f}</span>
                         </li>
                       ))}
                     </ul>
                     <Button
-                      className="w-full mt-8"
-                      variant={plan.popular ? "default" : "outline"}
+                      className="w-full mt-8 text-white border-0"
+                      style={{
+                        background: plan.popular ? "linear-gradient(135deg, #a855f7, #3b82f6)" : "rgba(168,85,247,0.15)",
+                        borderColor: plan.popular ? "transparent" : "rgba(168,85,247,0.3)",
+                      }}
                       onClick={() => navigate("/auth?mode=signup")}
                     >
                       {plan.cta} <ChevronRight className="h-4 w-4 ml-1" />
@@ -263,44 +294,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-24 px-6">
+      {/* ── Testimonials ── */}
+      <section id="testimonials" className="py-24 px-6 relative z-10">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }}
-            variants={fadeUp} custom={0}
-            className="text-center mb-16"
-          >
-            <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs">
-              <Star className="h-3.5 w-3.5 mr-1.5 fill-primary text-primary" /> Testimonials
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
+            <Badge className="mb-4 px-3 py-1 text-xs border-0" style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24" }}>
+              <Star className="h-3.5 w-3.5 mr-1.5 fill-current" /> Testimonials
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white" style={{ fontFamily: "var(--font-display)" }}>
               Loved by Studios Everywhere
             </h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
-              <motion.div
-                key={t.name}
-                initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i}
-              >
-                <Card className="bg-card/60 border-border/50 h-full">
+              <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
+                <Card className="h-full border" style={{ background: "rgba(22,33,62,0.5)", borderColor: "rgba(168,85,247,0.12)", backdropFilter: "blur(12px)" }}>
                   <CardContent className="p-6">
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: t.rating }).map((_, j) => (
-                        <Star key={j} className="h-4 w-4 fill-primary text-primary" />
+                        <Star key={j} className="h-4 w-4 fill-current" style={{ color: "#f59e0b" }} />
                       ))}
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-6">"{t.text}"</p>
+                    <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(226,232,240,0.6)" }}>"{t.text}"</p>
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: "rgba(168,85,247,0.2)", color: "#c084fc" }}>
                         {t.avatar}
                       </div>
                       <div>
-                        <div className="font-semibold text-sm">{t.name}</div>
-                        <div className="text-xs text-muted-foreground">{t.studio}</div>
+                        <div className="font-semibold text-sm text-white">{t.name}</div>
+                        <div className="text-xs" style={{ color: "rgba(226,232,240,0.5)" }}>{t.studio}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -311,75 +334,80 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Enquiry Section */}
-      <section id="enquiry" className="py-24 px-6 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
+      {/* ── Enquiry ── */}
+      <section id="enquiry" className="py-24 px-6 relative z-10">
+        <div className="absolute inset-0" style={{ background: "rgba(15,12,41,0.4)" }} />
+        <div className="max-w-7xl mx-auto relative">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-12">
-            <Badge variant="outline" className="mb-4">Get In Touch</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3" style={{ fontFamily: "var(--font-display)" }}>
+            <Badge className="mb-4 border" style={{ background: "rgba(6,182,212,0.12)", borderColor: "rgba(6,182,212,0.3)", color: "#67e8f9" }}>Get In Touch</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-white" style={{ fontFamily: "var(--font-display)" }}>
               Have Questions? Let's Talk
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="max-w-xl mx-auto" style={{ color: "rgba(226,232,240,0.5)" }}>
               Fill in your details and our team will reach out to you within 24 hours.
             </p>
           </motion.div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="max-w-lg mx-auto">
-            <Card className="border-border/50 shadow-xl">
+            <Card className="border" style={{ background: "rgba(22,33,62,0.6)", borderColor: "rgba(168,85,247,0.2)", boxShadow: "0 0 60px rgba(168,85,247,0.1)", backdropFilter: "blur(16px)" }}>
               <CardContent className="p-6 md:p-8">
                 <form onSubmit={handleEnquiry} className="space-y-4">
                   <div>
-                    <Label className="text-xs font-medium text-muted-foreground">Full Name *</Label>
+                    <Label className="text-xs font-medium" style={{ color: "rgba(226,232,240,0.5)" }}>Full Name *</Label>
                     <div className="relative mt-1">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(226,232,240,0.4)" }} />
                       <Input
                         value={enquiry.name}
                         onChange={e => setEnquiry(p => ({ ...p, name: e.target.value }))}
                         placeholder="Your name"
-                        className="pl-9"
+                        className="pl-9 border text-white placeholder:text-white/30"
+                        style={{ background: "rgba(15,12,41,0.5)", borderColor: "rgba(168,85,247,0.2)" }}
                         required
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs font-medium text-muted-foreground">Email *</Label>
+                      <Label className="text-xs font-medium" style={{ color: "rgba(226,232,240,0.5)" }}>Email *</Label>
                       <div className="relative mt-1">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(226,232,240,0.4)" }} />
                         <Input
                           type="email"
                           value={enquiry.email}
                           onChange={e => setEnquiry(p => ({ ...p, email: e.target.value }))}
                           placeholder="you@email.com"
-                          className="pl-9"
+                          className="pl-9 border text-white placeholder:text-white/30"
+                          style={{ background: "rgba(15,12,41,0.5)", borderColor: "rgba(168,85,247,0.2)" }}
                           required
                         />
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs font-medium text-muted-foreground">Phone</Label>
+                      <Label className="text-xs font-medium" style={{ color: "rgba(226,232,240,0.5)" }}>Phone</Label>
                       <div className="relative mt-1">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(226,232,240,0.4)" }} />
                         <Input
                           value={enquiry.phone}
                           onChange={e => setEnquiry(p => ({ ...p, phone: e.target.value }))}
                           placeholder="+91..."
-                          className="pl-9"
+                          className="pl-9 border text-white placeholder:text-white/30"
+                          style={{ background: "rgba(15,12,41,0.5)", borderColor: "rgba(168,85,247,0.2)" }}
                         />
                       </div>
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-muted-foreground">Message *</Label>
+                    <Label className="text-xs font-medium" style={{ color: "rgba(226,232,240,0.5)" }}>Message *</Label>
                     <Textarea
                       value={enquiry.message}
                       onChange={e => setEnquiry(p => ({ ...p, message: e.target.value }))}
                       placeholder="Tell us about your studio and what you're looking for..."
-                      className="mt-1 min-h-[100px]"
+                      className="mt-1 min-h-[100px] border text-white placeholder:text-white/30"
+                      style={{ background: "rgba(15,12,41,0.5)", borderColor: "rgba(168,85,247,0.2)" }}
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full gap-2" disabled={submitting}>
+                  <Button type="submit" className="w-full gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }} disabled={submitting}>
                     {submitting ? "Sending..." : <>Send Enquiry <Send className="h-4 w-4" /></>}
                   </Button>
                 </form>
@@ -389,40 +417,46 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="py-24 px-6">
+      {/* ── CTA ── */}
+      <section className="py-24 px-6 relative z-10">
         <motion.div
           initial="hidden" whileInView="visible" viewport={{ once: true }}
           variants={fadeUp} custom={0}
-          className="max-w-4xl mx-auto text-center bg-gradient-to-br from-primary/10 via-card to-primary/5 rounded-2xl border border-primary/20 p-12 md:p-16"
+          className="max-w-4xl mx-auto text-center rounded-2xl border p-12 md:p-16"
+          style={{
+            background: "linear-gradient(135deg, rgba(168,85,247,0.1), rgba(22,33,62,0.6), rgba(59,130,246,0.08))",
+            borderColor: "rgba(168,85,247,0.2)",
+            boxShadow: "0 0 80px rgba(168,85,247,0.08)",
+          }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white" style={{ fontFamily: "var(--font-display)" }}>
             Ready to Transform Your Studio?
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto mb-8">
+          <p className="max-w-lg mx-auto mb-8" style={{ color: "rgba(226,232,240,0.5)" }}>
             Join 500+ studios already using StudioAi. Start your free trial — no credit card required.
           </p>
-          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2">
+          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
             Start Free Trial <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 py-12 px-6">
+      {/* ── Footer ── */}
+      <footer className="border-t py-12 px-6 relative z-10" style={{ borderColor: "rgba(168,85,247,0.15)" }}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-              <span className="text-primary-foreground font-black text-xs">S</span>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
+              <Aperture className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold">Studio<span className="text-primary">Ai</span></span>
+            <span className="font-bold text-white">Studio<span style={{ color: "#a855f7" }}>Ai</span></span>
           </div>
-          <div className="flex gap-8 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+          <div className="flex gap-8 text-sm" style={{ color: "rgba(226,232,240,0.5)" }}>
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
           </div>
-          <p className="text-xs text-muted-foreground">© 2026 StudioAi. All rights reserved.</p>
+          <p className="text-xs" style={{ color: "rgba(226,232,240,0.4)" }}>© 2026 StudioAi. All rights reserved.</p>
         </div>
       </footer>
     </div>
