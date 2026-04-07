@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Camera, Users, Calendar, BarChart3, FileText, Zap, Shield, Globe,
   ArrowRight, Check, Star, Play, ChevronRight, Sparkles, Layers,
-  MessageSquare, Bell, Receipt, Image, Bot, Lock
+  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User
 } from "lucide-react";
 
 const fadeUp = {
