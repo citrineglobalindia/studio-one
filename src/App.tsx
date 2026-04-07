@@ -126,7 +126,6 @@ const App = () => (
                 <Routes>
                   <Route path="/landing" element={<LandingPage />} />
                   <Route path="/auth" element={<AuthRoute />} />
-                  
                   <Route path="/super-admin" element={<SuperAdminPage />} />
                   <Route path="/*" element={<ProtectedRoutes />} />
                 </Routes>

@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Camera, Users, Calendar, BarChart3, FileText, Zap, Shield, Globe,
   ArrowRight, Check, Star, Play, ChevronRight, Sparkles, Layers,
-  MessageSquare, Bell, Receipt, Image, Bot, Lock
+  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User
 } from "lucide-react";
 
 const fadeUp = {
@@ -45,6 +50,23 @@ const stats = [
 export default function LandingPage() {
   const navigate = useNavigate();
 
+  const [enquiry, setEnquiry] = useState({ name: "", email: "", phone: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enquiry.name || !enquiry.email || !enquiry.message) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    setSubmitting(true);
+    // Simulate submission
+    await new Promise(r => setTimeout(r, 1000));
+    toast.success("Thank you! We'll get back to you shortly.");
+    setEnquiry({ name: "", email: "", phone: "", message: "" });
+    setSubmitting(false);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Navbar */}
@@ -60,6 +82,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
+            <a href="#enquiry" className="hover:text-foreground transition-colors">Enquiry</a>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>Log in</Button>
@@ -288,7 +311,84 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Enquiry Section */}
+      <section id="enquiry" className="py-24 px-6 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-12">
+            <Badge variant="outline" className="mb-4">Get In Touch</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3" style={{ fontFamily: "var(--font-display)" }}>
+              Have Questions? Let's Talk
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Fill in your details and our team will reach out to you within 24 hours.
+            </p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="max-w-lg mx-auto">
+            <Card className="border-border/50 shadow-xl">
+              <CardContent className="p-6 md:p-8">
+                <form onSubmit={handleEnquiry} className="space-y-4">
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Full Name *</Label>
+                    <div className="relative mt-1">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        value={enquiry.name}
+                        onChange={e => setEnquiry(p => ({ ...p, name: e.target.value }))}
+                        placeholder="Your name"
+                        className="pl-9"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground">Email *</Label>
+                      <div className="relative mt-1">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          type="email"
+                          value={enquiry.email}
+                          onChange={e => setEnquiry(p => ({ ...p, email: e.target.value }))}
+                          placeholder="you@email.com"
+                          className="pl-9"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground">Phone</Label>
+                      <div className="relative mt-1">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          value={enquiry.phone}
+                          onChange={e => setEnquiry(p => ({ ...p, phone: e.target.value }))}
+                          placeholder="+91..."
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Message *</Label>
+                    <Textarea
+                      value={enquiry.message}
+                      onChange={e => setEnquiry(p => ({ ...p, message: e.target.value }))}
+                      placeholder="Tell us about your studio and what you're looking for..."
+                      className="mt-1 min-h-[100px]"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full gap-2" disabled={submitting}>
+                    {submitting ? "Sending..." : <>Send Enquiry <Send className="h-4 w-4" /></>}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
       <section className="py-24 px-6">
         <motion.div
           initial="hidden" whileInView="visible" viewport={{ once: true }}
