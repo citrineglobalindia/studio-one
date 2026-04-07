@@ -82,6 +82,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
+            <a href="#enquiry" className="hover:text-foreground transition-colors">Enquiry</a>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>Log in</Button>
