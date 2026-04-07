@@ -232,8 +232,8 @@ export default function LandingPage() {
               <motion.img
                 src={cinemaCameraImg}
                 alt="Sony FX6 Cinema Camera"
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-28 sm:w-36 md:w-44 lg:w-48 drop-shadow-[0_0_60px_rgba(168,85,247,0.3)]"
-                animate={{ y: [0, -8, 0] }}
+                className="absolute inset-0 m-auto z-10 w-28 sm:w-36 md:w-44 lg:w-48 h-auto object-contain drop-shadow-[0_0_60px_rgba(168,85,247,0.3)]"
+                animate={{ scale: [1, 1.03, 1] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               />
 
