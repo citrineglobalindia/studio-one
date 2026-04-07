@@ -11,8 +11,10 @@ import { toast } from "sonner";
 import {
   Camera, Users, Calendar, BarChart3, FileText, Zap, Shield, Globe,
   ArrowRight, Check, Star, Play, ChevronRight, Sparkles, Layers,
-  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User, Aperture
+  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User, Aperture,
+  Video, Palette, Building2, HandCoins, UserCheck, Clapperboard, MonitorPlay
 } from "lucide-react";
+import cinemaCameraImg from "@/assets/cinema-camera.png";
 
 /* ── shared VR helpers ── */
 const FloatingOrb = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
