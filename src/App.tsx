@@ -65,7 +65,6 @@ function ProtectedRoutes() {
   }
 
   if (!user) return <Navigate to="/landing" replace />;
-  if (!hasOrg) return <Navigate to="/onboarding" replace />;
 
   return (
     <Routes>
