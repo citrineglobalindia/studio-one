@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Loader2, Aperture, Camera, Scan } from "lucide-react";
 import cinemaCameraImg from "@/assets/cinema-camera.png";
 import cameraLensImg from "@/assets/camera-lens.png";
-import lensFlareImg from "@/assets/lens-flare.png";
 
 const FloatingOrb = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
   <motion.div
@@ -150,14 +149,6 @@ const AuthPage = () => {
             className="w-[420px] drop-shadow-[0_0_60px_rgba(168,85,247,0.3)]"
             animate={{ y: [0, -12, 0], rotateY: [0, 3, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          />
-          {/* Lens flare overlay — slow rotating */}
-          <motion.img
-            src={lensFlareImg}
-            alt=""
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] pointer-events-none mix-blend-screen opacity-60"
-            animate={{ rotate: [0, 360], scale: [0.9, 1.1, 0.9], opacity: [0.4, 0.7, 0.4] }}
-            transition={{ rotate: { duration: 25, repeat: Infinity, ease: "linear" }, scale: { duration: 8, repeat: Infinity, ease: "easeInOut" }, opacity: { duration: 6, repeat: Infinity, ease: "easeInOut" } }}
           />
           {/* Camera glow underneath */}
           <div
