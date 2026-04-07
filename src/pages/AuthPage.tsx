@@ -7,14 +7,28 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Loader2, Aperture, Camera, Scan } from "lucide-react";
 
-const FloatingParticle = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
+const FloatingOrb = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
   <motion.div
-    className="absolute rounded-full bg-primary/20 blur-sm pointer-events-none"
-    style={{ left: x, top: y, width: size, height: size }}
+    className="absolute rounded-full blur-3xl pointer-events-none"
+    style={{ left: x, top: y, width: size, height: size, background: color }}
+    animate={{
+      y: [0, -40, 0],
+      x: [0, 20, 0],
+      opacity: [0.3, 0.6, 0.3],
+      scale: [1, 1.2, 1],
+    }}
+    transition={{ duration: 6 + Math.random() * 4, delay, repeat: Infinity, ease: "easeInOut" }}
+  />
+);
+
+const FloatingParticle = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
+  <motion.div
+    className="absolute rounded-full blur-sm pointer-events-none"
+    style={{ left: x, top: y, width: size, height: size, background: color }}
     animate={{
       y: [0, -30, 0],
-      opacity: [0.2, 0.6, 0.2],
-      scale: [1, 1.3, 1],
+      opacity: [0.3, 0.8, 0.3],
+      scale: [1, 1.4, 1],
     }}
     transition={{ duration: 4 + Math.random() * 3, delay, repeat: Infinity, ease: "easeInOut" }}
   />
@@ -22,7 +36,8 @@ const FloatingParticle = ({ delay, x, y, size }: { delay: number; x: string; y: 
 
 const ScanLine = () => (
   <motion.div
-    className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent pointer-events-none z-10"
+    className="absolute left-0 right-0 h-px pointer-events-none z-10"
+    style={{ background: "linear-gradient(90deg, transparent, rgba(168,85,247,0.4), rgba(59,130,246,0.4), transparent)" }}
     initial={{ top: "0%" }}
     animate={{ top: ["0%", "100%", "0%"] }}
     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
@@ -36,9 +51,10 @@ const HUDCorner = ({ position }: { position: string }) => {
     "bottom-left": "bottom-4 left-4 border-b-2 border-l-2 rounded-bl-md",
     "bottom-right": "bottom-4 right-4 border-b-2 border-r-2 rounded-br-md",
   };
+  const colors = ["border-purple-500/30", "border-blue-500/30", "border-pink-500/30", "border-cyan-500/30"];
   return (
     <motion.div
-      className={`absolute w-8 h-8 border-primary/25 pointer-events-none ${corners[position]}`}
+      className={`absolute w-8 h-8 pointer-events-none ${corners[position]} ${colors[Object.keys(corners).indexOf(position)]}`}
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.5 + Math.random() * 0.5, duration: 0.6 }}
@@ -68,60 +84,66 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden" style={{ perspective: "1200px" }}>
-      {/* Deep background layers for depth */}
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{
+        perspective: "1200px",
+        background: "linear-gradient(135deg, #0f0c29 0%, #1a0a2e 20%, #16213e 40%, #0d1b2a 60%, #1a1a2e 80%, #0f0c29 100%)",
+      }}
+    >
+      {/* Large colorful gradient orbs */}
+      <FloatingOrb x="-5%" y="-10%" size={500} color="radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)" delay={0} />
+      <FloatingOrb x="60%" y="-15%" size={450} color="radial-gradient(circle, rgba(59,130,246,0.2), transparent 70%)" delay={1} />
+      <FloatingOrb x="70%" y="60%" size={400} color="radial-gradient(circle, rgba(236,72,153,0.2), transparent 70%)" delay={2} />
+      <FloatingOrb x="-10%" y="70%" size={350} color="radial-gradient(circle, rgba(6,182,212,0.2), transparent 70%)" delay={1.5} />
+      <FloatingOrb x="30%" y="80%" size={300} color="radial-gradient(circle, rgba(245,158,11,0.15), transparent 70%)" delay={0.8} />
+
+      {/* Animated mesh gradient overlay */}
       <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {/* Radial depth glow */}
-        <motion.div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.08)_0%,transparent_70%)]"
-          animate={{ scale: [1, 1.05, 1], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          background: "conic-gradient(from 0deg at 50% 50%, rgba(168,85,247,0.1), rgba(59,130,246,0.1), rgba(6,182,212,0.1), rgba(236,72,153,0.1), rgba(168,85,247,0.1))",
+        }}
+        animate={{ rotate: [0, 360] }}
+        transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+      />
 
-        {/* Grid floor — VR-style */}
-        <motion.div
-          className="absolute bottom-0 left-0 right-0 h-[60%] opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage: `
-              linear-gradient(hsl(var(--primary)) 1px, transparent 1px),
-              linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)
-            `,
-            backgroundSize: "60px 60px",
-            transform: "perspective(500px) rotateX(60deg)",
-            transformOrigin: "bottom center",
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.04 }}
-          transition={{ delay: 0.3, duration: 1.5 }}
-        />
+      {/* VR Grid floor */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-[60%] pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(168,85,247,0.15) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59,130,246,0.15) 1px, transparent 1px)
+          `,
+          backgroundSize: "60px 60px",
+          transform: "perspective(500px) rotateX(60deg)",
+          transformOrigin: "bottom center",
+          maskImage: "linear-gradient(to top, rgba(0,0,0,0.3), transparent)",
+          WebkitMaskImage: "linear-gradient(to top, rgba(0,0,0,0.3), transparent)",
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 1.5 }}
+      />
 
-        {/* Horizon line */}
-        <motion.div
-          className="absolute left-0 right-0 top-[52%] h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: 0.8, duration: 1.2 }}
-        />
-      </motion.div>
-
-      {/* Floating bokeh particles */}
+      {/* Floating bokeh particles with colors */}
       {[
-        { x: "10%", y: "20%", size: 6, delay: 0 },
-        { x: "85%", y: "15%", size: 8, delay: 1.2 },
-        { x: "20%", y: "70%", size: 5, delay: 0.6 },
-        { x: "75%", y: "80%", size: 7, delay: 2 },
-        { x: "50%", y: "10%", size: 4, delay: 0.8 },
-        { x: "90%", y: "50%", size: 6, delay: 1.5 },
-        { x: "5%", y: "45%", size: 5, delay: 2.3 },
-        { x: "60%", y: "90%", size: 8, delay: 0.3 },
+        { x: "10%", y: "20%", size: 8, delay: 0, color: "rgba(168,85,247,0.6)" },
+        { x: "85%", y: "15%", size: 10, delay: 1.2, color: "rgba(59,130,246,0.6)" },
+        { x: "20%", y: "70%", size: 6, delay: 0.6, color: "rgba(6,182,212,0.6)" },
+        { x: "75%", y: "80%", size: 9, delay: 2, color: "rgba(236,72,153,0.6)" },
+        { x: "50%", y: "10%", size: 5, delay: 0.8, color: "rgba(245,158,11,0.6)" },
+        { x: "90%", y: "50%", size: 7, delay: 1.5, color: "rgba(168,85,247,0.5)" },
+        { x: "5%", y: "45%", size: 6, delay: 2.3, color: "rgba(59,130,246,0.5)" },
+        { x: "60%", y: "90%", size: 8, delay: 0.3, color: "rgba(6,182,212,0.5)" },
+        { x: "40%", y: "30%", size: 5, delay: 1.8, color: "rgba(236,72,153,0.5)" },
+        { x: "30%", y: "55%", size: 7, delay: 0.4, color: "rgba(245,158,11,0.5)" },
       ].map((p, i) => (
         <FloatingParticle key={i} {...p} />
       ))}
 
-      {/* Scan line overlay */}
+      {/* Scan line */}
       <ScanLine />
 
       {/* HUD corners */}
@@ -132,7 +154,7 @@ const AuthPage = () => {
 
       {/* Top-left HUD info */}
       <motion.div
-        className="absolute top-6 left-12 text-[10px] font-mono text-primary/30 hidden md:flex flex-col gap-1 pointer-events-none"
+        className="absolute top-6 left-12 text-[10px] font-mono text-purple-400/40 hidden md:flex flex-col gap-1 pointer-events-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
@@ -140,23 +162,23 @@ const AuthPage = () => {
         <span>SYS://STUDIO.AI</span>
         <span>MODE: AUTH_VERIFY</span>
         <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
-          STATUS: AWAITING_INPUT ●
+          <span className="text-cyan-400/60">STATUS: AWAITING_INPUT</span> <span className="text-green-400">●</span>
         </motion.span>
       </motion.div>
 
       {/* Top-right HUD info */}
       <motion.div
-        className="absolute top-6 right-12 text-[10px] font-mono text-primary/30 text-right hidden md:flex flex-col gap-1 pointer-events-none"
+        className="absolute top-6 right-12 text-[10px] font-mono text-blue-400/40 text-right hidden md:flex flex-col gap-1 pointer-events-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.4 }}
       >
         <span>RES: 4K_RAW</span>
-        <span>f/1.4 · ISO 100</span>
-        <span>LENS: 85mm</span>
+        <span className="text-pink-400/40">f/1.4 · ISO 100</span>
+        <span className="text-amber-400/40">LENS: 85mm</span>
       </motion.div>
 
-      {/* Central auth card with 3D hover */}
+      {/* Central auth card */}
       <motion.div
         initial={{ opacity: 0, z: -200, rotateX: 15 }}
         animate={{ opacity: 1, z: 0, rotateX: 0 }}
@@ -164,17 +186,30 @@ const AuthPage = () => {
         className="relative z-20 w-full max-w-md mx-4"
         style={{ transformStyle: "preserve-3d" }}
       >
-        {/* Outer glow ring */}
+        {/* Rainbow glow ring */}
         <motion.div
-          className="absolute -inset-px rounded-3xl bg-gradient-to-b from-primary/20 via-primary/5 to-primary/20 blur-sm pointer-events-none"
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
+          className="absolute -inset-[2px] rounded-3xl pointer-events-none"
+          style={{
+            background: "linear-gradient(135deg, rgba(168,85,247,0.4), rgba(59,130,246,0.4), rgba(6,182,212,0.3), rgba(236,72,153,0.4))",
+            filter: "blur(8px)",
+          }}
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="relative bg-card/70 backdrop-blur-2xl border border-primary/10 rounded-3xl shadow-[0_0_80px_-20px_hsl(var(--primary)/0.15)] overflow-hidden">
+        <div
+          className="relative rounded-3xl overflow-hidden"
+          style={{
+            background: "linear-gradient(145deg, rgba(15,12,41,0.85), rgba(26,10,46,0.9), rgba(22,33,62,0.85))",
+            backdropFilter: "blur(40px)",
+            border: "1px solid rgba(168,85,247,0.15)",
+            boxShadow: "0 0 80px -20px rgba(168,85,247,0.2), 0 0 60px -30px rgba(59,130,246,0.15)",
+          }}
+        >
           {/* Inner scan line */}
           <motion.div
-            className="absolute left-0 right-0 h-16 bg-gradient-to-b from-primary/[0.03] to-transparent pointer-events-none"
+            className="absolute left-0 right-0 h-16 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, rgba(168,85,247,0.04), transparent)" }}
             animate={{ top: ["-64px", "110%"] }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatDelay: 2 }}
           />
@@ -188,40 +223,56 @@ const AuthPage = () => {
               transition={{ delay: 0.3 }}
             >
               <motion.div className="relative mb-5">
-                {/* Outer rotating ring */}
+                {/* Outer rotating ring - colorful */}
                 <motion.div
-                  className="absolute -inset-4 rounded-full border border-dashed border-primary/15"
+                  className="absolute -inset-4 rounded-full"
+                  style={{ border: "1px dashed rgba(168,85,247,0.25)" }}
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 />
                 {/* Middle pulse ring */}
                 <motion.div
-                  className="absolute -inset-2 rounded-full border border-primary/10"
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                  className="absolute -inset-2 rounded-full"
+                  style={{
+                    border: "1px solid transparent",
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.15), rgba(59,130,246,0.15), rgba(236,72,153,0.15)) border-box",
+                    WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                    borderRadius: "9999px",
+                  }}
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.8, 0.4] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
                 {/* Core icon */}
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                <div
+                  className="h-20 w-20 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.15), rgba(6,182,212,0.1))",
+                    border: "1px solid rgba(168,85,247,0.25)",
+                  }}
+                >
                   <motion.div
                     animate={{ rotate: [0, 360] }}
                     transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
                   >
-                    <Aperture className="h-10 w-10 text-primary/70" strokeWidth={1.2} />
+                    <Aperture className="h-10 w-10 text-purple-400/80" strokeWidth={1.2} />
                   </motion.div>
                 </div>
               </motion.div>
 
-              <h1 className="text-3xl font-bold tracking-tight">
-                Studio<span className="text-primary">Ai</span>
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                Studio<span className="bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Ai</span>
               </h1>
-              <p className="text-xs text-muted-foreground/60 mt-1.5 font-mono tracking-widest uppercase">
+              <p className="text-xs text-purple-300/40 mt-1.5 font-mono tracking-widest uppercase">
                 Immersive Studio Access
               </p>
             </motion.div>
 
-            {/* Viewfinder line */}
+            {/* Viewfinder line - colorful */}
             <motion.div
-              className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-8"
+              className="h-px mb-8"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(168,85,247,0.3), rgba(59,130,246,0.3), rgba(6,182,212,0.3), transparent)" }}
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ delay: 0.6, duration: 0.8 }}
@@ -234,8 +285,8 @@ const AuthPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <Label htmlFor="email" className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
-                  <Scan className="h-3 w-3" />
+                <Label htmlFor="email" className="text-[10px] font-mono text-purple-300/50 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                  <Scan className="h-3 w-3 text-cyan-400/50" />
                   Identity
                 </Label>
                 <div className="relative">
@@ -247,13 +298,14 @@ const AuthPage = () => {
                     onFocus={() => setFocused("email")}
                     onBlur={() => setFocused(null)}
                     placeholder="you@studio.com"
-                    className="h-12 bg-background/40 border-primary/10 focus:border-primary/30 focus:bg-background/60 transition-all duration-300 pl-4 font-mono text-sm"
+                    className="h-12 bg-white/5 border-purple-500/15 focus:border-purple-400/40 focus:bg-white/10 transition-all duration-300 pl-4 font-mono text-sm text-white placeholder:text-white/20"
                     required
                   />
                   <AnimatePresence>
                     {focused === "email" && (
                       <motion.div
-                        className="absolute left-0 bottom-0 h-px bg-primary/50"
+                        className="absolute left-0 bottom-0 h-px"
+                        style={{ background: "linear-gradient(90deg, rgba(168,85,247,0.8), rgba(59,130,246,0.8), rgba(6,182,212,0.6))" }}
                         initial={{ width: "0%" }}
                         animate={{ width: "100%" }}
                         exit={{ width: "0%" }}
@@ -269,8 +321,8 @@ const AuthPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                <Label htmlFor="password" className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
-                  <Camera className="h-3 w-3" />
+                <Label htmlFor="password" className="text-[10px] font-mono text-blue-300/50 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                  <Camera className="h-3 w-3 text-pink-400/50" />
                   Access Key
                 </Label>
                 <div className="relative">
@@ -282,21 +334,22 @@ const AuthPage = () => {
                     onFocus={() => setFocused("password")}
                     onBlur={() => setFocused(null)}
                     placeholder="••••••••"
-                    className="pr-10 h-12 bg-background/40 border-primary/10 focus:border-primary/30 focus:bg-background/60 transition-all duration-300 pl-4 font-mono text-sm"
+                    className="pr-10 h-12 bg-white/5 border-purple-500/15 focus:border-pink-400/40 focus:bg-white/10 transition-all duration-300 pl-4 font-mono text-sm text-white placeholder:text-white/20"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-300/40 hover:text-purple-300 transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                   <AnimatePresence>
                     {focused === "password" && (
                       <motion.div
-                        className="absolute left-0 bottom-0 h-px bg-primary/50"
+                        className="absolute left-0 bottom-0 h-px"
+                        style={{ background: "linear-gradient(90deg, rgba(236,72,153,0.8), rgba(168,85,247,0.8), rgba(59,130,246,0.6))" }}
                         initial={{ width: "0%" }}
                         animate={{ width: "100%" }}
                         exit={{ width: "0%" }}
@@ -313,7 +366,7 @@ const AuthPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}
               >
-                <button type="button" className="text-[10px] font-mono text-primary/50 hover:text-primary transition-colors tracking-wider uppercase">
+                <button type="button" className="text-[10px] font-mono text-cyan-400/40 hover:text-cyan-300 transition-colors tracking-wider uppercase">
                   Reset Access
                 </button>
               </motion.div>
@@ -325,12 +378,16 @@ const AuthPage = () => {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 text-sm font-semibold gap-2 relative overflow-hidden group"
+                  className="w-full h-12 text-sm font-semibold gap-2 relative overflow-hidden border-0 text-white"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.8), rgba(59,130,246,0.8), rgba(6,182,212,0.7))",
+                  }}
                   disabled={loading}
                 >
-                  {/* Button scan effect */}
+                  {/* Button shimmer */}
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)" }}
                     animate={{ x: ["-100%", "100%"] }}
                     transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                   />
@@ -361,12 +418,12 @@ const AuthPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.5 }}
       >
-        <div className="flex items-center gap-4 text-[9px] font-mono text-muted-foreground/30 tracking-widest uppercase">
-          <span>Studio<span className="text-primary/40">Ai</span></span>
-          <span className="w-px h-3 bg-muted-foreground/15" />
-          <span>Immersive Studio Platform</span>
-          <span className="w-px h-3 bg-muted-foreground/15" />
-          <motion.span animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
+        <div className="flex items-center gap-4 text-[9px] font-mono tracking-widest uppercase">
+          <span className="text-purple-400/40">Studio<span className="text-cyan-400/50">Ai</span></span>
+          <span className="w-px h-3 bg-purple-500/20" />
+          <span className="text-blue-400/30">Immersive Studio Platform</span>
+          <span className="w-px h-3 bg-purple-500/20" />
+          <motion.span className="text-green-400/40" animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
             ● SECURE
           </motion.span>
         </div>
