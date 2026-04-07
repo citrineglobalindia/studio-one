@@ -195,88 +195,86 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="relative mx-auto max-w-4xl"
+            className="relative mx-auto w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[520px] md:h-[520px] lg:w-[600px] lg:h-[600px]"
           >
-            {/* Central camera showcase */}
-            <div className="relative flex items-center justify-center py-8">
-              {/* Glow ring behind camera */}
-              <div className="absolute w-72 h-72 md:w-96 md:h-96 rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(59,130,246,0.08) 50%, transparent 70%)" }} />
-              <motion.div
-                className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full border"
-                style={{ borderColor: "rgba(168,85,247,0.15)" }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              />
-              <motion.div
-                className="absolute w-80 h-80 md:w-[26rem] md:h-[26rem] rounded-full border"
-                style={{ borderColor: "rgba(59,130,246,0.1)" }}
-                animate={{ rotate: -360 }}
-                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-              />
+            {/* Glow */}
+            <div className="absolute inset-0 m-auto w-52 h-52 sm:w-64 sm:h-64 md:w-80 md:h-80 rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.18) 0%, rgba(59,130,246,0.08) 50%, transparent 70%)" }} />
 
-              {/* Camera image */}
-              <motion.img
-                src={cinemaCameraImg}
-                alt="Sony FX6 Cinema Camera"
-                className="relative z-10 w-48 md:w-72 drop-shadow-[0_0_60px_rgba(168,85,247,0.3)]"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-
-              {/* ── Orbiting Role Modules ── */}
-              {[
-                { icon: Building2, label: "Studio", color: "#a855f7", angle: 0 },
-                { icon: HandCoins, label: "Vendors", color: "#3b82f6", angle: 45 },
-                { icon: Camera, label: "Photographer", color: "#ec4899", angle: 90 },
-                { icon: BarChart3, label: "Accounts", color: "#f59e0b", angle: 135 },
-                { icon: Users, label: "Clients", color: "#06b6d4", angle: 180 },
-                { icon: Calendar, label: "Events", color: "#10b981", angle: 225 },
-                { icon: Video, label: "Videographer", color: "#8b5cf6", angle: 270 },
-                { icon: Palette, label: "Editor", color: "#f43f5e", angle: 315 },
-              ].map((mod, i) => {
-                const radius = typeof window !== "undefined" && window.innerWidth < 768 ? 140 : 200;
-                const rad = (mod.angle * Math.PI) / 180;
-                const x = Math.cos(rad) * radius;
-                const y = Math.sin(rad) * radius;
-                return (
-                  <motion.div
-                    key={mod.label}
-                    className="absolute z-20 flex flex-col items-center gap-1"
-                    style={{ left: `calc(50% + ${x}px - 28px)`, top: `calc(50% + ${y}px - 28px)` }}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.6 + i * 0.1, duration: 0.4, type: "spring" }}
-                  >
-                    <motion.div
-                      className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center border backdrop-blur-md cursor-default"
-                      style={{
-                        background: `rgba(${hexToRgb(mod.color)}, 0.12)`,
-                        borderColor: `rgba(${hexToRgb(mod.color)}, 0.3)`,
-                        boxShadow: `0 0 20px rgba(${hexToRgb(mod.color)}, 0.15)`,
-                      }}
-                      whileHover={{ scale: 1.15, boxShadow: `0 0 30px rgba(${hexToRgb(mod.color)}, 0.35)` }}
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 3 + i * 0.3, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                      <mod.icon className="h-6 w-6 md:h-7 md:w-7" style={{ color: mod.color }} />
-                    </motion.div>
-                    <span className="text-[10px] md:text-xs font-semibold tracking-wide" style={{ color: mod.color }}>{mod.label}</span>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Tagline below visual */}
+            {/* Orbit rings */}
             <motion.div
+              className="absolute inset-0 m-auto w-52 h-52 sm:w-64 sm:h-64 md:w-80 md:h-80 rounded-full border"
+              style={{ borderColor: "rgba(168,85,247,0.15)" }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="absolute inset-0 m-auto w-72 h-72 sm:w-80 sm:h-80 md:w-[26rem] md:h-[26rem] lg:w-[30rem] lg:h-[30rem] rounded-full border"
+              style={{ borderColor: "rgba(59,130,246,0.1)" }}
+              animate={{ rotate: -360 }}
+              transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+            />
+
+            {/* Camera image — dead center */}
+            <motion.img
+              src={cinemaCameraImg}
+              alt="Sony FX6 Cinema Camera"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-32 sm:w-40 md:w-56 lg:w-64 drop-shadow-[0_0_60px_rgba(168,85,247,0.3)]"
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+
+            {/* ── Orbiting Role Modules ── */}
+            {[
+              { icon: Building2, label: "Studio", color: "#a855f7", angle: 0 },
+              { icon: HandCoins, label: "Vendors", color: "#3b82f6", angle: 45 },
+              { icon: Camera, label: "Photographer", color: "#ec4899", angle: 90 },
+              { icon: BarChart3, label: "Accounts", color: "#f59e0b", angle: 135 },
+              { icon: Users, label: "Clients", color: "#06b6d4", angle: 180 },
+              { icon: Calendar, label: "Events", color: "#10b981", angle: 225 },
+              { icon: Video, label: "Videographer", color: "#8b5cf6", angle: 270 },
+              { icon: Palette, label: "Editor", color: "#f43f5e", angle: 315 },
+            ].map((mod, i) => {
+              const rad = (mod.angle * Math.PI) / 180;
+              return (
+                <motion.div
+                  key={mod.label}
+                  className="absolute z-20 flex flex-col items-center gap-1"
+                  style={{
+                    left: `calc(50% + ${Math.cos(rad) * 45}% - 28px)`,
+                    top: `calc(50% + ${Math.sin(rad) * 45}% - 28px)`,
+                  }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6 + i * 0.1, duration: 0.4, type: "spring" }}
+                >
+                  <motion.div
+                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center border backdrop-blur-md cursor-default"
+                    style={{
+                      background: `rgba(${hexToRgb(mod.color)}, 0.12)`,
+                      borderColor: `rgba(${hexToRgb(mod.color)}, 0.3)`,
+                      boxShadow: `0 0 20px rgba(${hexToRgb(mod.color)}, 0.15)`,
+                    }}
+                    whileHover={{ scale: 1.15, boxShadow: `0 0 30px rgba(${hexToRgb(mod.color)}, 0.35)` }}
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 3 + i * 0.3, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <mod.icon className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" style={{ color: mod.color }} />
+                  </motion.div>
+                  <span className="text-[9px] sm:text-[10px] md:text-xs font-semibold tracking-wide whitespace-nowrap" style={{ color: mod.color }}>{mod.label}</span>
+                </motion.div>
+              );
+            })}
+
+            {/* Tagline overlay at bottom */}
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5 }}
-              className="text-center mt-4"
+              className="absolute bottom-0 left-0 right-0 text-center text-[11px] sm:text-sm font-mono tracking-widest uppercase"
+              style={{ color: "rgba(168,85,247,0.6)" }}
             >
-              <p className="text-sm font-mono tracking-widest uppercase" style={{ color: "rgba(168,85,247,0.6)" }}>
-                All Managed in One Platform
-              </p>
-            </motion.div>
+              All Managed in One Platform
+            </motion.p>
           </motion.div>
 
           {/* Stats */}
