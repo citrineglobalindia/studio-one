@@ -11,8 +11,10 @@ import { toast } from "sonner";
 import {
   Camera, Users, Calendar, BarChart3, FileText, Zap, Shield, Globe,
   ArrowRight, Check, Star, Play, ChevronRight, Sparkles, Layers,
-  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User, Aperture
+  MessageSquare, Bell, Receipt, Image, Bot, Lock, Send, Mail, Phone, User, Aperture,
+  Video, Palette, Building2, HandCoins, UserCheck, Clapperboard, MonitorPlay
 } from "lucide-react";
+import cinemaCameraImg from "@/assets/cinema-camera.png";
 
 /* ── shared VR helpers ── */
 const FloatingOrb = ({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) => (
@@ -50,6 +52,13 @@ const fadeUp = {
     opacity: 1, y: 0,
     transition: { delay: i * 0.1, duration: 0.6, ease: "easeOut" as const }
   })
+};
+
+const hexToRgb = (hex: string) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `${r},${g},${b}`;
 };
 
 /* ── data ── */
@@ -141,47 +150,139 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="pt-32 pb-20 px-6 relative z-10">
-        <div className="max-w-5xl mx-auto text-center relative">
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-            <Badge className="mb-6 px-4 py-1.5 text-xs font-medium gap-1.5 border-0" style={{ background: "rgba(168,85,247,0.15)", color: "#c084fc" }}>
-              <Sparkles className="h-3.5 w-3.5" /> AI-Powered Studio Management
-            </Badge>
-          </motion.div>
-          <motion.h1
-            initial="hidden" animate="visible" variants={fadeUp} custom={1}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6 text-white"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Run Your Photography
-            <br />
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(135deg, #a855f7, #3b82f6, #06b6d4)" }}>
-              Studio Like a Pro
-            </span>
-          </motion.h1>
-          <motion.p
-            initial="hidden" animate="visible" variants={fadeUp} custom={2}
-            className="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
-            style={{ color: "rgba(226,232,240,0.6)" }}
-          >
-            All-in-one platform for leads, clients, projects, invoicing, team management, and AI-powered workflows — built exclusively for photography & videography studios.
-          </motion.p>
+      <section className="pt-28 pb-16 px-6 relative z-10">
+        <div className="max-w-7xl mx-auto relative">
+          {/* Top badge + heading */}
+          <div className="text-center mb-12">
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
+              <Badge className="mb-6 px-4 py-1.5 text-xs font-medium gap-1.5 border-0" style={{ background: "rgba(168,85,247,0.15)", color: "#c084fc" }}>
+                <Sparkles className="h-3.5 w-3.5" /> AI-Powered Studio Management
+              </Badge>
+            </motion.div>
+            <motion.h1
+              initial="hidden" animate="visible" variants={fadeUp} custom={1}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6 text-white"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Run Your Photography
+              <br />
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(135deg, #a855f7, #3b82f6, #06b6d4)" }}>
+                Studio Like a Pro
+              </span>
+            </motion.h1>
+            <motion.p
+              initial="hidden" animate="visible" variants={fadeUp} custom={2}
+              className="text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed"
+              style={{ color: "rgba(226,232,240,0.6)" }}
+            >
+              All-in-one platform for leads, clients, projects, invoicing, team management, and AI-powered workflows — built exclusively for photography & videography studios.
+            </motion.p>
+            <motion.div
+              initial="hidden" animate="visible" variants={fadeUp} custom={3}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
+                Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button size="lg" variant="outline" className="text-base px-8 h-12 gap-2 text-white" style={{ borderColor: "rgba(168,85,247,0.3)", background: "rgba(168,85,247,0.08)" }}>
+                <Play className="h-4 w-4" /> Watch Demo
+              </Button>
+            </motion.div>
+          </div>
+
+          {/* ── Camera + Orbiting Modules Visual ── */}
           <motion.div
-            initial="hidden" animate="visible" variants={fadeUp} custom={3}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="relative mx-auto max-w-4xl"
           >
-            <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
-              Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="text-base px-8 h-12 gap-2 text-white" style={{ borderColor: "rgba(168,85,247,0.3)", background: "rgba(168,85,247,0.08)" }}>
-              <Play className="h-4 w-4" /> Watch Demo
-            </Button>
+            {/* Central camera showcase */}
+            <div className="relative flex items-center justify-center py-8">
+              {/* Glow ring behind camera */}
+              <div className="absolute w-72 h-72 md:w-96 md:h-96 rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(59,130,246,0.08) 50%, transparent 70%)" }} />
+              <motion.div
+                className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full border"
+                style={{ borderColor: "rgba(168,85,247,0.15)" }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              />
+              <motion.div
+                className="absolute w-80 h-80 md:w-[26rem] md:h-[26rem] rounded-full border"
+                style={{ borderColor: "rgba(59,130,246,0.1)" }}
+                animate={{ rotate: -360 }}
+                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+              />
+
+              {/* Camera image */}
+              <motion.img
+                src={cinemaCameraImg}
+                alt="Sony FX6 Cinema Camera"
+                className="relative z-10 w-48 md:w-72 drop-shadow-[0_0_60px_rgba(168,85,247,0.3)]"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+
+              {/* ── Orbiting Role Modules ── */}
+              {[
+                { icon: Building2, label: "Studio", color: "#a855f7", angle: 0 },
+                { icon: HandCoins, label: "Vendors", color: "#3b82f6", angle: 45 },
+                { icon: Camera, label: "Photographer", color: "#ec4899", angle: 90 },
+                { icon: BarChart3, label: "Accounts", color: "#f59e0b", angle: 135 },
+                { icon: Users, label: "Clients", color: "#06b6d4", angle: 180 },
+                { icon: Calendar, label: "Events", color: "#10b981", angle: 225 },
+                { icon: Video, label: "Videographer", color: "#8b5cf6", angle: 270 },
+                { icon: Palette, label: "Editor", color: "#f43f5e", angle: 315 },
+              ].map((mod, i) => {
+                const radius = typeof window !== "undefined" && window.innerWidth < 768 ? 140 : 200;
+                const rad = (mod.angle * Math.PI) / 180;
+                const x = Math.cos(rad) * radius;
+                const y = Math.sin(rad) * radius;
+                return (
+                  <motion.div
+                    key={mod.label}
+                    className="absolute z-20 flex flex-col items-center gap-1"
+                    style={{ left: `calc(50% + ${x}px - 28px)`, top: `calc(50% + ${y}px - 28px)` }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 + i * 0.1, duration: 0.4, type: "spring" }}
+                  >
+                    <motion.div
+                      className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center border backdrop-blur-md cursor-default"
+                      style={{
+                        background: `rgba(${hexToRgb(mod.color)}, 0.12)`,
+                        borderColor: `rgba(${hexToRgb(mod.color)}, 0.3)`,
+                        boxShadow: `0 0 20px rgba(${hexToRgb(mod.color)}, 0.15)`,
+                      }}
+                      whileHover={{ scale: 1.15, boxShadow: `0 0 30px rgba(${hexToRgb(mod.color)}, 0.35)` }}
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 3 + i * 0.3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <mod.icon className="h-6 w-6 md:h-7 md:w-7" style={{ color: mod.color }} />
+                    </motion.div>
+                    <span className="text-[10px] md:text-xs font-semibold tracking-wide" style={{ color: mod.color }}>{mod.label}</span>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Tagline below visual */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5 }}
+              className="text-center mt-4"
+            >
+              <p className="text-sm font-mono tracking-widest uppercase" style={{ color: "rgba(168,85,247,0.6)" }}>
+                All Managed in One Platform
+              </p>
+            </motion.div>
           </motion.div>
 
           {/* Stats */}
           <motion.div
-            initial="hidden" animate="visible" variants={fadeUp} custom={4}
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-3xl mx-auto"
+            initial="hidden" animate="visible" variants={fadeUp} custom={5}
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 max-w-3xl mx-auto"
           >
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
