@@ -157,21 +157,6 @@ const AuthPage = () => {
           />
         </motion.div>
 
-        {/* Lens image — floating below-left */}
-        <motion.div
-          className="absolute bottom-[10%] left-[8%] z-10"
-          initial={{ opacity: 0, y: 50, rotate: -20 }}
-          animate={{ opacity: 1, y: 0, rotate: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <motion.img
-            src={cameraLensImg}
-            alt="Cinema Lens"
-            className="w-36 drop-shadow-[0_0_40px_rgba(59,130,246,0.3)]"
-            animate={{ y: [0, -8, 0], rotate: [0, 5, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          />
-        </motion.div>
 
         {/* Branding text under camera */}
         <motion.div
