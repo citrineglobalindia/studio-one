@@ -50,6 +50,23 @@ const stats = [
 export default function LandingPage() {
   const navigate = useNavigate();
 
+  const [enquiry, setEnquiry] = useState({ name: "", email: "", phone: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enquiry.name || !enquiry.email || !enquiry.message) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    setSubmitting(true);
+    // Simulate submission
+    await new Promise(r => setTimeout(r, 1000));
+    toast.success("Thank you! We'll get back to you shortly.");
+    setEnquiry({ name: "", email: "", phone: "", message: "" });
+    setSubmitting(false);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Navbar */}
