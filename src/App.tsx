@@ -43,6 +43,7 @@ import HRAttendance from "./pages/hr/HRAttendance";
 import HRLeaves from "./pages/hr/HRLeaves";
 import NotificationsPage from "./pages/NotificationsPage";
 import AccountsPage from "./pages/AccountsPage";
+import LiveClientsPage from "./pages/LiveClientsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccessControlPage from "./pages/AccessControlPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
@@ -99,6 +100,7 @@ function ProtectedRoutes() {
         <Route path="/hr/leaves" element={<HRLeaves />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/live-clients" element={<LiveClientsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<NotFound />} />

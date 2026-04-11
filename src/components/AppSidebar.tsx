@@ -17,6 +17,7 @@ import {
   UsersRound,
   Briefcase,
   BookImage,
+  Activity,
   HardDrive,
   Bot,
   Sparkles,
@@ -52,6 +53,7 @@ const salesItems = [
 ];
 
 const operationsItems = [
+  { title: "Live Clients", url: "/live-clients", icon: Activity },
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Events", url: "/events", icon: CalendarCheck },
   { title: "Albums", url: "/albums", icon: BookImage },
