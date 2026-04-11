@@ -82,7 +82,7 @@ const testimonials = [
 
 const stats = [
   { value: "500+", label: "Studios" },
-  { value: "₹2Cr+", label: "Revenue Managed" },
+  { value: "2Cr+", label: "Revenue Managed" },
   { value: "10K+", label: "Projects Delivered" },
   { value: "99.9%", label: "Uptime" },
 ];
@@ -136,7 +136,7 @@ export default function LandingPage() {
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "rgba(226,232,240,0.6)" }}>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Plans</a>
             <a href="#testimonials" className="hover:text-white transition-colors">Testimonials</a>
             <a href="#enquiry" className="hover:text-white transition-colors">Enquiry</a>
           </div>
@@ -554,7 +554,7 @@ export default function LandingPage() {
           </div>
           <div className="flex gap-8 text-sm" style={{ color: "rgba(226,232,240,0.5)" }}>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Plans</a>
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
             <a href="#" className="hover:text-white transition-colors">Terms</a>
           </div>
