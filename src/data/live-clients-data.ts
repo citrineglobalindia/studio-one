@@ -6,6 +6,8 @@ export interface Deliverable {
   progress: number;
   dueDate: string;
   deliveredDate?: string;
+  reminderDate?: string;
+  assignedTo?: string;
 }
 
 export interface TeamMember {
@@ -21,6 +23,7 @@ export interface LiveClient {
   partnerName: string;
   eventType: string;
   eventDate: string;
+  deliveryDate: string;
   city: string;
   phone: string;
   overallProgress: number;
@@ -45,6 +48,7 @@ export const sampleLiveClients: LiveClient[] = [
     partnerName: "Priya Patel",
     eventType: "Wedding",
     eventDate: "2026-03-15",
+    deliveryDate: "2026-05-30",
     city: "Mumbai",
     phone: "+91 98765 43210",
     overallProgress: 72,
@@ -56,11 +60,11 @@ export const sampleLiveClients: LiveClient[] = [
       { id: "t4", name: "Ravi Kumar", role: "Album Designer" },
     ],
     deliverables: [
-      { id: "d1", type: "Photos", label: "Edited Photos (800+)", status: "delivered", progress: 100, dueDate: "2026-04-01", deliveredDate: "2026-03-28" },
-      { id: "d2", type: "Videos", label: "Cinematic Film", status: "in-progress", progress: 65, dueDate: "2026-04-20" },
-      { id: "d3", type: "Highlights", label: "Wedding Highlights Reel", status: "in-progress", progress: 80, dueDate: "2026-04-10" },
-      { id: "d4", type: "Albums", label: "Flush Mount Album (40 pages)", status: "pending", progress: 0, dueDate: "2026-05-15" },
-      { id: "d5", type: "Footage Copy", label: "Raw Footage Drive", status: "review", progress: 90, dueDate: "2026-04-05" },
+      { id: "d1", type: "Photos", label: "Edited Photos (800+)", status: "delivered", progress: 100, dueDate: "2026-04-01", deliveredDate: "2026-03-28", assignedTo: "Arjun Mehta" },
+      { id: "d2", type: "Videos", label: "Cinematic Film", status: "in-progress", progress: 65, dueDate: "2026-04-20", reminderDate: "2026-04-18", assignedTo: "Sneha Rao" },
+      { id: "d3", type: "Highlights", label: "Wedding Highlights Reel", status: "in-progress", progress: 80, dueDate: "2026-04-10", reminderDate: "2026-04-08", assignedTo: "Kiran Das" },
+      { id: "d4", type: "Albums", label: "Flush Mount Album (40 pages)", status: "pending", progress: 0, dueDate: "2026-05-15", assignedTo: "Ravi Kumar" },
+      { id: "d5", type: "Footage Copy", label: "Raw Footage Drive", status: "review", progress: 90, dueDate: "2026-04-05", reminderDate: "2026-04-04", assignedTo: "Sneha Rao" },
     ],
     financials: {
       estimatedAmount: 350000,
@@ -78,6 +82,7 @@ export const sampleLiveClients: LiveClient[] = [
     partnerName: "Neha Gupta",
     eventType: "Wedding",
     eventDate: "2026-02-20",
+    deliveryDate: "2026-04-20",
     city: "Delhi",
     phone: "+91 87654 32109",
     overallProgress: 100,
@@ -88,10 +93,10 @@ export const sampleLiveClients: LiveClient[] = [
       { id: "t7", name: "Kiran Das", role: "Editor" },
     ],
     deliverables: [
-      { id: "d6", type: "Photos", label: "Edited Photos (600+)", status: "delivered", progress: 100, dueDate: "2026-03-10", deliveredDate: "2026-03-08" },
-      { id: "d7", type: "Videos", label: "Full Wedding Film", status: "delivered", progress: 100, dueDate: "2026-03-25", deliveredDate: "2026-03-22" },
-      { id: "d8", type: "Highlights", label: "Highlight Reel", status: "delivered", progress: 100, dueDate: "2026-03-15", deliveredDate: "2026-03-14" },
-      { id: "d9", type: "Albums", label: "Coffee Table Book", status: "delivered", progress: 100, dueDate: "2026-04-15", deliveredDate: "2026-04-10" },
+      { id: "d6", type: "Photos", label: "Edited Photos (600+)", status: "delivered", progress: 100, dueDate: "2026-03-10", deliveredDate: "2026-03-08", assignedTo: "Arjun Mehta" },
+      { id: "d7", type: "Videos", label: "Full Wedding Film", status: "delivered", progress: 100, dueDate: "2026-03-25", deliveredDate: "2026-03-22", assignedTo: "Kiran Das" },
+      { id: "d8", type: "Highlights", label: "Highlight Reel", status: "delivered", progress: 100, dueDate: "2026-03-15", deliveredDate: "2026-03-14", assignedTo: "Kiran Das" },
+      { id: "d9", type: "Albums", label: "Coffee Table Book", status: "delivered", progress: 100, dueDate: "2026-04-15", deliveredDate: "2026-04-10", assignedTo: "Pooja Nair" },
     ],
     financials: {
       estimatedAmount: 280000,
@@ -109,6 +114,7 @@ export const sampleLiveClients: LiveClient[] = [
     partnerName: "Ananya Roy",
     eventType: "Pre-Wedding + Wedding",
     eventDate: "2026-04-25",
+    deliveryDate: "2026-07-15",
     city: "Jaipur",
     phone: "+91 76543 21098",
     overallProgress: 35,
@@ -119,12 +125,12 @@ export const sampleLiveClients: LiveClient[] = [
       { id: "t10", name: "Divya Sharma", role: "Drone Operator" },
     ],
     deliverables: [
-      { id: "d10", type: "Photos", label: "Pre-Wedding Shoot", status: "delivered", progress: 100, dueDate: "2026-04-01", deliveredDate: "2026-03-30" },
-      { id: "d11", type: "Videos", label: "Pre-Wedding Film", status: "in-progress", progress: 45, dueDate: "2026-04-15" },
-      { id: "d12", type: "Photos", label: "Wedding Day Photos", status: "pending", progress: 0, dueDate: "2026-05-15" },
-      { id: "d13", type: "Videos", label: "Wedding Cinematic Film", status: "pending", progress: 0, dueDate: "2026-06-01" },
-      { id: "d14", type: "Highlights", label: "Combined Highlight Reel", status: "pending", progress: 0, dueDate: "2026-05-20" },
-      { id: "d15", type: "Footage Copy", label: "Full Raw Footage", status: "pending", progress: 0, dueDate: "2026-06-10" },
+      { id: "d10", type: "Photos", label: "Pre-Wedding Shoot", status: "delivered", progress: 100, dueDate: "2026-04-01", deliveredDate: "2026-03-30", assignedTo: "Arjun Mehta" },
+      { id: "d11", type: "Videos", label: "Pre-Wedding Film", status: "in-progress", progress: 45, dueDate: "2026-04-15", reminderDate: "2026-04-13", assignedTo: "Sneha Rao" },
+      { id: "d12", type: "Photos", label: "Wedding Day Photos", status: "pending", progress: 0, dueDate: "2026-05-15", assignedTo: "Arjun Mehta" },
+      { id: "d13", type: "Videos", label: "Wedding Cinematic Film", status: "pending", progress: 0, dueDate: "2026-06-01", assignedTo: "Sneha Rao" },
+      { id: "d14", type: "Highlights", label: "Combined Highlight Reel", status: "pending", progress: 0, dueDate: "2026-05-20", assignedTo: "Sneha Rao" },
+      { id: "d15", type: "Footage Copy", label: "Full Raw Footage", status: "pending", progress: 0, dueDate: "2026-06-10", assignedTo: "Divya Sharma" },
     ],
     financials: {
       estimatedAmount: 500000,
@@ -142,6 +148,7 @@ export const sampleLiveClients: LiveClient[] = [
     partnerName: "Ishita Jain",
     eventType: "Destination Wedding",
     eventDate: "2026-05-10",
+    deliveryDate: "2026-09-01",
     city: "Udaipur",
     phone: "+91 65432 10987",
     overallProgress: 15,
@@ -151,10 +158,10 @@ export const sampleLiveClients: LiveClient[] = [
       { id: "t12", name: "Sneha Rao", role: "Lead Videographer" },
     ],
     deliverables: [
-      { id: "d16", type: "Photos", label: "Wedding Photos (1000+)", status: "pending", progress: 0, dueDate: "2026-06-15" },
-      { id: "d17", type: "Videos", label: "Destination Film", status: "pending", progress: 0, dueDate: "2026-07-01" },
-      { id: "d18", type: "Highlights", label: "Teaser + Highlights", status: "in-progress", progress: 30, dueDate: "2026-05-25" },
-      { id: "d19", type: "Albums", label: "Premium Album (60 pages)", status: "pending", progress: 0, dueDate: "2026-08-01" },
+      { id: "d16", type: "Photos", label: "Wedding Photos (1000+)", status: "pending", progress: 0, dueDate: "2026-06-15", assignedTo: "Arjun Mehta" },
+      { id: "d17", type: "Videos", label: "Destination Film", status: "pending", progress: 0, dueDate: "2026-07-01", assignedTo: "Sneha Rao" },
+      { id: "d18", type: "Highlights", label: "Teaser + Highlights", status: "in-progress", progress: 30, dueDate: "2026-05-25", reminderDate: "2026-05-23", assignedTo: "Sneha Rao" },
+      { id: "d19", type: "Albums", label: "Premium Album (60 pages)", status: "pending", progress: 0, dueDate: "2026-08-01", assignedTo: "Arjun Mehta" },
     ],
     financials: {
       estimatedAmount: 750000,
@@ -172,6 +179,7 @@ export const sampleLiveClients: LiveClient[] = [
     partnerName: "Kavya Reddy",
     eventType: "Wedding",
     eventDate: "2026-01-28",
+    deliveryDate: "2026-04-30",
     city: "Hyderabad",
     phone: "+91 54321 09876",
     overallProgress: 95,
@@ -182,11 +190,11 @@ export const sampleLiveClients: LiveClient[] = [
       { id: "t15", name: "Ravi Kumar", role: "Album Designer" },
     ],
     deliverables: [
-      { id: "d20", type: "Photos", label: "All Edited Photos", status: "delivered", progress: 100, dueDate: "2026-02-28", deliveredDate: "2026-02-25" },
-      { id: "d21", type: "Videos", label: "Wedding Film", status: "delivered", progress: 100, dueDate: "2026-03-15", deliveredDate: "2026-03-12" },
-      { id: "d22", type: "Highlights", label: "Highlight Reel", status: "delivered", progress: 100, dueDate: "2026-02-15", deliveredDate: "2026-02-14" },
-      { id: "d23", type: "Albums", label: "Flush Mount Album", status: "in-progress", progress: 75, dueDate: "2026-04-15" },
-      { id: "d24", type: "Footage Copy", label: "Raw Footage HDD", status: "delivered", progress: 100, dueDate: "2026-03-01", deliveredDate: "2026-02-28" },
+      { id: "d20", type: "Photos", label: "All Edited Photos", status: "delivered", progress: 100, dueDate: "2026-02-28", deliveredDate: "2026-02-25", assignedTo: "Pooja Nair" },
+      { id: "d21", type: "Videos", label: "Wedding Film", status: "delivered", progress: 100, dueDate: "2026-03-15", deliveredDate: "2026-03-12", assignedTo: "Kiran Das" },
+      { id: "d22", type: "Highlights", label: "Highlight Reel", status: "delivered", progress: 100, dueDate: "2026-02-15", deliveredDate: "2026-02-14", assignedTo: "Kiran Das" },
+      { id: "d23", type: "Albums", label: "Flush Mount Album", status: "in-progress", progress: 75, dueDate: "2026-04-15", reminderDate: "2026-04-12", assignedTo: "Ravi Kumar" },
+      { id: "d24", type: "Footage Copy", label: "Raw Footage HDD", status: "delivered", progress: 100, dueDate: "2026-03-01", deliveredDate: "2026-02-28", assignedTo: "Pooja Nair" },
     ],
     financials: {
       estimatedAmount: 320000,

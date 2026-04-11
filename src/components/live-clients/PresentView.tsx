@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Heart, CalendarDays, Users, Package, IndianRupee,
-  Camera, Video, BookImage, Film, HardDrive, CheckCircle2,
+  Heart, CalendarDays, Users, Package, Truck,
+  Camera, Video, BookImage, Film, HardDrive, CheckCircle2, BellRing, User,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,9 @@ export function PresentView({ clients }: { clients: LiveClient[] }) {
         const total = client.deliverables.length;
         const profitMargin = client.financials.estimatedAmount > 0
           ? Math.round((client.financials.profit / client.financials.estimatedAmount) * 100) : 0;
+        const deliveryDate = new Date(client.deliveryDate);
+        const now = new Date();
+        const daysToDelivery = Math.ceil((deliveryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         return (
           <motion.div
@@ -31,7 +34,6 @@ export function PresentView({ clients }: { clients: LiveClient[] }) {
             transition={{ delay: i * 0.08, type: "spring", stiffness: 200, damping: 24 }}
             className="rounded-2xl bg-card border border-border overflow-hidden hover:border-primary/20 transition-all"
           >
-            {/* Top accent */}
             <div className={cn("h-1.5", client.status === "completed" ? "bg-gradient-to-r from-blue-500 via-blue-400 to-transparent" : client.status === "active" ? "bg-gradient-to-r from-emerald-500 via-emerald-400 to-transparent" : "bg-gradient-to-r from-amber-500 via-amber-400 to-transparent")} />
 
             <div className="p-5 sm:p-6">
@@ -50,11 +52,19 @@ export function PresentView({ clients }: { clients: LiveClient[] }) {
                       <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />{client.eventType} · {new Date(client.eventDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                       <span>·</span>
                       <span>{client.city}</span>
+                      <span>·</span>
+                      <span className={cn(
+                        "flex items-center gap-1 font-medium",
+                        client.status === "completed" ? "text-emerald-500" : daysToDelivery <= 7 ? "text-amber-500" : "text-muted-foreground"
+                      )}>
+                        <Truck className="h-3 w-3" />
+                        {client.status === "completed" ? "All Delivered" : `Delivery: ${deliveryDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`}
+                        {client.status !== "completed" && daysToDelivery > 0 && ` (${daysToDelivery}d)`}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick financials */}
                 <div className="flex items-center gap-3">
                   {[
                     { label: "Estimate", value: client.financials.estimatedAmount, color: "text-foreground" },
@@ -69,9 +79,8 @@ export function PresentView({ clients }: { clients: LiveClient[] }) {
                 </div>
               </div>
 
-              {/* Two-column layout: Team & Deliverables */}
+              {/* Two-column layout */}
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-                {/* Team */}
                 <div className="lg:col-span-2">
                   <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                     <Users className="h-3 w-3" /> Team ({client.team.length})
@@ -91,7 +100,6 @@ export function PresentView({ clients }: { clients: LiveClient[] }) {
                   </div>
                 </div>
 
-                {/* Deliverables */}
                 <div className="lg:col-span-3">
                   <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                     <Package className="h-3 w-3" /> Deliverables ({delivered}/{total} delivered)
@@ -113,6 +121,15 @@ export function PresentView({ clients }: { clients: LiveClient[] }) {
                             <div className="flex items-center gap-2 mt-1">
                               <Progress value={d.progress} className="h-1.5 flex-1" />
                               <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">{d.progress}%</span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                              <span>Due: {new Date(d.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                              {d.assignedTo && (
+                                <span className="flex items-center gap-0.5"><User className="h-3 w-3" />{d.assignedTo}</span>
+                              )}
+                              {d.reminderDate && (
+                                <span className="flex items-center gap-0.5 text-primary"><BellRing className="h-3 w-3" />{new Date(d.reminderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                              )}
                             </div>
                           </div>
                           {d.deliveredDate && <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />}

@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Heart, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, ChevronDown, ChevronUp, Truck } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { clientStatusConfig, type LiveClient } from "@/data/live-clients-data";
@@ -22,6 +22,7 @@ export function TableView({ clients }: { clients: LiveClient[] }) {
             <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center">Progress</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center">Status</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell">Event</TableHead>
+            <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell">Delivery</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell">City</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center hidden lg:table-cell">Team</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center hidden lg:table-cell">Deliverables</TableHead>
@@ -38,6 +39,9 @@ export function TableView({ clients }: { clients: LiveClient[] }) {
             const delivered = client.deliverables.filter((d) => d.status === "delivered").length;
             const total = client.deliverables.length;
             const profitColor = client.financials.profit > 0 ? "text-emerald-500" : "text-red-400";
+            const deliveryDate = new Date(client.deliveryDate);
+            const now = new Date();
+            const daysToDelivery = Math.ceil((deliveryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
             return (
               <>
@@ -64,6 +68,15 @@ export function TableView({ clients }: { clients: LiveClient[] }) {
                   <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                     {new Date(client.eventDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                   </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <div className={cn(
+                      "flex items-center gap-1 text-xs",
+                      client.status === "completed" ? "text-emerald-500" : daysToDelivery <= 7 ? "text-amber-500" : "text-muted-foreground"
+                    )}>
+                      <Truck className="h-3 w-3" />
+                      {client.status === "completed" ? "Done" : deliveryDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </div>
+                  </TableCell>
                   <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{client.city}</TableCell>
                   <TableCell className="text-center hidden lg:table-cell">
                     <div className="flex justify-center -space-x-1">
@@ -87,7 +100,7 @@ export function TableView({ clients }: { clients: LiveClient[] }) {
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${client.id}-expanded`}>
-                    <TableCell colSpan={11} className="p-0">
+                    <TableCell colSpan={12} className="p-0">
                       <AnimatePresence><ClientExpandedCard client={client} /></AnimatePresence>
                     </TableCell>
                   </TableRow>

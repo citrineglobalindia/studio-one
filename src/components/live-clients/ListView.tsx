@@ -1,11 +1,29 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Heart, MapPin, CalendarDays, Users, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Heart, MapPin, CalendarDays, Users, Package, Truck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { clientStatusConfig, type LiveClient } from "@/data/live-clients-data";
 import { ProgressRing } from "./ProgressRing";
 import { ClientExpandedCard } from "./ClientExpandedCard";
+
+function DeliveryDateBadge({ deliveryDate, status }: { deliveryDate: string; status: string }) {
+  const date = new Date(deliveryDate);
+  const now = new Date();
+  const daysLeft = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const isCompleted = status === "completed";
+
+  return (
+    <span className={cn(
+      "flex items-center gap-1 text-xs",
+      isCompleted ? "text-emerald-500" : daysLeft <= 7 ? "text-amber-500" : "text-muted-foreground"
+    )}>
+      <Truck className="h-3 w-3" />
+      {isCompleted ? "Delivered" : `Delivery: ${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`}
+      {!isCompleted && daysLeft <= 7 && daysLeft > 0 && <span className="text-[10px] font-medium">({daysLeft}d)</span>}
+    </span>
+  );
+}
 
 export function ListView({ clients }: { clients: LiveClient[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -32,6 +50,7 @@ export function ListView({ clients }: { clients: LiveClient[] }) {
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                   <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{client.city}</span>
                   <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />{new Date(client.eventDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <DeliveryDateBadge deliveryDate={client.deliveryDate} status={client.status} />
                   <span className="flex items-center gap-1"><Users className="h-3 w-3" />{client.team.length} members</span>
                   <span className="flex items-center gap-1"><Package className="h-3 w-3" />{delivered}/{total} delivered</span>
                 </div>

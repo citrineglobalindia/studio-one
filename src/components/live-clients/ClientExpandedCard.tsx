@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { IndianRupee, Users, Package, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { IndianRupee, Users, Package, ArrowUpRight, ArrowDownRight, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type LiveClient } from "@/data/live-clients-data";
 import { DeliverableRow } from "./DeliverableRow";
@@ -9,6 +9,9 @@ export function ClientExpandedCard({ client }: { client: LiveClient }) {
   const total = client.deliverables.length;
   const profitMargin = client.financials.estimatedAmount > 0
     ? Math.round((client.financials.profit / client.financials.estimatedAmount) * 100) : 0;
+  const deliveryDate = new Date(client.deliveryDate);
+  const now = new Date();
+  const daysToDelivery = Math.ceil((deliveryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
     <motion.div
@@ -19,6 +22,25 @@ export function ClientExpandedCard({ client }: { client: LiveClient }) {
       className="overflow-hidden"
     >
       <div className="px-4 pb-4 pt-1 space-y-4 border-t border-border">
+        {/* Delivery Date Banner */}
+        <div className={cn(
+          "flex items-center gap-2.5 px-3 py-2 rounded-xl",
+          client.status === "completed" ? "bg-emerald-500/10" : daysToDelivery <= 7 ? "bg-amber-500/10" : "bg-muted/30"
+        )}>
+          <Truck className={cn("h-4 w-4", client.status === "completed" ? "text-emerald-500" : daysToDelivery <= 7 ? "text-amber-500" : "text-muted-foreground")} />
+          <div>
+            <p className={cn("text-xs font-semibold", client.status === "completed" ? "text-emerald-500" : daysToDelivery <= 7 ? "text-amber-500" : "text-foreground")}>
+              {client.status === "completed" ? "All deliverables handed over" : `Final Delivery: ${deliveryDate.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}`}
+            </p>
+            {client.status !== "completed" && (
+              <p className="text-[10px] text-muted-foreground">
+                {daysToDelivery > 0 ? `${daysToDelivery} days remaining` : `Overdue by ${Math.abs(daysToDelivery)} days`}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Financials */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <IndianRupee className="h-3 w-3" /> Financials
@@ -47,6 +69,7 @@ export function ClientExpandedCard({ client }: { client: LiveClient }) {
           </div>
         </div>
 
+        {/* Team */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Users className="h-3 w-3" /> Team ({client.team.length})
@@ -66,13 +89,21 @@ export function ClientExpandedCard({ client }: { client: LiveClient }) {
           </div>
         </div>
 
+        {/* Deliverables with reminder support */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Package className="h-3 w-3" /> Deliverables ({delivered}/{total} delivered)
           </h4>
           <div className="space-y-1.5">
             {client.deliverables.map((d) => (
-              <DeliverableRow key={d.id} d={d} />
+              <DeliverableRow
+                key={d.id}
+                d={d}
+                onSetReminder={(id, date) => {
+                  // In a real app, this would update state/database
+                  console.log(`Set reminder for deliverable ${id} on ${date}`);
+                }}
+              />
             ))}
           </div>
         </div>

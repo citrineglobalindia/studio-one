@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Heart, MapPin, CalendarDays, Users, Package, IndianRupee,
+  Heart, MapPin, CalendarDays, Users, Package, Truck,
   Camera, Video, BookImage, Film, HardDrive,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -32,6 +32,9 @@ export function CardView({ clients }: { clients: LiveClient[] }) {
         const total = client.deliverables.length;
         const profitMargin = client.financials.estimatedAmount > 0
           ? Math.round((client.financials.profit / client.financials.estimatedAmount) * 100) : 0;
+        const deliveryDate = new Date(client.deliveryDate);
+        const now = new Date();
+        const daysToDelivery = Math.ceil((deliveryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         return (
           <motion.div
@@ -40,11 +43,9 @@ export function CardView({ clients }: { clients: LiveClient[] }) {
             whileHover={{ y: -2 }}
             className="rounded-2xl bg-card border border-border overflow-hidden hover:border-primary/30 transition-all group"
           >
-            {/* Accent bar */}
             <div className={cn("h-1", client.status === "completed" ? "bg-gradient-to-r from-blue-500 to-blue-400/40" : client.status === "active" ? "bg-gradient-to-r from-emerald-500 to-emerald-400/40" : "bg-gradient-to-r from-amber-500 to-amber-400/40")} />
 
             <div className="p-4 space-y-3">
-              {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <ProgressRing value={client.overallProgress} size={44} stroke={3.5} />
@@ -56,12 +57,24 @@ export function CardView({ clients }: { clients: LiveClient[] }) {
                 <Badge variant="outline" className={cn("text-[10px] shrink-0", cfg.bg, cfg.color, cfg.border)}>{cfg.label}</Badge>
               </div>
 
-              {/* Info row */}
               <div className="grid grid-cols-2 gap-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" />{client.city}</span>
                 <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 shrink-0" />{new Date(client.eventDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
                 <span className="flex items-center gap-1"><Users className="h-3 w-3 shrink-0" />{client.team.length} members</span>
                 <span className="flex items-center gap-1"><Package className="h-3 w-3 shrink-0" />{delivered}/{total} delivered</span>
+              </div>
+
+              {/* Delivery Date */}
+              <div className={cn(
+                "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium",
+                client.status === "completed" ? "bg-emerald-500/10 text-emerald-500" :
+                daysToDelivery <= 7 ? "bg-amber-500/10 text-amber-500" : "bg-muted/50 text-muted-foreground"
+              )}>
+                <Truck className="h-3.5 w-3.5" />
+                {client.status === "completed" ? "All Delivered" : (
+                  <>Delivery: {deliveryDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  {daysToDelivery > 0 && <span className="ml-auto text-[10px]">{daysToDelivery}d left</span>}</>
+                )}
               </div>
 
               {/* Team avatars */}
@@ -90,7 +103,6 @@ export function CardView({ clients }: { clients: LiveClient[] }) {
                 })}
               </div>
 
-              {/* Financials footer */}
               <div className="pt-3 border-t border-border grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="text-[10px] text-muted-foreground">Paid</p>
