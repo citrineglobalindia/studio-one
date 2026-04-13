@@ -639,7 +639,7 @@ export default function QuotationsPage() {
 
       {/* ═══ Quotation Detail Sheet ═══ */}
       <Sheet open={!!selectedQuotation} onOpenChange={() => setSelectedQuotation(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-lg max-h-screen overflow-y-auto">
           {selectedQuotation && (() => {
             const q = selectedQuotation;
             const cfg = statusConfig[q.status];
@@ -774,7 +774,7 @@ export default function QuotationsPage() {
 
       {/* ═══ Create Quotation Sheet ═══ */}
       <Sheet open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetCreate(); }}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-lg max-h-screen overflow-y-auto">
           <SheetHeader className="text-left mb-4">
             <SheetTitle className="text-lg font-display font-bold">Create Quotation</SheetTitle>
             <SheetDescription>Build a custom quote for your client</SheetDescription>
@@ -988,7 +988,7 @@ export default function QuotationsPage() {
 
       {/* ═══ Filter Sheet ═══ */}
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
+        <SheetContent side="right" className="w-full sm:max-w-lg">
           <SheetHeader className="text-left mb-4">
             <SheetTitle className="text-lg font-bold">Filters</SheetTitle>
             <SheetDescription>Filter quotations by status</SheetDescription>
