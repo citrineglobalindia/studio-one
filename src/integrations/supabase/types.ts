@@ -16,51 +16,96 @@ export type Database = {
     Tables: {
       albums: {
         Row: {
+          album_size: string | null
           album_type: string
+          client_id: string | null
           client_name: string
+          cover_type: string | null
           created_at: string
           designer: string | null
+          event_date: string | null
+          event_name: string | null
           id: string
           notes: string | null
+          organization_id: string | null
           pages: number | null
+          paper_type: string | null
           pdf_file_name: string | null
           pdf_file_path: string | null
           pdf_file_size: number | null
+          printer_contact: string | null
+          printer_name: string | null
+          printing_cost: number | null
           project_name: string
           status: string
           updated_at: string
         }
         Insert: {
+          album_size?: string | null
           album_type?: string
+          client_id?: string | null
           client_name: string
+          cover_type?: string | null
           created_at?: string
           designer?: string | null
+          event_date?: string | null
+          event_name?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           pages?: number | null
+          paper_type?: string | null
           pdf_file_name?: string | null
           pdf_file_path?: string | null
           pdf_file_size?: number | null
+          printer_contact?: string | null
+          printer_name?: string | null
+          printing_cost?: number | null
           project_name: string
           status?: string
           updated_at?: string
         }
         Update: {
+          album_size?: string | null
           album_type?: string
+          client_id?: string | null
           client_name?: string
+          cover_type?: string | null
           created_at?: string
           designer?: string | null
+          event_date?: string | null
+          event_name?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           pages?: number | null
+          paper_type?: string | null
           pdf_file_name?: string | null
           pdf_file_path?: string | null
           pdf_file_size?: number | null
+          printer_contact?: string | null
+          printer_name?: string | null
+          printing_cost?: number | null
           project_name?: string
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "albums_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "albums_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {

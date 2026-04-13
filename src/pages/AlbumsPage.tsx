@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BookImage, Plus, Eye, MessageSquare, Printer, Check, Clock, RefreshCw, Truck,
   Upload, FileText, Download, Trash2, Search, Filter, X, ChevronDown,
-  AlertTriangle, Calendar, User, Folder, ExternalLink,
+  AlertTriangle, Calendar, User, Folder, ExternalLink, IndianRupee, Phone,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +19,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useClients } from "@/hooks/useClients";
+import { useOrg } from "@/contexts/OrgContext";
 
 interface Album {
   id: string;
+  organization_id: string | null;
+  client_id: string | null;
   client_name: string;
   project_name: string;
   album_type: string;
@@ -31,6 +36,14 @@ interface Album {
   pdf_file_size: number | null;
   pages: number | null;
   designer: string | null;
+  event_name: string | null;
+  event_date: string | null;
+  printer_name: string | null;
+  printer_contact: string | null;
+  printing_cost: number | null;
+  album_size: string | null;
+  cover_type: string | null;
+  paper_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,18 +67,16 @@ const typeLabels: Record<string, string> = {
   magazine: "Magazine Style",
 };
 
-const clientProjects = [
-  { client: "Priya & Rahul", projects: ["Wedding Ceremony", "Mehendi", "Sangeet", "Haldi"] },
-  { client: "Meera & Aditya", projects: ["Wedding", "Reception", "Pre-Wedding Shoot"] },
-  { client: "Kavya & Arjun", projects: ["Wedding", "Engagement"] },
-  { client: "Nisha & Dev", projects: ["Wedding", "Haldi", "Sangeet"] },
-  { client: "Ananya & Vikram", projects: ["Destination Wedding"] },
-  { client: "Sneha & Rohan", projects: ["Pre-Wedding Shoot"] },
-];
-
+const albumSizes = ["8x8", "10x10", "12x12", "12x18", "12x36", "16x24", "Custom"];
+const coverTypes = ["Hard Cover", "Leather", "Acrylic", "Canvas Wrap", "Wooden Box"];
+const paperTypes = ["Glossy", "Matte", "Silk", "Lustre", "Fine Art"];
 const designers = ["Priya Verma", "Neha Gupta", "Suresh Nair"];
 
 export default function AlbumsPage() {
+  const { organization } = useOrg();
+  const { clients } = useClients();
+  const orgId = organization?.id;
+
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -81,31 +92,27 @@ export default function AlbumsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const detailFileInputRef = useRef<HTMLInputElement>(null);
 
-  // New album form
   const [newAlbum, setNewAlbum] = useState({
-    client_name: "", project_name: "", album_type: "flush-mount",
+    client_id: "", client_name: "", project_name: "", album_type: "flush-mount",
     designer: "", notes: "", pages: 0,
+    event_name: "", event_date: "",
+    printer_name: "", printer_contact: "", printing_cost: "",
+    album_size: "12x36", cover_type: "Hard Cover", paper_type: "Glossy",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Available projects for selected client
-  const availableProjects = useMemo(() => {
-    const cp = clientProjects.find(c => c.client === newAlbum.client_name);
-    return cp?.projects || [];
-  }, [newAlbum.client_name]);
-
-  // Fetch albums
   const fetchAlbums = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("albums").select("*").order("created_at", { ascending: false });
+    const query = supabase.from("albums").select("*").order("created_at", { ascending: false });
+    if (orgId) query.eq("organization_id", orgId);
+    const { data, error } = await query;
     if (error) { toast.error("Failed to load albums"); console.error(error); }
-    else setAlbums(data || []);
+    else setAlbums((data as Album[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchAlbums(); }, []);
+  useEffect(() => { fetchAlbums(); }, [orgId]);
 
-  // Filter logic
   const filtered = useMemo(() => {
     let list = albums;
     if (activeTab !== "all") {
@@ -118,12 +125,12 @@ export default function AlbumsPage() {
     if (search) list = list.filter(a =>
       a.client_name.toLowerCase().includes(search.toLowerCase()) ||
       a.project_name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.printer_name?.toLowerCase().includes(search.toLowerCase())) ||
       (a.pdf_file_name?.toLowerCase().includes(search.toLowerCase()))
     );
     return list;
   }, [albums, search, filterStatus, filterClient, activeTab]);
 
-  // Stats
   const stats = useMemo(() => ({
     total: albums.length,
     uploaded: albums.filter(a => a.status === "uploaded").length,
@@ -132,12 +139,25 @@ export default function AlbumsPage() {
     approved: albums.filter(a => a.status === "approved").length,
     printing: albums.filter(a => a.status === "printing").length,
     delivered: albums.filter(a => ["shipped", "delivered"].includes(a.status)).length,
+    totalPrintingCost: albums.reduce((s, a) => s + (Number(a.printing_cost) || 0), 0),
   }), [albums]);
 
-  // Upload PDF & create album
+  const handleSelectClient = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      setNewAlbum(p => ({
+        ...p,
+        client_id: clientId,
+        client_name: client.name + (client.partner_name ? ` & ${client.partner_name}` : ""),
+        event_name: client.event_type || "",
+        event_date: client.event_date || "",
+      }));
+    }
+  };
+
   const handleCreateAlbum = async () => {
     if (!newAlbum.client_name || !newAlbum.project_name) {
-      toast.error("Client and project are required");
+      toast.error("Client and project name are required");
       return;
     }
     if (!selectedFile) {
@@ -150,64 +170,68 @@ export default function AlbumsPage() {
       const fileExt = selectedFile.name.split(".").pop();
       const filePath = `${newAlbum.client_name.replace(/\s+/g, "-")}/${newAlbum.project_name.replace(/\s+/g, "-")}/${Date.now()}.${fileExt}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from("album-pdfs")
         .upload(filePath, selectedFile, { contentType: "application/pdf" });
-
       if (uploadError) throw uploadError;
 
-      // Insert album record
       const { error: insertError } = await supabase.from("albums").insert({
+        organization_id: orgId || null,
+        client_id: newAlbum.client_id || null,
         client_name: newAlbum.client_name,
         project_name: newAlbum.project_name,
         album_type: newAlbum.album_type,
         designer: newAlbum.designer || null,
         notes: newAlbum.notes || null,
         pages: newAlbum.pages || null,
+        event_name: newAlbum.event_name || null,
+        event_date: newAlbum.event_date || null,
+        printer_name: newAlbum.printer_name || null,
+        printer_contact: newAlbum.printer_contact || null,
+        printing_cost: newAlbum.printing_cost ? parseFloat(newAlbum.printing_cost) : null,
+        album_size: newAlbum.album_size,
+        cover_type: newAlbum.cover_type,
+        paper_type: newAlbum.paper_type,
         pdf_file_name: selectedFile.name,
         pdf_file_path: filePath,
         pdf_file_size: selectedFile.size,
         status: "uploaded",
       });
-
       if (insertError) throw insertError;
 
       toast.success("Album uploaded successfully!");
       setAddSheet(false);
-      setNewAlbum({ client_name: "", project_name: "", album_type: "flush-mount", designer: "", notes: "", pages: 0 });
+      setNewAlbum({
+        client_id: "", client_name: "", project_name: "", album_type: "flush-mount",
+        designer: "", notes: "", pages: 0,
+        event_name: "", event_date: "",
+        printer_name: "", printer_contact: "", printing_cost: "",
+        album_size: "12x36", cover_type: "Hard Cover", paper_type: "Glossy",
+      });
       setSelectedFile(null);
       fetchAlbums();
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
-      console.error(err);
     } finally {
       setUploading(false);
     }
   };
 
-  // Get public URL for PDF
   const getPdfUrl = (path: string) => {
     const { data } = supabase.storage.from("album-pdfs").getPublicUrl(path);
     return data.publicUrl;
   };
 
-  // Update album status
   const updateStatus = async (albumId: string, status: string) => {
     const { error } = await supabase.from("albums").update({ status }).eq("id", albumId);
     if (error) { toast.error("Failed to update"); return; }
     toast.success(`Status updated to ${statusConfig[status]?.label || status}`);
     fetchAlbums();
-    if (selectedAlbum?.id === albumId) {
-      setSelectedAlbum(prev => prev ? { ...prev, status } : null);
-    }
+    if (selectedAlbum?.id === albumId) setSelectedAlbum(prev => prev ? { ...prev, status } : null);
   };
 
-  // Delete album
   const deleteAlbum = async (album: Album) => {
-    if (album.pdf_file_path) {
-      await supabase.storage.from("album-pdfs").remove([album.pdf_file_path]);
-    }
+    if (album.pdf_file_path) await supabase.storage.from("album-pdfs").remove([album.pdf_file_path]);
     const { error } = await supabase.from("albums").delete().eq("id", album.id);
     if (error) { toast.error("Failed to delete"); return; }
     toast.success("Album deleted");
@@ -215,30 +239,18 @@ export default function AlbumsPage() {
     fetchAlbums();
   };
 
-  // Replace PDF
   const replacePdf = async (album: Album, file: File) => {
     setUploading(true);
     try {
-      // Remove old file
-      if (album.pdf_file_path) {
-        await supabase.storage.from("album-pdfs").remove([album.pdf_file_path]);
-      }
+      if (album.pdf_file_path) await supabase.storage.from("album-pdfs").remove([album.pdf_file_path]);
       const fileExt = file.name.split(".").pop();
       const filePath = `${album.client_name.replace(/\s+/g, "-")}/${album.project_name.replace(/\s+/g, "-")}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("album-pdfs")
-        .upload(filePath, file, { contentType: "application/pdf" });
+      const { error: uploadError } = await supabase.storage.from("album-pdfs").upload(filePath, file, { contentType: "application/pdf" });
       if (uploadError) throw uploadError;
-
       const { error: updateError } = await supabase.from("albums").update({
-        pdf_file_name: file.name,
-        pdf_file_path: filePath,
-        pdf_file_size: file.size,
-        status: "uploaded",
+        pdf_file_name: file.name, pdf_file_path: filePath, pdf_file_size: file.size, status: "uploaded",
       }).eq("id", album.id);
       if (updateError) throw updateError;
-
       toast.success("PDF replaced successfully");
       fetchAlbums();
       setSelectedAlbum(prev => prev ? { ...prev, pdf_file_name: file.name, pdf_file_path: filePath, pdf_file_size: file.size, status: "uploaded" } : null);
@@ -258,6 +270,8 @@ export default function AlbumsPage() {
 
   const openDetail = (album: Album) => { setSelectedAlbum(album); setDetailSheet(true); };
 
+  const uniqueClients = useMemo(() => [...new Set(albums.map(a => a.client_name))], [albums]);
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -267,7 +281,7 @@ export default function AlbumsPage() {
             <BookImage className="h-6 w-6 text-primary" /> Albums & Prints
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {stats.total} albums · {stats.inDesign} in progress · {stats.review} in review
+            {stats.total} albums · {stats.inDesign} in progress · ₹{(stats.totalPrintingCost / 1000).toFixed(0)}K printing cost
           </p>
         </div>
         <Button onClick={() => setAddSheet(true)} className="gap-2">
@@ -307,13 +321,13 @@ export default function AlbumsPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search albums, clients, files..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search albums, clients, printers..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filterClient} onValueChange={setFilterClient}>
           <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All Clients" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Clients</SelectItem>
-            {clientProjects.map(cp => <SelectItem key={cp.client} value={cp.client}>{cp.client}</SelectItem>)}
+            {uniqueClients.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -327,7 +341,7 @@ export default function AlbumsPage() {
 
       {/* Albums List */}
       {loading ? (
-        <div className="text-center py-20 text-muted-foreground">Loading albums...</div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
         <Card className="border-border/50">
           <CardContent className="py-16 text-center">
@@ -353,34 +367,39 @@ export default function AlbumsPage() {
                     onClick={() => openDetail(album)}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
-                        {/* Icon */}
                         <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${config.style.split(" ").slice(0, 2).join(" ")}`}>
                           <FileText className="h-5 w-5" />
                         </div>
-
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <h3 className="text-sm font-semibold text-foreground truncate">{album.client_name}</h3>
-                            <Badge variant="outline" className={`text-[10px] shrink-0 ${config.style}`}>
-                              {config.label}
-                            </Badge>
+                            <Badge variant="outline" className={`text-[10px] shrink-0 ${config.style}`}>{config.label}</Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                             <Folder className="h-3 w-3" /> {album.project_name}
                             <span>·</span>
                             <span>{typeLabels[album.album_type] || album.album_type}</span>
                             {album.pages ? <><span>·</span><span>{album.pages} pages</span></> : null}
+                            {album.album_size ? <><span>·</span><span>{album.album_size}</span></> : null}
                           </p>
-                          {album.pdf_file_name && (
-                            <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                              <FileText className="h-3 w-3" /> {album.pdf_file_name}
-                              <span className="text-muted-foreground/50">({formatFileSize(album.pdf_file_size)})</span>
-                            </p>
-                          )}
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
+                            {album.printer_name && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Printer className="h-3 w-3" /> {album.printer_name}
+                              </span>
+                            )}
+                            {album.printing_cost && Number(album.printing_cost) > 0 && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3" /> ₹{Number(album.printing_cost).toLocaleString("en-IN")}
+                              </span>
+                            )}
+                            {album.event_name && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" /> {album.event_name}
+                              </span>
+                            )}
+                          </div>
                         </div>
-
-                        {/* Right side */}
                         <div className="text-right shrink-0 hidden sm:block">
                           {album.designer && (
                             <div className="flex items-center gap-1.5 justify-end mb-1">
@@ -416,8 +435,7 @@ export default function AlbumsPage() {
               <>
                 <SheetHeader>
                   <SheetTitle className="text-left text-lg flex items-center gap-2">
-                    <BookImage className="h-5 w-5 text-primary" />
-                    Album Details
+                    <BookImage className="h-5 w-5 text-primary" /> Album Details
                   </SheetTitle>
                 </SheetHeader>
 
@@ -428,16 +446,51 @@ export default function AlbumsPage() {
                     <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                       <Folder className="h-3.5 w-3.5" /> {selectedAlbum.project_name}
                     </p>
+                    {selectedAlbum.event_name && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                        <Calendar className="h-3.5 w-3.5" /> {selectedAlbum.event_name}
+                        {selectedAlbum.event_date && ` · ${new Date(selectedAlbum.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`}
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-2 mt-3">
                       <Badge variant="outline" className={config.style}>
                         <StatusIcon className="h-3 w-3 mr-1" />{config.label}
                       </Badge>
-                      <Badge variant="outline" className="bg-muted/50">
-                        {typeLabels[selectedAlbum.album_type] || selectedAlbum.album_type}
-                      </Badge>
+                      <Badge variant="outline" className="bg-muted/50">{typeLabels[selectedAlbum.album_type] || selectedAlbum.album_type}</Badge>
                       {selectedAlbum.pages ? <Badge variant="outline" className="bg-muted/50">{selectedAlbum.pages} pages</Badge> : null}
+                      {selectedAlbum.album_size && <Badge variant="outline" className="bg-muted/50">{selectedAlbum.album_size}</Badge>}
                     </div>
                   </div>
+
+                  {/* Printer Info */}
+                  {(selectedAlbum.printer_name || selectedAlbum.printing_cost) && (
+                    <Card className="border-border/50">
+                      <CardContent className="p-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                          <Printer className="h-3.5 w-3.5" /> Printing Details
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {selectedAlbum.printer_name && (
+                            <div className="bg-muted/30 rounded-lg p-3">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Printer</p>
+                              <p className="text-sm font-medium text-foreground mt-0.5">{selectedAlbum.printer_name}</p>
+                              {selectedAlbum.printer_contact && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                  <Phone className="h-3 w-3" /> {selectedAlbum.printer_contact}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {selectedAlbum.printing_cost && Number(selectedAlbum.printing_cost) > 0 && (
+                            <div className="bg-muted/30 rounded-lg p-3">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Printing Cost</p>
+                              <p className="text-sm font-bold text-foreground mt-0.5">₹{Number(selectedAlbum.printing_cost).toLocaleString("en-IN")}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* PDF File Info */}
                   {selectedAlbum.pdf_file_path && (
@@ -483,9 +536,11 @@ export default function AlbumsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: "Designer", value: selectedAlbum.designer || "Not assigned" },
+                      { label: "Cover Type", value: selectedAlbum.cover_type || "—" },
+                      { label: "Paper Type", value: selectedAlbum.paper_type || "—" },
+                      { label: "Album Size", value: selectedAlbum.album_size || "—" },
                       { label: "Uploaded", value: new Date(selectedAlbum.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
                       { label: "Last Updated", value: new Date(selectedAlbum.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
-                      { label: "Album Type", value: typeLabels[selectedAlbum.album_type] || selectedAlbum.album_type },
                     ].map(m => (
                       <div key={m.label} className="bg-muted/30 rounded-lg p-3">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</p>
@@ -494,7 +549,6 @@ export default function AlbumsPage() {
                     ))}
                   </div>
 
-                  {/* Notes */}
                   {selectedAlbum.notes && (
                     <div className="bg-muted/30 rounded-lg p-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Notes</p>
@@ -523,8 +577,6 @@ export default function AlbumsPage() {
                   </div>
 
                   <Separator />
-
-                  {/* Delete */}
                   <Button variant="destructive" size="sm" className="gap-1.5"
                     onClick={() => deleteAlbum(selectedAlbum)}>
                     <Trash2 className="h-3.5 w-3.5" /> Delete Album
@@ -546,27 +598,47 @@ export default function AlbumsPage() {
           </SheetHeader>
 
           <div className="mt-6 space-y-4">
-            {/* Client Select */}
+            {/* Client Select from DB */}
             <div>
-              <label className="text-sm font-medium text-foreground">Client *</label>
-              <Select value={newAlbum.client_name} onValueChange={v => setNewAlbum(p => ({ ...p, client_name: v, project_name: "" }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  {clientProjects.map(cp => <SelectItem key={cp.client} value={cp.client}>{cp.client}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <User className="h-3 w-3" /> Client Details
+              </label>
+              {clients.length > 0 ? (
+                <Select value={newAlbum.client_id} onValueChange={handleSelectClient}>
+                  <SelectTrigger><SelectValue placeholder="Select client from database" /></SelectTrigger>
+                  <SelectContent>
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.partner_name ? ` & ${c.partner_name}` : ""} {c.city ? `· ${c.city}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input placeholder="Client name" value={newAlbum.client_name}
+                  onChange={e => setNewAlbum(p => ({ ...p, client_name: e.target.value }))} />
+              )}
             </div>
 
-            {/* Project Select */}
+            {/* Event Details (auto-filled from client) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Event Name</label>
+                <Input className="mt-1" placeholder="e.g. Wedding" value={newAlbum.event_name}
+                  onChange={e => setNewAlbum(p => ({ ...p, event_name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Event Date</label>
+                <Input type="date" className="mt-1" value={newAlbum.event_date}
+                  onChange={e => setNewAlbum(p => ({ ...p, event_date: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Project Name */}
             <div>
-              <label className="text-sm font-medium text-foreground">Project *</label>
-              <Select value={newAlbum.project_name} onValueChange={v => setNewAlbum(p => ({ ...p, project_name: v }))}
-                disabled={!newAlbum.client_name}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder={newAlbum.client_name ? "Select project" : "Select client first"} /></SelectTrigger>
-                <SelectContent>
-                  {availableProjects.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium text-foreground">Project / Album Name *</label>
+              <Input className="mt-1" placeholder="e.g. Wedding Album, Mehendi Highlights"
+                value={newAlbum.project_name} onChange={e => setNewAlbum(p => ({ ...p, project_name: e.target.value }))} />
             </div>
 
             {/* PDF Upload Area */}
@@ -588,14 +660,20 @@ export default function AlbumsPage() {
                   </Button>
                 </div>
               ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
+                <div onClick={() => fileInputRef.current?.click()}
                   className="mt-2 border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-all">
                   <Upload className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground font-medium">Click to upload PDF</p>
                   <p className="text-[10px] text-muted-foreground mt-1">Max 20MB · PDF files only</p>
                 </div>
               )}
+            </div>
+
+            {/* Album Specs */}
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <BookImage className="h-3 w-3" /> Album Specifications
+              </label>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -609,11 +687,72 @@ export default function AlbumsPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Pages</label>
-                <Input className="mt-1" type="number" value={newAlbum.pages || ""} onChange={e => setNewAlbum(p => ({ ...p, pages: parseInt(e.target.value) || 0 }))} placeholder="e.g. 40" />
+                <label className="text-sm font-medium text-foreground">Album Size</label>
+                <Select value={newAlbum.album_size} onValueChange={v => setNewAlbum(p => ({ ...p, album_size: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {albumSizes.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Pages</label>
+                <Input className="mt-1" type="number" value={newAlbum.pages || ""}
+                  onChange={e => setNewAlbum(p => ({ ...p, pages: parseInt(e.target.value) || 0 }))} placeholder="40" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Cover</label>
+                <Select value={newAlbum.cover_type} onValueChange={v => setNewAlbum(p => ({ ...p, cover_type: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {coverTypes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Paper</label>
+                <Select value={newAlbum.paper_type} onValueChange={v => setNewAlbum(p => ({ ...p, paper_type: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {paperTypes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Printing Info */}
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2 mt-2">
+                <Printer className="h-3 w-3" /> Printing Details
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Printer Name</label>
+                <Input className="mt-1" placeholder="e.g. GK Albums" value={newAlbum.printer_name}
+                  onChange={e => setNewAlbum(p => ({ ...p, printer_name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Printer Contact</label>
+                <Input className="mt-1" placeholder="+91 98765..." value={newAlbum.printer_contact}
+                  onChange={e => setNewAlbum(p => ({ ...p, printer_contact: e.target.value }))} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground">Printing Cost (₹)</label>
+              <div className="relative mt-1">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input type="number" className="pl-9" placeholder="5000" value={newAlbum.printing_cost}
+                  onChange={e => setNewAlbum(p => ({ ...p, printing_cost: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Designer */}
             <div>
               <label className="text-sm font-medium text-foreground">Designer</label>
               <Select value={newAlbum.designer} onValueChange={v => setNewAlbum(p => ({ ...p, designer: v }))}>
@@ -624,9 +763,12 @@ export default function AlbumsPage() {
               </Select>
             </div>
 
+            {/* Notes */}
             <div>
               <label className="text-sm font-medium text-foreground">Notes</label>
-              <Textarea className="mt-1 min-h-[80px]" value={newAlbum.notes} onChange={e => setNewAlbum(p => ({ ...p, notes: e.target.value }))} placeholder="Special instructions, client preferences..." />
+              <Textarea className="mt-1 min-h-[80px]" value={newAlbum.notes}
+                onChange={e => setNewAlbum(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Special instructions, client preferences..." />
             </div>
 
             <Button className="w-full mt-4 gap-2" onClick={handleCreateAlbum} disabled={uploading}>
