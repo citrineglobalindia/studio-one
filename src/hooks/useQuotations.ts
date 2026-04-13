@@ -26,9 +26,9 @@ export interface QuotationRow {
 }
 
 export function useQuotations() {
-  const { currentOrg } = useOrg();
+  const { organization } = useOrg();
   const qc = useQueryClient();
-  const orgId = currentOrg?.id;
+  const orgId = organization?.id;
 
   const query = useQuery({
     queryKey: ["quotations", orgId],
