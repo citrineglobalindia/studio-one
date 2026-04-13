@@ -3,7 +3,7 @@ import {
   Users, UserPlus, Camera, IndianRupee, TrendingUp, CalendarDays,
   AlertTriangle, Clock, CheckCircle, Film, ArrowUpRight, ArrowDownRight,
   Zap, Target, Eye, PhoneCall, BarChart3, Sparkles, ChevronRight, MapPin,
-  Crown, Activity, ArrowRight, Briefcase,
+  Crown, Activity, ArrowRight, Briefcase, PieChart as PieChartIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { sampleProjects } from "@/data/wedding-types";
 import { sampleLeads } from "@/data/lead-types";
+import { MiniPieCard } from "@/components/dashboards/MiniPieCard";
 import { useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -515,6 +516,57 @@ const Index = () => {
             </div>
           </div>
         </motion.div>
+      </div>
+
+      {/* ═══ Analytics Pie Charts ═══ */}
+      <motion.div variants={cardVariants}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-5 w-1 rounded-full bg-gradient-to-b from-primary to-primary/40" />
+          <h3 className="text-[14px] font-bold text-foreground">Analytics Overview</h3>
+          <PieChartIcon className="h-3.5 w-3.5 text-primary ml-1" />
+        </div>
+      </motion.div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MiniPieCard
+          title="Revenue Split"
+          subtitle="Collection breakdown"
+          centerLabel={`₹${Math.round(totalRevenue / 1000)}K`}
+          data={[
+            { name: "Collected", value: Math.round(totalRevenue / 1000), color: "#10b981" },
+            { name: "Pending", value: Math.round(totalPending / 1000), color: "#f59e0b" },
+            { name: "Overdue", value: Math.round(overdueAmount / 1000), color: "#ef4444" },
+          ]}
+        />
+        <MiniPieCard
+          title="Lead Sources"
+          subtitle="Where leads come from"
+          data={(() => {
+            const sourceColors: Record<string, string> = { Instagram: "#e1306c", Website: "#3b82f6", Referral: "#10b981", Google: "#f59e0b", Facebook: "#1877f2", JustDial: "#f97316", Other: "#8b5cf6" };
+            const counts: Record<string, number> = {};
+            sampleLeads.forEach((l) => { counts[l.source] = (counts[l.source] || 0) + 1; });
+            return Object.entries(counts).map(([name, value]) => ({ name, value, color: sourceColors[name] || "#8b5cf6" }));
+          })()}
+        />
+        <MiniPieCard
+          title="Deliverable Status"
+          subtitle="Post-production progress"
+          data={[
+            { name: "Completed", value: allFootage.filter(f => f.editStatus === "approved" || f.editStatus === "delivered").length, color: "#10b981" },
+            { name: "In Progress", value: allFootage.filter(f => f.editStatus === "in-progress").length, color: "#3b82f6" },
+            { name: "In Review", value: reviewEdits.length, color: "#f59e0b" },
+            { name: "Pending", value: allFootage.filter(f => f.editStatus === "pending").length, color: "#ef4444" },
+          ]}
+        />
+        <MiniPieCard
+          title="Event Types"
+          subtitle="Sub-event category mix"
+          data={(() => {
+            const typeColors: Record<string, string> = { Wedding: "#c4973b", "Pre-Wedding Shoot": "#8b5cf6", Reception: "#3b82f6", Engagement: "#ec4899", "Haldi Ceremony": "#f59e0b", Sangeet: "#f97316", "Mehendi Night": "#10b981" };
+            const counts: Record<string, number> = {};
+            allSubEvents.forEach((se) => { const n = se.name.split(" - ")[0] || se.name; counts[n] = (counts[n] || 0) + 1; });
+            return Object.entries(counts).map(([name, value]) => ({ name, value, color: typeColors[name] || "#8b5cf6" }));
+          })()}
+        />
       </div>
 
       {/* ═══ Bottom Grid: Payment + Lead Pipeline ═══ */}
