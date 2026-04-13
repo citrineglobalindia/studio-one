@@ -9,7 +9,7 @@ import { clientStatusConfig, type LiveClient } from "@/data/live-clients-data";
 export function EventTrackingView({ clients }: { clients: LiveClient[] }) {
   return (
     <div className="rounded-2xl border border-border overflow-hidden bg-card">
-      <ScrollArea className="w-full" orientation="horizontal">
+      <div className="overflow-x-auto">
         <div className="min-w-[1800px]">
           <Table>
             <TableHeader>
@@ -102,7 +102,7 @@ export function EventTrackingView({ clients }: { clients: LiveClient[] }) {
             </TableBody>
           </Table>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
