@@ -41,7 +41,7 @@ const sources: LeadSource[] = ["instagram", "whatsapp", "call", "website", "refe
 const eventTypes: EventType[] = ["wedding", "pre-wedding", "engagement", "reception", "corporate", "birthday"];
 
 const LeadsPage = () => {
-  const [leads, setLeads] = useState<Lead[]>(sampleLeads);
+  const { leads, isLoading: leadsLoading, addLead, updateLead, deleteLead } = useLeads();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
@@ -80,11 +80,11 @@ const LeadsPage = () => {
     return leads.filter((l) => {
       const matchSearch =
         l.name.toLowerCase().includes(search.toLowerCase()) ||
-        l.phone.includes(search) ||
-        (l.company?.toLowerCase().includes(search.toLowerCase()) ?? false);
-      const matchStatus = statusFilter === "all" || l.stage === statusFilter;
-      const matchUser = userFilter === "all" || l.assignedTo === userFilter;
-      const matchView = viewMode === "all" || l.assignedTo !== undefined;
+        (l.phone || "").includes(search) ||
+        (l.email?.toLowerCase().includes(search.toLowerCase()) ?? false);
+      const matchStatus = statusFilter === "all" || l.status === statusFilter;
+      const matchUser = userFilter === "all" || l.assigned_to === userFilter;
+      const matchView = viewMode === "all" || l.assigned_to !== null;
       return matchSearch && matchStatus && matchUser && matchView;
     });
   }, [leads, search, statusFilter, userFilter, viewMode]);
