@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/select";
 import {
   Activity, Search, TrendingUp, CheckCircle2, Package,
-  LayoutList, LayoutGrid, Presentation,
+  LayoutList, LayoutGrid, Presentation, ClipboardList, FileSpreadsheet,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -17,13 +17,17 @@ import { ListView } from "@/components/live-clients/ListView";
 import { CardView } from "@/components/live-clients/CardView";
 import { TableView } from "@/components/live-clients/TableView";
 import { PresentView } from "@/components/live-clients/PresentView";
+import { EventTrackingView } from "@/components/live-clients/EventTrackingView";
+import { ClientManagementView } from "@/components/live-clients/ClientManagementView";
 
-type ViewMode = "list" | "card" | "table" | "present";
+type ViewMode = "list" | "card" | "table" | "present" | "event-tracking" | "client-mgmt";
 
 const viewOptions: { value: ViewMode; label: string; icon: React.ElementType }[] = [
   { value: "list", label: "List", icon: LayoutList },
   { value: "card", label: "Cards", icon: LayoutGrid },
   { value: "table", label: "Table", icon: Activity },
+  { value: "event-tracking", label: "Event Track", icon: ClipboardList },
+  { value: "client-mgmt", label: "Client Mgmt", icon: FileSpreadsheet },
   { value: "present", label: "Present", icon: Presentation },
 ];
 
@@ -198,6 +202,8 @@ export default function LiveClientsPage() {
       {viewMode === "list" && <ListView clients={filtered} />}
       {viewMode === "card" && <CardView clients={filtered} />}
       {viewMode === "table" && <TableView clients={filtered} />}
+      {viewMode === "event-tracking" && <EventTrackingView clients={filtered} />}
+      {viewMode === "client-mgmt" && <ClientManagementView clients={filtered} />}
       {viewMode === "present" && <PresentView clients={filtered} />}
 
       {filtered.length === 0 && (
