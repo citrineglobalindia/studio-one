@@ -62,6 +62,71 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          budget: number | null
+          city: string | null
+          created_at: string
+          delivery_date: string | null
+          email: string | null
+          event_date: string | null
+          event_type: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          partner_name: string | null
+          phone: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          city?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          email?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          partner_name?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          city?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          email?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          partner_name?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -121,6 +186,81 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          budget: number | null
+          city: string | null
+          converted_client_id: string | null
+          created_at: string
+          email: string | null
+          event_date: string | null
+          event_type: string | null
+          follow_up_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          budget?: number | null
+          city?: string | null
+          converted_client_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          follow_up_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          budget?: number | null
+          city?: string | null
+          converted_client_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          follow_up_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_client_id_fkey"
+            columns: ["converted_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_members: {
         Row: {
