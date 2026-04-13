@@ -118,38 +118,25 @@ const LeadsPage = () => {
   const converted = leads.filter((l) => l.status === "converted").length;
   const totalLeads = leads.length;
 
-  const toggleSelectAll = () => {
-    if (selectedLeads.length === filtered.length) {
-      setSelectedLeads([]);
-    } else {
-      setSelectedLeads(filtered.map((l) => l.id));
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedLeads((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
   const handleAssign = (leadId: string, assignee: string) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, assignedTo: assignee } : l))
-    );
-    toast.success(`Lead assigned to ${assignee}`);
+    updateLead.mutate({ id: leadId, assigned_to: assignee });
   };
 
   const handleStatusChange = (leadId: string, stage: LeadStage) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, stage } : l))
-    );
-    toast.success("Status updated");
+    updateLead.mutate({ id: leadId, status: stage });
   };
 
   const handleDelete = (leadId: string) => {
-    setLeads((prev) => prev.filter((l) => l.id !== leadId));
-    toast.success("Lead deleted");
+    deleteLead.mutate(leadId);
   };
+
+  if (leadsLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-full mx-auto space-y-5">
