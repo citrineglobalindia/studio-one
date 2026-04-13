@@ -518,6 +518,57 @@ const Index = () => {
         </motion.div>
       </div>
 
+      {/* ═══ Analytics Pie Charts ═══ */}
+      <motion.div variants={cardVariants}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-5 w-1 rounded-full bg-gradient-to-b from-primary to-primary/40" />
+          <h3 className="text-[14px] font-bold text-foreground">Analytics Overview</h3>
+          <PieChartIcon className="h-3.5 w-3.5 text-primary ml-1" />
+        </div>
+      </motion.div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MiniPieCard
+          title="Revenue Split"
+          subtitle="Collection breakdown"
+          centerLabel={`₹${Math.round(totalRevenue / 1000)}K`}
+          data={[
+            { name: "Collected", value: Math.round(totalRevenue / 1000), color: "#10b981" },
+            { name: "Pending", value: Math.round(totalPending / 1000), color: "#f59e0b" },
+            { name: "Overdue", value: Math.round(overdueAmount / 1000), color: "#ef4444" },
+          ]}
+        />
+        <MiniPieCard
+          title="Lead Sources"
+          subtitle="Where leads come from"
+          data={(() => {
+            const sourceColors: Record<string, string> = { Instagram: "#e1306c", Website: "#3b82f6", Referral: "#10b981", Google: "#f59e0b", Facebook: "#1877f2", JustDial: "#f97316", Other: "#8b5cf6" };
+            const counts: Record<string, number> = {};
+            sampleLeads.forEach((l) => { counts[l.source] = (counts[l.source] || 0) + 1; });
+            return Object.entries(counts).map(([name, value]) => ({ name, value, color: sourceColors[name] || "#8b5cf6" }));
+          })()}
+        />
+        <MiniPieCard
+          title="Deliverable Status"
+          subtitle="Post-production progress"
+          data={[
+            { name: "Completed", value: allFootage.filter(f => f.editStatus === "approved" || f.editStatus === "delivered").length, color: "#10b981" },
+            { name: "In Progress", value: allFootage.filter(f => f.editStatus === "in-progress").length, color: "#3b82f6" },
+            { name: "In Review", value: reviewEdits.length, color: "#f59e0b" },
+            { name: "Pending", value: allFootage.filter(f => f.editStatus === "pending").length, color: "#ef4444" },
+          ]}
+        />
+        <MiniPieCard
+          title="Project Types"
+          subtitle="Event category mix"
+          data={(() => {
+            const typeColors: Record<string, string> = { Wedding: "#c4973b", "Pre-Wedding": "#8b5cf6", Reception: "#3b82f6", Engagement: "#ec4899", "Haldi": "#f59e0b", "Sangeet": "#f97316", "Mehendi": "#10b981" };
+            const counts: Record<string, number> = {};
+            sampleProjects.forEach((p) => { counts[p.eventType] = (counts[p.eventType] || 0) + 1; });
+            return Object.entries(counts).map(([name, value]) => ({ name, value, color: typeColors[name] || "#8b5cf6" }));
+          })()}
+        />
+      </div>
+
       {/* ═══ Bottom Grid: Payment + Lead Pipeline ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
