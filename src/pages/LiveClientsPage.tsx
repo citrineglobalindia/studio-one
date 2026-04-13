@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useProjects } from "@/hooks/useProjects";
 import { useDeliverables } from "@/hooks/useDeliverables";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { LiveClient, Deliverable } from "@/data/live-clients-data";
 
 import { ListView } from "@/components/live-clients/ListView";
@@ -91,6 +93,10 @@ export default function LiveClientsPage() {
           profit: p.amount_paid || 0,
         },
         createdAt: p.created_at,
+        cardNumber: (p as any).card_number || "",
+        rawDataSize: (p as any).raw_data_size || "",
+        backupNumber: (p as any).backup_number || "",
+        deliveryHdd: (p as any).delivery_hdd || "",
       } as LiveClient;
     });
   }, [projects, deliverables]);
@@ -107,6 +113,13 @@ export default function LiveClientsPage() {
   const totalCompleted = liveClients.filter((c) => c.status === "completed").length;
   const avgProgress = liveClients.length > 0 ? Math.round(liveClients.reduce((s, c) => s + c.overallProgress, 0) / liveClients.length) : 0;
   const totalDelivered = liveClients.reduce((s, c) => s + c.deliverables.filter((d) => d.status === "delivered").length, 0);
+
+  const handleUpdateProjectField = useCallback(async (projectId: string, field: string, value: string) => {
+    const { error } = await supabase.from("projects").update({ [field]: value } as any).eq("id", projectId);
+    if (error) {
+      toast.error("Failed to save");
+    }
+  }, []);
 
   const isLoading = projectsLoading || deliverablesLoading;
 
@@ -202,7 +215,7 @@ export default function LiveClientsPage() {
       {viewMode === "list" && <ListView clients={filtered} />}
       {viewMode === "card" && <CardView clients={filtered} />}
       {viewMode === "table" && <TableView clients={filtered} />}
-      {viewMode === "event-tracking" && <EventTrackingView clients={filtered} />}
+      {viewMode === "event-tracking" && <EventTrackingView clients={filtered} onUpdateField={handleUpdateProjectField} />}
       {viewMode === "client-mgmt" && <ClientManagementView clients={filtered} />}
       {viewMode === "present" && <PresentView clients={filtered} />}
 

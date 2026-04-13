@@ -1,11 +1,57 @@
+import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { clientStatusConfig, type LiveClient } from "@/data/live-clients-data";
 
-export function EventTrackingView({ clients }: { clients: LiveClient[] }) {
+interface EditableCellProps {
+  value: string;
+  onSave: (val: string) => void;
+  placeholder?: string;
+}
+
+function EditableCell({ value, onSave, placeholder = "—" }: EditableCellProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const commit = useCallback(() => {
+    setEditing(false);
+    if (draft !== value) onSave(draft);
+  }, [draft, value, onSave]);
+
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+        className="h-6 text-xs px-1.5 py-0 min-w-[80px]"
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={() => { setDraft(value); setEditing(true); }}
+      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground hover:bg-muted/50 px-1.5 py-0.5 rounded transition-colors inline-block min-w-[40px]"
+      title="Click to edit"
+    >
+      {value || placeholder}
+    </span>
+  );
+}
+
+interface EventTrackingViewProps {
+  clients: LiveClient[];
+  onUpdateField?: (projectId: string, field: string, value: string) => void;
+}
+
+export function EventTrackingView({ clients, onUpdateField }: EventTrackingViewProps) {
   return (
     <div className="rounded-2xl border border-border overflow-hidden bg-card">
       <div className="overflow-x-auto">
@@ -64,7 +110,7 @@ export function EventTrackingView({ clients }: { clients: LiveClient[] }) {
                       {client.eventDate ? new Date(client.eventDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                     </TableCell>
                     <TableCell>
-                      <p className="text-xs font-semibold text-foreground">{client.name} & {client.partnerName}</p>
+                      <p className="text-xs font-semibold text-foreground">{client.name}{client.partnerName ? ` & ${client.partnerName}` : ""}</p>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{client.deliverables.map(d => d.type).join(", ") || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{client.deliverables.filter(d => d.status !== "pending").map(d => d.type).join(", ") || "—"}</TableCell>
@@ -76,11 +122,31 @@ export function EventTrackingView({ clients }: { clients: LiveClient[] }) {
                       {client.team.length > 0 ? client.team.map(t => t.role).join(", ") : "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{client.city || "—"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">—</TableCell>
+                    <TableCell>
+                      <EditableCell
+                        value={client.cardNumber || ""}
+                        onSave={(v) => onUpdateField?.(client.id, "card_number", v)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell
+                        value={client.rawDataSize || ""}
+                        onSave={(v) => onUpdateField?.(client.id, "raw_data_size", v)}
+                      />
+                    </TableCell>
                     <TableCell className="text-center text-xs text-muted-foreground">—</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">—</TableCell>
+                    <TableCell>
+                      <EditableCell
+                        value={client.backupNumber || ""}
+                        onSave={(v) => onUpdateField?.(client.id, "backup_number", v)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell
+                        value={client.deliveryHdd || ""}
+                        onSave={(v) => onUpdateField?.(client.id, "delivery_hdd", v)}
+                      />
+                    </TableCell>
                     <TableCell className="text-center">{getStatusBadge(photosDel)}</TableCell>
                     <TableCell className="text-center">{getStatusBadge(videoDel)}</TableCell>
                     <TableCell className="text-center">{getStatusBadge(albumDel)}</TableCell>

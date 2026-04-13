@@ -39,6 +39,10 @@ export interface LiveClient {
     profit: number;
   };
   createdAt: string;
+  cardNumber?: string;
+  rawDataSize?: string;
+  backupNumber?: string;
+  deliveryHdd?: string;
 }
 
 export const sampleLiveClients: LiveClient[] = [

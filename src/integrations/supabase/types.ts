@@ -496,14 +496,18 @@ export type Database = {
         Row: {
           amount_paid: number | null
           assigned_team: string[] | null
+          backup_number: string | null
+          card_number: string | null
           client_id: string | null
           created_at: string
+          delivery_hdd: string | null
           event_date: string | null
           event_type: string | null
           id: string
           notes: string | null
           organization_id: string
           project_name: string
+          raw_data_size: string | null
           status: string
           total_amount: number | null
           updated_at: string
@@ -512,14 +516,18 @@ export type Database = {
         Insert: {
           amount_paid?: number | null
           assigned_team?: string[] | null
+          backup_number?: string | null
+          card_number?: string | null
           client_id?: string | null
           created_at?: string
+          delivery_hdd?: string | null
           event_date?: string | null
           event_type?: string | null
           id?: string
           notes?: string | null
           organization_id: string
           project_name: string
+          raw_data_size?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
@@ -528,14 +536,18 @@ export type Database = {
         Update: {
           amount_paid?: number | null
           assigned_team?: string[] | null
+          backup_number?: string | null
+          card_number?: string | null
           client_id?: string | null
           created_at?: string
+          delivery_hdd?: string | null
           event_date?: string | null
           event_type?: string | null
           id?: string
           notes?: string | null
           organization_id?: string
           project_name?: string
+          raw_data_size?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
