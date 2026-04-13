@@ -56,7 +56,7 @@ export function useProjects() {
   });
 
   const updateProject = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Project> & { id: string }) => {
+    mutationFn: async ({ id, client, ...updates }: Partial<Project> & { id: string }) => {
       const { data, error } = await supabase.from("projects").update(updates).eq("id", id).select().single();
       if (error) throw error;
       return data;
