@@ -551,8 +551,8 @@ export default function LandingPage() {
           <div className="flex gap-8 text-sm" style={{ color: "rgba(226,232,240,0.5)" }}>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Plans</a>
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-white transition-colors">Terms</a>
           </div>
           <p className="text-xs" style={{ color: "rgba(226,232,240,0.4)" }}>© 2026 StudioAi. All rights reserved.</p>
         </div>

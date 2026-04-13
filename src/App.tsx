@@ -12,6 +12,8 @@ import NotFound from "./pages/NotFound.tsx";
 import Index from "./pages/Index.tsx";
 import AuthPage from "./pages/AuthPage";
 import LandingPage from "./pages/LandingPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsPage from "./pages/TermsPage";
 
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
@@ -127,6 +129,8 @@ const App = () => (
               <BrowserRouter>
                 <Routes>
                   <Route path="/landing" element={<LandingPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
                   <Route path="/auth" element={<AuthRoute />} />
                   <Route path="/super-admin" element={<SuperAdminPage />} />
                   <Route path="/*" element={<ProtectedRoutes />} />
