@@ -52,6 +52,91 @@ const LeadsPage = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [importedRows, setImportedRows] = useState<Record<string, string>[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importHistory, setImportHistory] = useState<{ date: string; count: number; filename: string }[]>([]);
+
+  // ═══ EXPORT CSV ═══
+  const handleExportCSV = () => {
+    if (leads.length === 0) { toast.error("No leads to export"); return; }
+    const headers = ["Name", "Phone", "Email", "Source", "Status", "Event Type", "Event Date", "City", "Budget", "Assigned To", "Follow-up Date", "Notes", "Created At"];
+    const rows = leads.map(l => [
+      l.name, l.phone || "", l.email || "", l.source, l.status,
+      l.event_type || "", l.event_date || "", l.city || "",
+      l.budget?.toString() || "", l.assigned_to || "", l.follow_up_date || "",
+      (l.notes || "").replace(/,/g, ";"), l.created_at,
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${v}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `leads_export_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success(`Exported ${leads.length} leads to CSV`);
+  };
+
+  // ═══ IMPORT CSV ═══
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".csv")) { toast.error("Please upload a CSV file"); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) { toast.error("CSV must have headers and at least one row"); return; }
+      const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
+      const rows = lines.slice(1).map(line => {
+        const values = line.match(/(".*?"|[^",]+|(?<=,)(?=,))/g)?.map(v => v.replace(/"/g, "").trim()) || [];
+        const row: Record<string, string> = {};
+        headers.forEach((h, i) => { row[h] = values[i] || ""; });
+        return row;
+      });
+      setImportedRows(rows);
+      setImportSheetOpen(true);
+      toast.success(`Parsed ${rows.length} rows from ${file.name}`);
+      setImportHistory(prev => [{ date: new Date().toISOString(), count: rows.length, filename: file.name }, ...prev]);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleImportConfirm = () => {
+    if (importedRows.length === 0) return;
+    setImporting(true);
+    let imported = 0;
+    const mapField = (row: Record<string, string>, ...keys: string[]) => {
+      for (const k of keys) { if (row[k]) return row[k]; }
+      return "";
+    };
+    importedRows.forEach(row => {
+      const name = mapField(row, "name", "client name", "client", "lead name", "full name");
+      if (!name) return;
+      addLead.mutate({
+        name,
+        phone: mapField(row, "phone", "mobile", "contact", "phone number") || null,
+        email: mapField(row, "email", "email address", "mail") || null,
+        source: mapField(row, "source", "lead source") || "Website",
+        status: "new",
+        event_type: mapField(row, "event type", "event", "type") || null,
+        event_date: mapField(row, "event date", "date") || null,
+        city: mapField(row, "city", "location") || null,
+        budget: mapField(row, "budget", "deal value", "amount") ? parseFloat(mapField(row, "budget", "deal value", "amount")) : null,
+        notes: mapField(row, "notes", "remarks", "comments") || null,
+        assigned_to: mapField(row, "assigned to", "assigned", "assignee") || null,
+        follow_up_date: null,
+        converted_client_id: null,
+      });
+      imported++;
+    });
+    setTimeout(() => {
+      setImporting(false);
+      setImportSheetOpen(false);
+      setImportedRows([]);
+      toast.success(`${imported} leads imported successfully!`);
+    }, 500);
+  };
 
   // Add Lead Sheet
   const [addLeadOpen, setAddLeadOpen] = useState(false);
