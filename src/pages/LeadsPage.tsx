@@ -793,6 +793,72 @@ const LeadsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ═══ IMPORT PREVIEW SHEET ═══ */}
+      <Sheet open={importSheetOpen} onOpenChange={setImportSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <Upload className="h-5 w-5 text-primary" /> Import Preview
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-sm font-medium text-foreground">{importedRows.length} leads ready to import</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Detected columns: {importedRows[0] ? Object.keys(importedRows[0]).join(", ") : "—"}
+              </p>
+            </div>
+
+            {/* Preview Table */}
+            <div className="rounded-xl border border-border overflow-hidden max-h-[400px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="text-xs">#</TableHead>
+                    <TableHead className="text-xs">Name</TableHead>
+                    <TableHead className="text-xs">Phone</TableHead>
+                    <TableHead className="text-xs">Source</TableHead>
+                    <TableHead className="text-xs">City</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {importedRows.slice(0, 20).map((row, i) => {
+                    const name = row["name"] || row["client name"] || row["lead name"] || row["full name"] || "—";
+                    const phone = row["phone"] || row["mobile"] || row["contact"] || "—";
+                    const source = row["source"] || row["lead source"] || "—";
+                    const city = row["city"] || row["location"] || "—";
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell className="text-sm font-medium">{name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{phone}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{source}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{city}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {importedRows.length > 20 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  ...and {importedRows.length - 20} more rows
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setImportSheetOpen(false); setImportedRows([]); }}>
+                Cancel
+              </Button>
+              <Button className="flex-1 gap-2" onClick={handleImportConfirm} disabled={importing}>
+                {importing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {importing ? "Importing..." : `Import ${importedRows.length} Leads`}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
