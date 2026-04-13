@@ -243,9 +243,24 @@ const LeadsPage = () => {
             <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} className="scale-90" />
             <span className="text-[10px] text-muted-foreground">(5 min)</span>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Upload className="h-3.5 w-3.5" /> Import/Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Upload className="h-3.5 w-3.5" /> Import/Export <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                <Download className="h-4 w-4" /> Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2" asChild>
+                <label className="cursor-pointer flex items-center gap-2 w-full">
+                  <Upload className="h-4 w-4" /> Import from CSV
+                  <input type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+                </label>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" className="gap-2" onClick={() => setAddLeadOpen(true)}>
             <Plus className="h-4 w-4" /> New Lead
           </Button>
@@ -624,9 +639,15 @@ const LeadsPage = () => {
         <TabsContent value="imported" className="mt-4">
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Upload className="h-12 w-12 text-muted-foreground/40 mb-3" />
-            <p className="text-lg font-medium text-foreground">No imported leads yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Import leads from CSV or Excel files</p>
-            <Button className="mt-4 gap-2"><Upload className="h-4 w-4" /> Import Leads</Button>
+            <p className="text-lg font-medium text-foreground">Import Leads from CSV</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              Upload a CSV file with columns like: Name, Phone, Email, Source, City, Event Type, Budget, Notes
+            </p>
+            <label className="cursor-pointer">
+              <Button className="mt-4 gap-2" asChild><span><Upload className="h-4 w-4" /> Choose CSV File</span></Button>
+              <input type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+            </label>
+            <p className="text-[10px] text-muted-foreground mt-3">Supported: .csv files with headers in the first row</p>
           </div>
         </TabsContent>
 
@@ -647,11 +668,34 @@ const LeadsPage = () => {
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Clock className="h-12 w-12 text-muted-foreground/40 mb-3" />
-            <p className="text-lg font-medium text-foreground">Import History</p>
-            <p className="text-sm text-muted-foreground mt-1">Track all your lead imports and their status</p>
-          </div>
+          {importHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Clock className="h-12 w-12 text-muted-foreground/40 mb-3" />
+              <p className="text-lg font-medium text-foreground">No imports yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Your CSV import history will appear here</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="text-xs font-semibold">Date</TableHead>
+                    <TableHead className="text-xs font-semibold">File</TableHead>
+                    <TableHead className="text-xs font-semibold">Leads Imported</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {importHistory.map((h, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-sm">{new Date(h.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{h.filename}</TableCell>
+                      <TableCell><Badge variant="secondary">{h.count} leads</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
