@@ -1,13 +1,22 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clientStatusConfig, type LiveClient } from "@/data/live-clients-data";
+import { exportClientManagement } from "@/lib/export-excel";
 
 export function ClientManagementView({ clients }: { clients: LiveClient[] }) {
   return (
-    <div className="rounded-2xl border border-border overflow-hidden bg-card">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => exportClientManagement(clients)}>
+          <Download className="h-3.5 w-3.5" /> Export to Excel
+        </Button>
+      </div>
+      <div className="rounded-2xl border border-border overflow-hidden bg-card">
       <div className="overflow-x-auto">
         <div className="min-w-[2400px]">
           <Table>
@@ -129,6 +138,7 @@ export function ClientManagementView({ clients }: { clients: LiveClient[] }) {
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
       </div>
     </div>

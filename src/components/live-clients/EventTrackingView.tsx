@@ -1,11 +1,14 @@
 import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clientStatusConfig, type LiveClient } from "@/data/live-clients-data";
+import { exportEventTracking } from "@/lib/export-excel";
 
 interface EditableCellProps {
   value: string;
@@ -53,9 +56,15 @@ interface EventTrackingViewProps {
 
 export function EventTrackingView({ clients, onUpdateField }: EventTrackingViewProps) {
   return (
-    <div className="rounded-2xl border border-border overflow-hidden bg-card">
-      <div className="overflow-x-auto">
-        <div className="min-w-[1800px]">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => exportEventTracking(clients)}>
+          <Download className="h-3.5 w-3.5" /> Export to Excel
+        </Button>
+      </div>
+      <div className="rounded-2xl border border-border overflow-hidden bg-card">
+        <div className="overflow-x-auto">
+          <div className="min-w-[1800px]">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -166,6 +175,7 @@ export function EventTrackingView({ clients, onUpdateField }: EventTrackingViewP
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
       </div>
     </div>
