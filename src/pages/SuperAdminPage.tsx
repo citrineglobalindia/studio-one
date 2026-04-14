@@ -193,6 +193,11 @@ export default function SuperAdminPage() {
     return matchesSearch && matchesFilter;
   });
 
+  const totalAnalytics = Object.values(analytics).reduce(
+    (acc, a) => ({ clients: acc.clients + a.clients, projects: acc.projects + a.projects, revenue: acc.revenue + a.revenue }),
+    { clients: 0, projects: 0, revenue: 0 }
+  );
+
   const stats = {
     total: orgs.length,
     active: orgs.filter((o) => getStatus(o.id) === "active").length,
