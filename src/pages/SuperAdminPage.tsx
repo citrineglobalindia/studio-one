@@ -103,11 +103,14 @@ export default function SuperAdminPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [orgsRes, subsRes, membersRes, plansRes] = await Promise.all([
+    const [orgsRes, subsRes, membersRes, plansRes, clientsRes, projectsRes, invoicesRes] = await Promise.all([
       supabase.from("organizations").select("*").order("created_at", { ascending: false }),
       supabase.from("subscriptions").select("id, organization_id, status, trial_ends_at, plan_id"),
       supabase.from("organization_members").select("organization_id, user_id, role"),
       supabase.from("subscription_plans").select("id, name"),
+      supabase.from("clients").select("id, organization_id"),
+      supabase.from("projects").select("id, organization_id, total_amount"),
+      supabase.from("invoices").select("id, organization_id, total_amount, amount_paid, status"),
     ]);
 
     setOrgs((orgsRes.data as TenantOrg[]) || []);
@@ -119,6 +122,26 @@ export default function SuperAdminPage() {
       planMap[p.id] = p.name;
     });
     setPlans(planMap);
+
+    // Build per-org analytics
+    const analyticsMap: Record<string, OrgAnalytics> = {};
+    const clients = clientsRes.data || [];
+    const projects = projectsRes.data || [];
+    const invoices = invoicesRes.data || [];
+
+    (orgsRes.data || []).forEach((org: any) => {
+      const orgClients = clients.filter((c: any) => c.organization_id === org.id).length;
+      const orgProjects = projects.filter((p: any) => p.organization_id === org.id);
+      const orgInvoices = invoices.filter((i: any) => i.organization_id === org.id);
+      const revenue = orgInvoices.reduce((sum: number, i: any) => sum + (Number(i.amount_paid) || 0), 0);
+
+      analyticsMap[org.id] = {
+        clients: orgClients,
+        projects: orgProjects.length,
+        revenue,
+      };
+    });
+    setAnalytics(analyticsMap);
     setLoading(false);
   };
 
