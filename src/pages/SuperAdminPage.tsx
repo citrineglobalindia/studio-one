@@ -61,6 +61,12 @@ interface TenantMember {
   role: string;
 }
 
+interface OrgAnalytics {
+  clients: number;
+  projects: number;
+  revenue: number;
+}
+
 export default function SuperAdminPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
