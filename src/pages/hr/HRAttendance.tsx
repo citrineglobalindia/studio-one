@@ -147,7 +147,128 @@ const HRAttendance = () => {
   const [isOnBreak, setIsOnBreak] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [clockLogs, setClockLogs] = useState<ClockLog[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { attendance, clockIn, clockOut } = useAttendance();
+  const { employees } = useEmployees();
+  const { leaves } = useLeaves();
+
+  // Auto-select first employee
+  useEffect(() => {
+    if (employees.length > 0 && !selectedEmployeeId) {
+      setSelectedEmployeeId(employees[0].id);
+    }
+  }, [employees, selectedEmployeeId]);
+
+  // Restore clock-in state from DB on load
+  useEffect(() => {
+    if (!selectedEmployeeId || attendance.length === 0) return;
+    const todayDate = new Date().toISOString().split("T")[0];
+    const todayRecord = attendance.find(a => a.employee_id === selectedEmployeeId && a.date === todayDate);
+    if (todayRecord?.clock_in && !todayRecord?.clock_out) {
+      const ciTime = new Date(todayRecord.clock_in);
+      setIsCheckedIn(true);
+      setCheckInTime(format(ciTime, "hh:mm a"));
+      setCheckInTimestamp(ciTime);
+      setElapsedSeconds(Math.floor((Date.now() - ciTime.getTime()) / 1000));
+    }
+  }, [selectedEmployeeId, attendance]);
+
+  // Build calendar attendance map from DB (for selected employee)
+  const attendanceDataMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    attendance
+      .filter(a => a.employee_id === selectedEmployeeId)
+      .forEach(a => {
+        // Map DB status to calendar color keys
+        const statusMap: Record<string, string> = {
+          present: "present",
+          absent: "absent",
+          "half-day": "halfday",
+          halfday: "halfday",
+          leave: "leave",
+          "no-show": "absent",
+        };
+        map[a.date] = statusMap[a.status] || a.status;
+      });
+    return map;
+  }, [attendance, selectedEmployeeId]);
+
+  // Build daily logs from DB
+  const dailyLogs = useMemo(() => {
+    return attendance
+      .filter(a => a.employee_id === selectedEmployeeId && a.clock_in)
+      .slice(0, 10)
+      .map(a => {
+        const ci = a.clock_in ? new Date(a.clock_in) : null;
+        const co = a.clock_out ? new Date(a.clock_out) : null;
+        const totalH = a.total_hours ?? 0;
+        const hours = Math.floor(totalH);
+        const mins = Math.round((totalH - hours) * 60);
+        return {
+          date: ci ? format(ci, "MMM d, yyyy") : a.date,
+          checkIn: ci ? format(ci, "hh:mm a") : "—",
+          checkOut: co ? format(co, "hh:mm a") : "—",
+          breakTime: "—",
+          totalHours: totalH > 0 ? `${hours}h ${mins}m` : "—",
+          status: ci && new Date(`${a.date}T09:15:00`).getTime() < ci.getTime() ? "Late" : "On Time",
+        };
+      });
+  }, [attendance, selectedEmployeeId]);
+
+  // Team data from DB
+  const teamMembersData = useMemo(() => {
+    const todayDate = new Date().toISOString().split("T")[0];
+    return employees.map(emp => {
+      const todayAttendance = attendance.find(a => a.employee_id === emp.id && a.date === todayDate);
+      const empAttendance = attendance.filter(a => a.employee_id === emp.id);
+      const presentCount = empAttendance.filter(a => a.status === "present").length;
+      const absentCount = empAttendance.filter(a => a.status === "absent" || a.status === "no-show").length;
+      const leaveCount = leaves.filter(l => l.employee_id === emp.id && l.status === "Approved").length;
+
+      let status: "present" | "absent" | "leave" | "halfday" = "absent";
+      if (todayAttendance) {
+        if (todayAttendance.status === "present") status = todayAttendance.clock_out ? "present" : "present";
+        else if (todayAttendance.status === "half-day" || todayAttendance.status === "halfday") status = "halfday";
+        else if (todayAttendance.status === "leave") status = "leave";
+        else status = "absent";
+      }
+
+      return {
+        id: emp.id,
+        name: emp.full_name,
+        role: emp.role,
+        status,
+        checkIn: todayAttendance?.clock_in ? format(new Date(todayAttendance.clock_in), "hh:mm a") : undefined,
+        checkOut: todayAttendance?.clock_out ? format(new Date(todayAttendance.clock_out), "hh:mm a") : undefined,
+        present: presentCount,
+        absent: absentCount,
+        leave: leaveCount,
+      };
+    });
+  }, [employees, attendance, leaves]);
+
+  // Report data from DB
+  const reportData = useMemo(() => {
+    const monthKey = format(reportMonth, "yyyy-MM");
+    return employees.map(emp => {
+      const monthAtt = attendance.filter(a => a.employee_id === emp.id && a.date.startsWith(monthKey));
+      return {
+        name: emp.full_name,
+        role: emp.role,
+        workingDays: 22,
+        present: monthAtt.filter(a => a.status === "present").length,
+        absent: monthAtt.filter(a => a.status === "absent" || a.status === "no-show").length,
+        halfDay: monthAtt.filter(a => a.status === "half-day" || a.status === "halfday").length,
+        leave: monthAtt.filter(a => a.status === "leave").length,
+        lateIns: monthAtt.filter(a => {
+          if (!a.clock_in) return false;
+          return new Date(a.clock_in).getHours() >= 9 && new Date(a.clock_in).getMinutes() > 15;
+        }).length,
+      };
+    });
+  }, [employees, attendance, reportMonth]);
 
   // Live timer effect
   useEffect(() => {
@@ -171,10 +292,10 @@ const HRAttendance = () => {
   const today = new Date();
   const todayStr = format(today, "EEEE, dd MMM yyyy");
 
-  const monthStats = (() => {
+  const monthStats = useMemo(() => {
     const monthKey = format(currentMonth, "yyyy-MM");
     let present = 0, absent = 0, halfday = 0, leave = 0;
-    Object.entries(attendanceData).forEach(([date, status]) => {
+    Object.entries(attendanceDataMap).forEach(([date, status]) => {
       if (date.startsWith(monthKey)) {
         if (status === "present") present++;
         else if (status === "absent") absent++;
@@ -183,17 +304,20 @@ const HRAttendance = () => {
       }
     });
     return { present, absent, halfday, leave };
-  })();
+  }, [attendanceDataMap, currentMonth]);
 
   const handleCheckIn = () => {
+    if (!selectedEmployeeId) return;
     const now = new Date();
     setIsCheckedIn(true);
     setCheckInTime(format(now, "hh:mm a"));
     setCheckInTimestamp(now);
     setElapsedSeconds(0);
     setClockLogs(prev => [...prev, { id: crypto.randomUUID(), type: "checkin", time: now, label: "Checked In" }]);
+    clockIn.mutate({ employeeId: selectedEmployeeId });
   };
   const handleCheckOut = () => {
+    if (!selectedEmployeeId) return;
     const now = new Date();
     setClockLogs(prev => [...prev, { id: crypto.randomUUID(), type: "checkout", time: now, label: "Checked Out" }]);
     setIsCheckedIn(false);
@@ -201,6 +325,7 @@ const HRAttendance = () => {
     setCheckInTimestamp(null);
     setIsOnBreak(false);
     setElapsedSeconds(0);
+    clockOut.mutate({ employeeId: selectedEmployeeId });
   };
   const handleBreakToggle = () => {
     const now = new Date();
@@ -216,16 +341,16 @@ const HRAttendance = () => {
   // Calendar
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const calDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startDayOfWeek = getDay(monthStart);
   const calWeekDays = ["S", "M", "T", "W", "T", "F", "S"];
 
   const renderCalendar = () => {
     const cells: React.ReactNode[] = [];
     for (let i = 0; i < startDayOfWeek; i++) cells.push(<div key={`empty-${i}`} className="size-10" />);
-    days.forEach((day) => {
+    calDays.forEach((day) => {
       const key = format(day, "yyyy-MM-dd");
-      const status = attendanceData[key];
+      const status = attendanceDataMap[key];
       const isToday = isSameDay(day, today);
       const isWknd = isWeekend(day);
       let bgClass = isWknd ? "bg-muted/60 text-muted-foreground" : "text-foreground";
@@ -241,10 +366,10 @@ const HRAttendance = () => {
 
   // Team summary
   const teamSummary = {
-    total: teamMembers.length,
-    present: teamMembers.filter(m => m.status === "present").length,
-    absent: teamMembers.filter(m => m.status === "absent").length,
-    leave: teamMembers.filter(m => m.status === "leave" || m.status === "halfday").length,
+    total: teamMembersData.length,
+    present: teamMembersData.filter(m => m.status === "present").length,
+    absent: teamMembersData.filter(m => m.status === "absent").length,
+    leave: teamMembersData.filter(m => m.status === "leave" || m.status === "halfday").length,
   };
 
   // Report totals
