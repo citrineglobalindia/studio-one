@@ -61,6 +61,12 @@ interface TenantMember {
   role: string;
 }
 
+interface OrgAnalytics {
+  clients: number;
+  projects: number;
+  revenue: number;
+}
+
 export default function SuperAdminPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -69,6 +75,7 @@ export default function SuperAdminPage() {
   const [subscriptions, setSubscriptions] = useState<TenantSubscription[]>([]);
   const [members, setMembers] = useState<TenantMember[]>([]);
   const [plans, setPlans] = useState<Record<string, string>>({});
+  const [analytics, setAnalytics] = useState<Record<string, OrgAnalytics>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "trial" | "inactive">("all");
   const [loading, setLoading] = useState(true);
@@ -96,11 +103,14 @@ export default function SuperAdminPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [orgsRes, subsRes, membersRes, plansRes] = await Promise.all([
+    const [orgsRes, subsRes, membersRes, plansRes, clientsRes, projectsRes, invoicesRes] = await Promise.all([
       supabase.from("organizations").select("*").order("created_at", { ascending: false }),
       supabase.from("subscriptions").select("id, organization_id, status, trial_ends_at, plan_id"),
       supabase.from("organization_members").select("organization_id, user_id, role"),
       supabase.from("subscription_plans").select("id, name"),
+      supabase.from("clients").select("id, organization_id"),
+      supabase.from("projects").select("id, organization_id, total_amount"),
+      supabase.from("invoices").select("id, organization_id, total_amount, amount_paid, status"),
     ]);
 
     setOrgs((orgsRes.data as TenantOrg[]) || []);
@@ -112,6 +122,26 @@ export default function SuperAdminPage() {
       planMap[p.id] = p.name;
     });
     setPlans(planMap);
+
+    // Build per-org analytics
+    const analyticsMap: Record<string, OrgAnalytics> = {};
+    const clients = clientsRes.data || [];
+    const projects = projectsRes.data || [];
+    const invoices = invoicesRes.data || [];
+
+    (orgsRes.data || []).forEach((org: any) => {
+      const orgClients = clients.filter((c: any) => c.organization_id === org.id).length;
+      const orgProjects = projects.filter((p: any) => p.organization_id === org.id);
+      const orgInvoices = invoices.filter((i: any) => i.organization_id === org.id);
+      const revenue = orgInvoices.reduce((sum: number, i: any) => sum + (Number(i.amount_paid) || 0), 0);
+
+      analyticsMap[org.id] = {
+        clients: orgClients,
+        projects: orgProjects.length,
+        revenue,
+      };
+    });
+    setAnalytics(analyticsMap);
     setLoading(false);
   };
 
@@ -162,6 +192,11 @@ export default function SuperAdminPage() {
     const matchesFilter = filter === "all" || status === filter;
     return matchesSearch && matchesFilter;
   });
+
+  const totalAnalytics = Object.values(analytics).reduce(
+    (acc, a) => ({ clients: acc.clients + a.clients, projects: acc.projects + a.projects, revenue: acc.revenue + a.revenue }),
+    { clients: 0, projects: 0, revenue: 0 }
+  );
 
   const stats = {
     total: orgs.length,
@@ -293,6 +328,43 @@ export default function SuperAdminPage() {
           </Card>
         </div>
 
+        {/* Platform Analytics */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="h-11 w-11 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{totalAnalytics.clients}</p>
+                <p className="text-xs text-muted-foreground">Total Clients</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="h-11 w-11 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{totalAnalytics.projects}</p>
+                <p className="text-xs text-muted-foreground">Total Projects</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">₹{totalAnalytics.revenue.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-muted-foreground">Total Revenue Collected</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Search & Table */}
         <Card>
           <CardHeader className="pb-4">
@@ -339,6 +411,9 @@ export default function SuperAdminPage() {
                       <TableHead>Studio</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead className="text-center">Clients</TableHead>
+                      <TableHead className="text-center">Projects</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
                       <TableHead>Members</TableHead>
                       <TableHead>City</TableHead>
                       <TableHead>Created</TableHead>
@@ -350,6 +425,7 @@ export default function SuperAdminPage() {
                       const sub = getSubForOrg(org.id);
                       const status = getStatus(org.id);
                       const memberCount = getMemberCount(org.id);
+                      const orgStats = analytics[org.id] || { clients: 0, projects: 0, revenue: 0 };
 
                       return (
                         <TableRow key={org.id} className="group">
@@ -373,6 +449,17 @@ export default function SuperAdminPage() {
                           <TableCell>
                             <span className="text-sm text-muted-foreground">
                               {sub ? plans[sub.plan_id] || "—" : "No plan"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="text-sm font-medium text-foreground">{orgStats.clients}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="text-sm font-medium text-foreground">{orgStats.projects}</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm font-medium text-foreground">
+                              ₹{orgStats.revenue.toLocaleString("en-IN")}
                             </span>
                           </TableCell>
                           <TableCell>
