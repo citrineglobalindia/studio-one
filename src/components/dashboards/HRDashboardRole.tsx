@@ -1,5 +1,5 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { sampleTeamMembers } from "@/data/wedding-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -7,6 +7,8 @@ import {
   UserCog, Users, ClipboardList, CalendarOff, ChevronRight,
   TrendingUp, CheckCircle2, Clock, AlertTriangle
 } from "lucide-react";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useLeaves } from "@/hooks/useLeaves";
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const cardVariants = {
@@ -16,14 +18,15 @@ const cardVariants = {
 
 export function HRDashboardRole() {
   const navigate = useNavigate();
+  const { employees } = useEmployees();
+  const { leaves } = useLeaves();
 
-  const totalEmployees = sampleTeamMembers.filter((m) => m.type === "in-office").length;
-  const totalVendors = sampleTeamMembers.filter((m) => m.type === "vendor").length;
-
-  // Mock attendance data
-  const presentToday = Math.round(totalEmployees * 0.85);
-  const onLeave = totalEmployees - presentToday;
-  const pendingLeaveRequests = 3;
+  const totalEmployees = employees.filter(e => e.status === "active").length;
+  const totalVendors = employees.filter(e => e.type === "vendor").length;
+  const pendingLeaveRequests = leaves.filter(l => l.status === "Pending").length;
+  const today = new Date().toISOString().split("T")[0];
+  const onLeave = leaves.filter(l => l.status === "Approved" && l.from_date <= today && l.to_date >= today).length;
+  const presentToday = totalEmployees - onLeave;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl mx-auto space-y-5">
@@ -71,8 +74,8 @@ export function HRDashboardRole() {
         </div>
         <div className="p-4 space-y-3">
           {["photographer", "videographer", "editor", "drone-operator", "assistant"].map((role) => {
-            const count = sampleTeamMembers.filter((m) => m.role === role).length;
-            const inOffice = sampleTeamMembers.filter((m) => m.role === role && m.type === "in-office").length;
+            const count = employees.filter((m) => m.role === role).length;
+            const inOffice = employees.filter((m) => m.role === role && m.type === "in-office").length;
             return (
               <div key={role} className="flex items-center justify-between">
                 <span className="text-sm font-medium text-foreground capitalize">{role.replace("-", " ")}s</span>
