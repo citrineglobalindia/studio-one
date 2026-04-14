@@ -138,8 +138,8 @@ export default function SASystemControl() {
       await Promise.all(
         batch.map(async (table) => {
           try {
-            const { count } = await supabase.from(table).select("*", { count: "exact", head: true });
-            const { data: rows } = await supabase.from(table).select("*").limit(100);
+            const { count } = await (supabase.from as any)(table).select("*", { count: "exact", head: true });
+            const { data: rows } = await (supabase.from as any)(table).select("*").limit(100);
 
             const nullRates: Record<string, number> = {};
             if (rows && rows.length > 0) {
