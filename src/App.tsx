@@ -54,6 +54,12 @@ import SuperAdminPage from "./pages/SuperAdminPage";
 import SADashboard from "./pages/superadmin/SADashboard";
 import SAStudios from "./pages/superadmin/SAStudios";
 import SAModules from "./pages/superadmin/SAModules";
+import SASubscriptions from "./pages/superadmin/SASubscriptions";
+import SAUsers from "./pages/superadmin/SAUsers";
+import SAActivity from "./pages/superadmin/SAActivity";
+import SAReports from "./pages/superadmin/SAReports";
+import SANotifications from "./pages/superadmin/SANotifications";
+import SASettings from "./pages/superadmin/SASettings";
 import SAPlaceholder from "./pages/superadmin/SAPlaceholder";
 
 const queryClient = new QueryClient();
@@ -143,12 +149,12 @@ const App = () => (
                     <Route index element={<SADashboard />} />
                     <Route path="studios" element={<SAStudios />} />
                     <Route path="modules" element={<SAModules />} />
-                    <Route path="subscriptions" element={<SAPlaceholder />} />
-                    <Route path="users" element={<SAPlaceholder />} />
-                    <Route path="activity" element={<SAPlaceholder />} />
-                    <Route path="reports" element={<SAPlaceholder />} />
-                    <Route path="notifications" element={<SAPlaceholder />} />
-                    <Route path="settings" element={<SAPlaceholder />} />
+                    <Route path="subscriptions" element={<SASubscriptions />} />
+                    <Route path="users" element={<SAUsers />} />
+                    <Route path="activity" element={<SAActivity />} />
+                    <Route path="reports" element={<SAReports />} />
+                    <Route path="notifications" element={<SANotifications />} />
+                    <Route path="settings" element={<SASettings />} />
                   </Route>
                   <Route path="/*" element={<ProtectedRoutes />} />
                 </Routes>
