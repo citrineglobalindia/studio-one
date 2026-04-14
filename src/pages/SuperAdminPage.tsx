@@ -30,6 +30,7 @@ import {
   LogOut,
   BarChart3,
   Crown,
+  Settings2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
