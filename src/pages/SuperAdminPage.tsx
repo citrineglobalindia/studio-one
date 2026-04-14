@@ -392,18 +392,26 @@ export default function SuperAdminPage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => {
-                                toast.info(`Viewing ${org.name}'s platform`, {
-                                  description: "Tenant impersonation coming soon.",
-                                });
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-1" /> View
-                            </Button>
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setModuleControlStudio({ id: org.id, name: org.name })}
+                              >
+                                <Settings2 className="h-4 w-4 mr-1" /> Modules
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  toast.info(`Viewing ${org.name}'s platform`, {
+                                    description: "Tenant impersonation coming soon.",
+                                  });
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" /> View
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
