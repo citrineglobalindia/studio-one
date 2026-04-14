@@ -107,6 +107,63 @@ export type Database = {
           },
         ]
       }
+      attendance: {
+        Row: {
+          clock_in: string | null
+          clock_out: string | null
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          status: string
+          total_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string
+          date?: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          status?: string
+          total_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          status?: string
+          total_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           budget: number | null
@@ -231,6 +288,89 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          aadhaar: string | null
+          address: string | null
+          bank_account: string | null
+          bank_ifsc: string | null
+          bank_name: string | null
+          created_at: string
+          department: string | null
+          email: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
+          full_name: string
+          id: string
+          join_date: string | null
+          notes: string | null
+          organization_id: string
+          pan: string | null
+          phone: string | null
+          role: string
+          salary: number | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          aadhaar?: string | null
+          address?: string | null
+          bank_account?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          full_name: string
+          id?: string
+          join_date?: string | null
+          notes?: string | null
+          organization_id: string
+          pan?: string | null
+          phone?: string | null
+          role?: string
+          salary?: number | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          aadhaar?: string | null
+          address?: string | null
+          bank_account?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          full_name?: string
+          id?: string
+          join_date?: string | null
+          notes?: string | null
+          organization_id?: string
+          pan?: string | null
+          phone?: string | null
+          role?: string
+          salary?: number | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -454,6 +594,72 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leaves: {
+        Row: {
+          applied_on: string
+          approved_by: string | null
+          created_at: string
+          days: number
+          employee_id: string
+          employee_name: string
+          from_date: string
+          id: string
+          leave_type: string
+          organization_id: string
+          reason: string | null
+          status: string
+          to_date: string
+          updated_at: string
+        }
+        Insert: {
+          applied_on?: string
+          approved_by?: string | null
+          created_at?: string
+          days?: number
+          employee_id: string
+          employee_name: string
+          from_date: string
+          id?: string
+          leave_type?: string
+          organization_id: string
+          reason?: string | null
+          status?: string
+          to_date: string
+          updated_at?: string
+        }
+        Update: {
+          applied_on?: string
+          approved_by?: string | null
+          created_at?: string
+          days?: number
+          employee_id?: string
+          employee_name?: string
+          from_date?: string
+          id?: string
+          leave_type?: string
+          organization_id?: string
+          reason?: string | null
+          status?: string
+          to_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leaves_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
