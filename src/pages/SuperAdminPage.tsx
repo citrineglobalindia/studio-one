@@ -71,6 +71,7 @@ export default function SuperAdminPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "trial" | "inactive">("all");
   const [loading, setLoading] = useState(true);
+  const [moduleControlStudio, setModuleControlStudio] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
