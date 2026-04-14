@@ -72,6 +72,7 @@ interface RoleContextType {
   getAccessibleModules: () => AppModule[];
   isAdmin: boolean;
   roleLoading: boolean;
+  studioRestrictedModules: string[];
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -81,46 +82,80 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [currentRole, setCurrentRole] = useState<AppRole>("admin");
   const [roleAccess, setRoleAccess] = useState<Record<AppRole, AppModule[]>>(DEFAULT_ACCESS);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [studioRestrictedModules, setStudioRestrictedModules] = useState<string[]>([]);
 
   // Fetch role from profile when user changes
   useEffect(() => {
     if (!user) {
       setCurrentRole("admin");
+      setStudioRestrictedModules([]);
       setRoleLoading(false);
       return;
     }
 
-    const fetchRole = async () => {
+    const fetchRoleAndRestrictions = async () => {
       setRoleLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch role
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("role")
         .eq("user_id", user.id)
         .single();
 
-      if (!error && data?.role) {
+      if (profileData?.role) {
         const validRoles: AppRole[] = ["admin", "vendor", "editor", "telecaller", "videographer", "photographer", "hr", "accounts"];
-        if (validRoles.includes(data.role as AppRole)) {
-          setCurrentRole(data.role as AppRole);
+        if (validRoles.includes(profileData.role as AppRole)) {
+          setCurrentRole(profileData.role as AppRole);
         }
       }
+
+      // Fetch studio module restrictions via org membership
+      try {
+        const { data: membership } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (membership?.organization_id) {
+          const { data: restrictions } = await supabase
+            .from("studio_module_restrictions")
+            .select("restricted_modules")
+            .eq("organization_id", membership.organization_id)
+            .maybeSingle();
+
+          setStudioRestrictedModules(restrictions?.restricted_modules || []);
+        } else {
+          setStudioRestrictedModules([]);
+        }
+      } catch {
+        setStudioRestrictedModules([]);
+      }
+
       setRoleLoading(false);
     };
 
-    fetchRole();
+    fetchRoleAndRestrictions();
   }, [user]);
 
   const hasAccess = useCallback(
     (module: AppModule) => {
+      // If module is restricted by super admin for this studio, deny
+      if (studioRestrictedModules.includes(module)) return false;
       if (currentRole === "admin") return true;
       return roleAccess[currentRole]?.includes(module) ?? false;
     },
-    [currentRole, roleAccess]
+    [currentRole, roleAccess, studioRestrictedModules]
   );
 
   const getAccessibleModules = useCallback(
-    () => roleAccess[currentRole] ?? [],
-    [currentRole, roleAccess]
+    () => {
+      const roleModules = roleAccess[currentRole] ?? [];
+      return roleModules.filter((m) => !studioRestrictedModules.includes(m));
+    },
+    [currentRole, roleAccess, studioRestrictedModules]
   );
 
   return (
@@ -134,6 +169,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         getAccessibleModules,
         isAdmin: currentRole === "admin",
         roleLoading,
+        studioRestrictedModules,
       }}
     >
       {children}
