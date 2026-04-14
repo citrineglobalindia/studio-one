@@ -383,6 +383,7 @@ export default function SuperAdminPage() {
                       const sub = getSubForOrg(org.id);
                       const status = getStatus(org.id);
                       const memberCount = getMemberCount(org.id);
+                      const orgStats = analytics[org.id] || { clients: 0, projects: 0, revenue: 0 };
 
                       return (
                         <TableRow key={org.id} className="group">
