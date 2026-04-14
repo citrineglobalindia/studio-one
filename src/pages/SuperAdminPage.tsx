@@ -369,6 +369,9 @@ export default function SuperAdminPage() {
                       <TableHead>Studio</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead className="text-center">Clients</TableHead>
+                      <TableHead className="text-center">Projects</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
                       <TableHead>Members</TableHead>
                       <TableHead>City</TableHead>
                       <TableHead>Created</TableHead>
