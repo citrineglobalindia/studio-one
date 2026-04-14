@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay, isWeekend } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +7,9 @@ import { Clock, LogIn, LogOut, ChevronLeft, ChevronRight, Users, Ban, TrendingDo
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { useAttendance } from "@/hooks/useAttendance";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useLeaves } from "@/hooks/useLeaves";
 
 type TabType = "calendar" | "clockin" | "ledger" | "team" | "report" | "leave" | "holidays";
 
