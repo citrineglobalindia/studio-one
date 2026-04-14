@@ -955,6 +955,38 @@ export type Database = {
           },
         ]
       }
+      studio_module_restrictions: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          restricted_modules: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          restricted_modules?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          restricted_modules?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_module_restrictions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           billing_period: string
