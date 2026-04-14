@@ -425,6 +425,7 @@ export default function SuperAdminPage() {
                               <Users className="h-3.5 w-3.5" />
                               {memberCount}
                             </div>
+                          </TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground">
                               {org.city || "—"}
