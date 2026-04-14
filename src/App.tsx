@@ -60,6 +60,7 @@ import SAActivity from "./pages/superadmin/SAActivity";
 import SAReports from "./pages/superadmin/SAReports";
 import SANotifications from "./pages/superadmin/SANotifications";
 import SASettings from "./pages/superadmin/SASettings";
+import SASystemControl from "./pages/superadmin/SASystemControl";
 import SAPlaceholder from "./pages/superadmin/SAPlaceholder";
 
 const queryClient = new QueryClient();
@@ -154,6 +155,7 @@ const App = () => (
                     <Route path="activity" element={<SAActivity />} />
                     <Route path="reports" element={<SAReports />} />
                     <Route path="notifications" element={<SANotifications />} />
+                    <Route path="system" element={<SASystemControl />} />
                     <Route path="settings" element={<SASettings />} />
                   </Route>
                   <Route path="/*" element={<ProtectedRoutes />} />

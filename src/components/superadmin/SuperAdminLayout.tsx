@@ -17,6 +17,7 @@ import {
   Bell,
   FileText,
   Blocks,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const menuItems = [
   { label: "Activity Log", icon: Activity, path: "/super-admin/activity" },
   { label: "Reports", icon: FileText, path: "/super-admin/reports" },
   { label: "Notifications", icon: Bell, path: "/super-admin/notifications" },
+  { label: "System Control", icon: Database, path: "/super-admin/system" },
   { label: "Platform Settings", icon: Settings2, path: "/super-admin/settings" },
 ];
 
