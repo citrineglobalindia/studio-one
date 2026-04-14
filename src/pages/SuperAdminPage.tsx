@@ -75,6 +75,7 @@ export default function SuperAdminPage() {
   const [subscriptions, setSubscriptions] = useState<TenantSubscription[]>([]);
   const [members, setMembers] = useState<TenantMember[]>([]);
   const [plans, setPlans] = useState<Record<string, string>>({});
+  const [analytics, setAnalytics] = useState<Record<string, OrgAnalytics>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "trial" | "inactive">("all");
   const [loading, setLoading] = useState(true);
