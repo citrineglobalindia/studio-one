@@ -20,24 +20,7 @@ type ClockLog = {
   label: string;
 };
 
-const dailyLogs: { date: string; checkIn: string; checkOut: string; breakTime: string; totalHours: string; status: string }[] = [
-  { date: "Apr 4, 2026", checkIn: "09:02 AM", checkOut: "06:18 PM", breakTime: "45m", totalHours: "8h 31m", status: "On Time" },
-  { date: "Apr 3, 2026", checkIn: "09:15 AM", checkOut: "06:05 PM", breakTime: "30m", totalHours: "8h 20m", status: "Late" },
-  { date: "Apr 2, 2026", checkIn: "08:55 AM", checkOut: "06:30 PM", breakTime: "1h", totalHours: "8h 35m", status: "On Time" },
-  { date: "Apr 1, 2026", checkIn: "09:00 AM", checkOut: "05:45 PM", breakTime: "45m", totalHours: "8h 00m", status: "On Time" },
-  { date: "Mar 31, 2026", checkIn: "09:30 AM", checkOut: "06:00 PM", breakTime: "30m", totalHours: "8h 00m", status: "Late" },
-  { date: "Mar 28, 2026", checkIn: "08:50 AM", checkOut: "06:10 PM", breakTime: "45m", totalHours: "8h 35m", status: "On Time" },
-];
-
-// ── Mock Data ──────────────────────────────────────────────────────
-const attendanceData: Record<string, string> = {
-  "2026-03-02": "present", "2026-03-03": "present", "2026-03-04": "present", "2026-03-05": "present", "2026-03-06": "present",
-  "2026-03-09": "present", "2026-03-10": "absent", "2026-03-11": "present", "2026-03-12": "halfday", "2026-03-13": "present",
-  "2026-03-16": "present", "2026-03-17": "present", "2026-03-18": "present", "2026-03-14": "holiday", "2026-03-20": "leave",
-  "2026-04-01": "present", "2026-04-02": "present", "2026-04-03": "present", "2026-04-04": "present",
-  "2026-04-07": "present", "2026-04-08": "present", "2026-04-09": "absent", "2026-04-10": "present", "2026-04-11": "present",
-  "2026-04-14": "halfday", "2026-04-15": "present", "2026-04-16": "present", "2026-04-17": "present", "2026-04-18": "leave",
-};
+// Daily logs are now derived from DB data below
 
 const dayColors: Record<string, string> = {
   present: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
