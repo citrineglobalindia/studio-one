@@ -50,6 +50,12 @@ import ProfilePage from "./pages/ProfilePage";
 import AccessControlPage from "./pages/AccessControlPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
 
+// Super Admin sub-pages
+import SADashboard from "./pages/superadmin/SADashboard";
+import SAStudios from "./pages/superadmin/SAStudios";
+import SAModules from "./pages/superadmin/SAModules";
+import SAPlaceholder from "./pages/superadmin/SAPlaceholder";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
@@ -132,7 +138,18 @@ const App = () => (
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/auth" element={<AuthRoute />} />
-                  <Route path="/super-admin" element={<SuperAdminPage />} />
+                  {/* Super Admin with nested routes */}
+                  <Route path="/super-admin" element={<SuperAdminPage />}>
+                    <Route index element={<SADashboard />} />
+                    <Route path="studios" element={<SAStudios />} />
+                    <Route path="modules" element={<SAModules />} />
+                    <Route path="subscriptions" element={<SAPlaceholder />} />
+                    <Route path="users" element={<SAPlaceholder />} />
+                    <Route path="activity" element={<SAPlaceholder />} />
+                    <Route path="reports" element={<SAPlaceholder />} />
+                    <Route path="notifications" element={<SAPlaceholder />} />
+                    <Route path="settings" element={<SAPlaceholder />} />
+                  </Route>
                   <Route path="/*" element={<ProtectedRoutes />} />
                 </Routes>
               </BrowserRouter>
