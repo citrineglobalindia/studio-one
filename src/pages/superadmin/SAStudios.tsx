@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CreateStudioDialog } from "@/components/superadmin/CreateStudioDialog";
+import { CreateStudioWizard } from "@/components/superadmin/CreateStudioWizard";
 import { StudioDetailSheet } from "@/components/superadmin/StudioDetailSheet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -136,7 +136,7 @@ export default function SAStudios() {
           <h1 className="text-2xl font-bold text-foreground">Studios</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage all registered studios • {orgs.length} total</p>
         </div>
-        <CreateStudioDialog plans={Object.entries(plans).map(([id, name]) => ({ id, name }))} onCreated={fetchData} />
+        <CreateStudioWizard plans={Object.entries(plans).map(([id, name]) => ({ id, name }))} onCreated={fetchData} />
       </div>
 
       {/* Summary Cards */}
