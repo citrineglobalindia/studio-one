@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Loader2, CheckCircle2, Copy, Eye, EyeOff, ArrowRight, ArrowLeft,
-  Building2, CreditCard, Shield, Blocks, Sparkles,
+  Building2, CreditCard, Shield, Blocks, Sparkles, ClipboardList,
+  MapPin, Phone, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ALL_MODULES } from "@/contexts/RoleContext";
@@ -27,6 +28,7 @@ const STEPS = [
   { id: "plan", label: "Select Plan", icon: CreditCard },
   { id: "roles", label: "Roles", icon: Shield },
   { id: "modules", label: "Modules", icon: Blocks },
+  { id: "review", label: "Review", icon: ClipboardList },
 ] as const;
 
 type StepId = typeof STEPS[number]["id"];
