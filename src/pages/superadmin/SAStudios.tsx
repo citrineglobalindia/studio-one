@@ -349,6 +349,62 @@ export default function SAStudios() {
           onUpdated={fetchData}
         />
       )}
+
+      {/* Reset Studio Confirmation Dialog */}
+      <AlertDialog open={!!resetTarget && !resetSuccess} onOpenChange={(open) => { if (!open) { setResetTarget(null); setResetConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <RotateCcw className="h-5 w-5" /> Reset Studio
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>This will permanently erase <strong className="text-foreground">{resetTarget?.name}</strong>'s data including clients, projects, leads, invoices, quotations, albums, employees, team members, attendance, and leaves.</p>
+              <p className="text-destructive font-medium">This action cannot be undone.</p>
+              <div className="pt-2">
+                <Label className="text-xs text-muted-foreground">Type <strong>RESET</strong> to confirm</Label>
+                <Input value={resetConfirmText} onChange={(e) => setResetConfirmText(e.target.value.toUpperCase())} placeholder="RESET" className="mt-1.5" />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button variant="destructive" onClick={handleResetStudio} disabled={resetConfirmText !== "RESET" || resetting}>
+              {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+              {resetting ? "Resetting..." : "Reset All Data"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Success Dialog */}
+      <AlertDialog open={resetSuccess} onOpenChange={(open) => { if (!open) { setResetSuccess(false); setResetTarget(null); } }}>
+        <AlertDialogContent className="text-center">
+          <div className="flex flex-col items-center space-y-4 py-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-500/20 via-primary/20 to-emerald-500/20 blur-2xl animate-pulse" />
+              <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <Sparkles className="h-10 w-10 text-white" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold bg-gradient-to-r from-emerald-400 via-primary to-emerald-400 bg-clip-text text-transparent">
+              Studio Reset Complete! ✨
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              All data for <span className="font-semibold text-foreground">{resetTarget?.name}</span> has been erased.
+            </p>
+            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground w-full max-w-xs">
+              {["Clients", "Projects", "Leads", "Invoices", "Quotations", "Albums", "Employees", "Team", "Attendance"].map((item) => (
+                <div key={item} className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {item}
+                </div>
+              ))}
+            </div>
+            <Button onClick={() => { setResetSuccess(false); setResetTarget(null); }} className="bg-gradient-to-r from-emerald-500 to-primary text-white px-8 mt-2">
+              Done
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
