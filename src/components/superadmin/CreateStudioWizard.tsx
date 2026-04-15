@@ -50,6 +50,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [done, setDone] = useState(false);
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [slideDir, setSlideDir] = useState<"left" | "right">("left");
 
   const [form, setForm] = useState({
