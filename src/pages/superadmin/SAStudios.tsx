@@ -57,7 +57,7 @@ export default function SAStudios() {
   const [resetting, setResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  const handleResetStudio = async () => {
+  useEffect(() => { fetchData(); }, []);
     if (!resetTarget || resetConfirmText !== "RESET") return;
     setResetting(true);
     const tables = ["deliverables", "attendance", "leaves", "invoices", "quotations", "albums", "projects", "clients", "leads", "employees", "team_members"] as const;
