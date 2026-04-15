@@ -271,11 +271,11 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
               </div>
             </div>
 
-            {/* Step Content */}
-            <div className="flex-1 min-h-0 px-6 pt-4 pb-0">
+            {/* Step Content — fixed height scrollable area */}
+            <div className="px-6 pt-4 pb-0">
               <div
                 key={currentStep}
-                className="h-full overflow-y-auto pr-2 pb-16 overscroll-contain"
+                className="overflow-y-auto max-h-[calc(90vh-280px)] pr-2 pb-4"
                 style={{
                   animation: slideDir === "left"
                     ? "wizard-slide-left 0.25s ease-out"
