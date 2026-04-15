@@ -50,7 +50,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [done, setDone] = useState(false);
-  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [slideDir, setSlideDir] = useState<"left" | "right">("left");
 
   const [form, setForm] = useState({
     studioName: "", email: "", password: "", city: "", phone: "", teamSize: "solo", planId: "",
@@ -65,6 +65,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
     setDisabledRoles([]);
     setRestrictedModules([]);
     setCurrentStep("info");
+    setSlideDir("left");
     setDone(false);
     setCredentials(null);
     setShowPassword(false);
@@ -77,11 +78,17 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
 
   const next = () => {
     const idx = stepIndex;
-    if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1].id);
+    if (idx < STEPS.length - 1) {
+      setSlideDir("left");
+      setCurrentStep(STEPS[idx + 1].id);
+    }
   };
   const prev = () => {
     const idx = stepIndex;
-    if (idx > 0) setCurrentStep(STEPS[idx - 1].id);
+    if (idx > 0) {
+      setSlideDir("right");
+      setCurrentStep(STEPS[idx - 1].id);
+    }
   };
 
   const handleCreate = async () => {
