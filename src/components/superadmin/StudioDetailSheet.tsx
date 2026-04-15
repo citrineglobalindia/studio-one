@@ -11,9 +11,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ALL_ROLES, ALL_MODULES, type AppRole, type AppModule } from "@/contexts/RoleContext";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Building2, Users, FolderKanban, IndianRupee, Shield, Blocks,
   Eye, Save, Loader2, MapPin, Phone, Globe, Instagram, Palette,
   UserCheck, UserX, CheckCircle2, XCircle, LogIn, Copy, ExternalLink,
+  Trash2, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +57,8 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
     name: "", city: "", phone: "", website: "", instagram: "", primary_color: "#C4973B",
   });
   const [stats, setStats] = useState({ clients: 0, projects: 0, members: 0, revenue: 0 });
+  const [resetting, setResetting] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
   useEffect(() => {
     if (!open || !studioId) return;
@@ -140,6 +148,20 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
     localStorage.setItem("sa_impersonate_org", studioId);
     window.open("/", "_blank");
     toast.info(`Opening ${studioName} dashboard in new tab`);
+  };
+
+  const handleResetStudio = async () => {
+    if (confirmText !== "RESET") return;
+    setResetting(true);
+    const orgTables = ["deliverables", "attendance", "leaves", "invoices", "quotations", "albums", "projects", "clients", "leads", "employees", "team_members"] as const;
+    for (const table of orgTables) {
+      await supabase.from(table).delete().eq("organization_id", studioId);
+    }
+    setResetting(false);
+    setConfirmText("");
+    toast.success(`${studioName} has been reset — all data erased`);
+    onUpdated();
+    fetchAll();
   };
 
   const coreModules: AppModule[] = ["dashboard", "profile", "notifications"];
@@ -358,6 +380,54 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
                   {savingInfo ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Update Company Info
                 </Button>
+
+                <Separator />
+
+                {/* Danger Zone */}
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <h4 className="text-sm font-semibold text-destructive">Danger Zone</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Resetting will permanently erase all clients, leads, projects, invoices, quotations, albums, employees, team members, attendance, and leave records for this studio. This action cannot be undone.
+                  </p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="w-full gap-2">
+                        <Trash2 className="h-4 w-4" /> Reset Studio Data
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                          <AlertTriangle className="h-5 w-5" /> Reset "{studioName}"?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-3">
+                          <p>This will permanently delete <strong>all data</strong> for this studio including clients, projects, invoices, leads, employees, and more.</p>
+                          <p className="font-medium">Type <span className="font-mono text-destructive font-bold">RESET</span> to confirm:</p>
+                          <Input
+                            value={confirmText}
+                            onChange={e => setConfirmText(e.target.value)}
+                            placeholder="Type RESET"
+                            className="font-mono"
+                          />
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setConfirmText("")}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleResetStudio}
+                          disabled={confirmText !== "RESET" || resetting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                          Erase All Data
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </TabsContent>
             </Tabs>
           </>
