@@ -254,6 +254,10 @@ export default function SAStudios() {
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); localStorage.setItem("sa_impersonate_org", org.id); window.open("/", "_blank"); toast.info(`Opening ${org.name} in new tab`); }}>
                             <LogIn className="h-4 w-4 mr-2" /> Login as Studio
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setResetTarget({ id: org.id, name: org.name }); }}>
+                            <RotateCcw className="h-4 w-4 mr-2" /> Reset Studio
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
