@@ -56,7 +56,8 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
   const [editForm, setEditForm] = useState({
     name: "", city: "", phone: "", website: "", instagram: "", primary_color: "#C4973B",
   });
-  const [stats, setStats] = useState({ clients: 0, projects: 0, members: 0, revenue: 0 });
+  const [resetting, setResetting] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
   useEffect(() => {
     if (!open || !studioId) return;
