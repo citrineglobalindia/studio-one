@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        organizationId: org.id,
         studio: { id: org.id, name: org.name, slug: org.slug },
         credentials: { email, password },
       }),
