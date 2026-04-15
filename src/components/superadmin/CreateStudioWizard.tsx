@@ -171,7 +171,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
       <DialogTrigger asChild>
         <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Create Studio</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 border-primary/10 shadow-2xl shadow-primary/5" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 border-primary/10 shadow-2xl shadow-primary/5">
         {/* Header */}
         <DialogHeader className="shrink-0 px-6 pt-6 pb-2 bg-gradient-to-b from-primary/5 to-transparent">
           <DialogTitle className="flex items-center gap-2.5 text-lg">
