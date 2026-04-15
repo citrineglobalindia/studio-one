@@ -51,6 +51,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
   const [showPassword, setShowPassword] = useState(false);
   const [done, setDone] = useState(false);
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [slideDir, setSlideDir] = useState<"left" | "right">("left");
 
   const [form, setForm] = useState({
     studioName: "", email: "", password: "", city: "", phone: "", teamSize: "solo", planId: "",
@@ -65,6 +66,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
     setDisabledRoles([]);
     setRestrictedModules([]);
     setCurrentStep("info");
+    setSlideDir("left");
     setDone(false);
     setCredentials(null);
     setShowPassword(false);
@@ -77,11 +79,17 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
 
   const next = () => {
     const idx = stepIndex;
-    if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1].id);
+    if (idx < STEPS.length - 1) {
+      setSlideDir("left");
+      setCurrentStep(STEPS[idx + 1].id);
+    }
   };
   const prev = () => {
     const idx = stepIndex;
-    if (idx > 0) setCurrentStep(STEPS[idx - 1].id);
+    if (idx > 0) {
+      setSlideDir("right");
+      setCurrentStep(STEPS[idx - 1].id);
+    }
   };
 
   const handleCreate = async () => {
@@ -240,7 +248,16 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
             </div>
 
             {/* Step Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex-1 overflow-hidden px-6 py-4">
+              <div
+                key={currentStep}
+                className="h-full overflow-y-auto"
+                style={{
+                  animation: slideDir === "left"
+                    ? "wizard-slide-left 0.25s ease-out"
+                    : "wizard-slide-right 0.25s ease-out",
+                }}
+              >
               {currentStep === "info" && (
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -463,6 +480,7 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
                   </div>
                 );
               })()}
+              </div>
             </div>
 
             {/* Footer */}
