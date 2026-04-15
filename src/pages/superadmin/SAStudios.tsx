@@ -51,7 +51,23 @@ export default function SAStudios() {
   const [selectedStudio, setSelectedStudio] = useState<{ id: string; name: string } | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  useEffect(() => { fetchData(); }, []);
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  const handleResetStudio = async () => {
+    if (!resetTarget || resetConfirmText !== "RESET") return;
+    setResetting(true);
+    const tables = ["deliverables", "attendance", "leaves", "invoices", "quotations", "albums", "projects", "clients", "leads", "employees", "team_members"] as const;
+    for (const table of tables) {
+      await supabase.from(table).delete().eq("organization_id", resetTarget.id);
+    }
+    setResetting(false);
+    setResetConfirmText("");
+    setResetSuccess(true);
+    fetchData();
+  };
 
   const fetchData = async () => {
     setLoading(true);
