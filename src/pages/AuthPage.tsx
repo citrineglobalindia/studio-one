@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,14 +62,29 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      toast.success("Welcome back!");
+      
+      // Check if user is a super admin
+      const { data: saData } = await supabase
+        .from("super_admins")
+        .select("id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      
+      if (saData) {
+        toast.success("Welcome back, Super Admin!");
+        navigate("/super-admin", { replace: true });
+      } else {
+        toast.success("Welcome back!");
+        navigate("/", { replace: true });
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
