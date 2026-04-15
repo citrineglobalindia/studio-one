@@ -11,9 +11,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ALL_ROLES, ALL_MODULES, type AppRole, type AppModule } from "@/contexts/RoleContext";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Building2, Users, FolderKanban, IndianRupee, Shield, Blocks,
   Eye, Save, Loader2, MapPin, Phone, Globe, Instagram, Palette,
   UserCheck, UserX, CheckCircle2, XCircle, LogIn, Copy, ExternalLink,
+  Trash2, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
