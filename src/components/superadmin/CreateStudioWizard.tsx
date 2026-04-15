@@ -183,39 +183,71 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
         </DialogHeader>
 
         {done ? (
-          /* Success */
-          <div className="p-6 space-y-5">
-            <div className="flex flex-col items-center gap-3 py-4">
-              <div className="h-16 w-16 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+          /* Welcome Onboard Success */
+          <div className="p-6 space-y-6 text-center">
+            {/* Animated celebration */}
+            <div className="relative flex flex-col items-center gap-4 py-6">
+              <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                <div className="h-48 w-48 rounded-full bg-gradient-to-br from-primary via-emerald-500 to-primary animate-pulse" />
               </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Studio <strong>{form.studioName}</strong> is ready. Share these credentials with the owner.
-              </p>
+              <div className="relative h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center shadow-2xl shadow-primary/30 animate-[bounce_1s_ease-in-out]">
+                <Sparkles className="h-10 w-10 text-white" />
+              </div>
+              <div className="relative space-y-2">
+                <h2 className="text-2xl font-display font-bold bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent">
+                  Welcome Onboard! 🎉
+                </h2>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  <strong className="text-foreground">{form.studioName}</strong> is all set up and ready to create magic!
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+
+            {/* Credentials card */}
+            <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-500/5 p-5 space-y-4 text-left">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Login Credentials</span>
-                <Button variant="ghost" size="sm" onClick={copyCredentials}><Copy className="h-3.5 w-3.5 mr-1" /> Copy</Button>
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Shield className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Login Credentials</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={copyCredentials} className="text-primary hover:text-primary">
+                  <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                </Button>
               </div>
-              <div className="space-y-2">
-                <div><span className="text-xs text-muted-foreground">Email</span><p className="text-sm font-mono font-medium">{credentials?.email}</p></div>
-                <div><span className="text-xs text-muted-foreground">Password</span><p className="text-sm font-mono font-medium">{credentials?.password}</p></div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between rounded-lg bg-background/80 px-3 py-2.5 border border-border/50">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Email</span>
+                    <p className="text-sm font-mono font-semibold text-foreground">{credentials?.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-background/80 px-3 py-2.5 border border-border/50">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Password</span>
+                    <p className="text-sm font-mono font-semibold text-foreground">
+                      {showPassword ? credentials?.password : "••••••••"}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {disabledRoles.length > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">Disabled roles:</span> {disabledRoles.join(", ")}
-                </div>
-              )}
-              {restrictedModules.length > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">Restricted modules:</span> {restrictedModules.join(", ")}
-                </div>
-              )}
+
+            {/* Summary badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {form.city && <Badge variant="outline" className="text-xs"><MapPin className="h-3 w-3 mr-1" />{form.city}</Badge>}
+              <Badge variant="outline" className="text-xs"><Users className="h-3 w-3 mr-1" />{teamSizes.find(t => t.value === form.teamSize)?.label}</Badge>
+              {disabledRoles.length > 0 && <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/30">{disabledRoles.length} roles disabled</Badge>}
+              {restrictedModules.length > 0 && <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/30">{restrictedModules.length} modules restricted</Badge>}
             </div>
-            <Button className="w-full" variant="outline" onClick={() => { setOpen(false); reset(); }}>Done</Button>
+
+            <Button className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white shadow-lg shadow-primary/20" onClick={() => { setOpen(false); reset(); }}>
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Done — Let's Go!
+            </Button>
           </div>
         ) : (
           <>
