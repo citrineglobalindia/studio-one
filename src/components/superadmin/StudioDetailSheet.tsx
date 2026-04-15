@@ -153,8 +153,8 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
   const handleResetStudio = async () => {
     if (confirmText !== "RESET") return;
     setResetting(true);
-    const tables = ["deliverables", "attendance", "leaves", "invoices", "quotations", "albums", "expenses", "projects", "clients", "leads", "employees", "team_members"] as const;
-    for (const table of tables) {
+    const orgTables = ["deliverables", "attendance", "leaves", "invoices", "quotations", "albums", "projects", "clients", "leads", "employees", "team_members"] as const;
+    for (const table of orgTables) {
       await supabase.from(table).delete().eq("organization_id", studioId);
     }
     setResetting(false);
