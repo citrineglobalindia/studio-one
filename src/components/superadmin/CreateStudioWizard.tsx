@@ -245,6 +245,23 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
                   );
                 })}
               </div>
+              {/* Progress Bar */}
+              <div className="mt-3">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500 ease-out"
+                    style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1.5">
+                  <span className="text-[10px] text-muted-foreground">
+                    Step {stepIndex + 1} of {STEPS.length}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {Math.round(((stepIndex + 1) / STEPS.length) * 100)}%
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Step Content */}
