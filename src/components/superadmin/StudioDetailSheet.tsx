@@ -160,7 +160,7 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
     }
     setResetting(false);
     setConfirmText("");
-    toast.success(`${studioName} has been reset — all data erased`);
+    setResetSuccess(true);
     onUpdated();
     fetchAll();
   };
