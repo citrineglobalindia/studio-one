@@ -8,24 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Shield } from "lucide-react";
 
 export default function SuperAdminPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (loading) return;
+    if (!user) {
+      setIsSuperAdmin(false);
+      return;
+    }
+    const checkSuperAdmin = async () => {
+      const { data } = await supabase
+        .from("super_admins")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setIsSuperAdmin(!!data);
+    };
     checkSuperAdmin();
-  }, [user]);
-
-  const checkSuperAdmin = async () => {
-    const { data } = await supabase
-      .from("super_admins")
-      .select("id")
-      .eq("user_id", user!.id)
-      .maybeSingle();
-
-    setIsSuperAdmin(!!data);
-  };
+  }, [user, loading]);
 
   if (isSuperAdmin === null) {
     return (
