@@ -19,7 +19,7 @@ import {
   Building2, Users, FolderKanban, IndianRupee, Shield, Blocks,
   Eye, Save, Loader2, MapPin, Phone, Globe, Instagram, Palette,
   UserCheck, UserX, CheckCircle2, XCircle, LogIn, Copy, ExternalLink,
-  Trash2, AlertTriangle,
+  Trash2, AlertTriangle, Sparkles, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +59,7 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
   const [stats, setStats] = useState({ clients: 0, projects: 0, members: 0, revenue: 0 });
   const [resetting, setResetting] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     if (!open || !studioId) return;
@@ -159,7 +160,7 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
     }
     setResetting(false);
     setConfirmText("");
-    toast.success(`${studioName} has been reset — all data erased`);
+    setResetSuccess(true);
     onUpdated();
     fetchAll();
   };
@@ -177,7 +178,49 @@ export function StudioDetailSheet({ open, onOpenChange, studioId, studioName, on
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[580px] overflow-y-auto p-0">
-        {loading ? (
+        {resetSuccess ? (
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-500/20 via-primary/20 to-emerald-500/20 blur-2xl animate-pulse" />
+              <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <Sparkles className="h-12 w-12 text-white" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-2xl font-display font-bold bg-gradient-to-r from-emerald-400 via-primary to-emerald-400 bg-clip-text text-transparent">
+                Studio Reset Complete! ✨
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                All data for <span className="font-semibold text-foreground">{studioName}</span> has been erased. The studio is now a clean slate, ready for fresh data.
+              </p>
+            </div>
+
+            <Card className="w-full max-w-sm border-emerald-500/20 bg-emerald-500/5">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                  <RotateCcw className="h-4 w-4" />
+                  Data Cleared
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  {["Clients", "Projects", "Leads", "Invoices", "Quotations", "Albums", "Employees", "Team Members", "Attendance", "Leaves", "Deliverables"].map((item) => (
+                    <div key={item} className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Button
+              onClick={() => setResetSuccess(false)}
+              className="bg-gradient-to-r from-emerald-500 to-primary hover:from-emerald-600 hover:to-primary/90 text-white px-8"
+            >
+              Done
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
