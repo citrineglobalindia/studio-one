@@ -116,6 +116,24 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
       }
     }
 
+    // Audit log
+    if (user?.id) {
+      await supabase.from("audit_logs").insert({
+        action: "studio_created",
+        actor_id: user.id,
+        target_id: orgId || null,
+        target_type: "organization",
+        metadata: {
+          studio_name: form.studioName,
+          email: form.email,
+          city: form.city,
+          plan: plans.find(p => p.id === form.planId)?.name || null,
+          disabled_roles: disabledRoles,
+          restricted_modules: restrictedModules,
+        },
+      });
+    }
+
     setLoading(false);
     setCredentials({ email: form.email, password: form.password });
     setDone(true);
