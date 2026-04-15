@@ -248,7 +248,16 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
             </div>
 
             {/* Step Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex-1 overflow-hidden px-6 py-4">
+              <div
+                key={currentStep}
+                className="h-full overflow-y-auto"
+                style={{
+                  animation: slideDir === "left"
+                    ? "wizard-slide-left 0.25s ease-out"
+                    : "wizard-slide-right 0.25s ease-out",
+                }}
+              >
               {currentStep === "info" && (
                 <div className="space-y-4">
                   <div className="space-y-2">
