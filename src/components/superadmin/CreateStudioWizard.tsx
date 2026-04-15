@@ -98,20 +98,18 @@ export function CreateStudioWizard({ plans, onCreated }: CreateStudioWizardProps
 
     const orgId = data?.organizationId;
     if (orgId) {
-      const promises: Promise<any>[] = [];
       if (disabledRoles.length > 0) {
-        promises.push(supabase.from("studio_role_restrictions").upsert(
+        await supabase.from("studio_role_restrictions").upsert(
           { organization_id: orgId, disabled_roles: disabledRoles },
           { onConflict: "organization_id" }
-        ));
+        );
       }
       if (restrictedModules.length > 0) {
-        promises.push(supabase.from("studio_module_restrictions").upsert(
+        await supabase.from("studio_module_restrictions").upsert(
           { organization_id: orgId, restricted_modules: restrictedModules },
           { onConflict: "organization_id" }
-        ));
+        );
       }
-      await Promise.all(promises);
     }
 
     setLoading(false);

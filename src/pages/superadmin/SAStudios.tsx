@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CreateStudioDialog } from "@/components/superadmin/CreateStudioDialog";
+import { CreateStudioWizard } from "@/components/superadmin/CreateStudioWizard";
 import { StudioDetailSheet } from "@/components/superadmin/StudioDetailSheet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
