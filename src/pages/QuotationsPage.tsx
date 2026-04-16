@@ -157,6 +157,8 @@ export default function QuotationsPage() {
   // Create quotation state
   const [newClient, setNewClient] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientSource, setNewClientSource] = useState<"manual" | "client" | "lead">("manual");
+  const [newClientId, setNewClientId] = useState<string | null>(null);
   const [newSelectedPkg, setNewSelectedPkg] = useState<string>("");
   const [newSelectedAddons, setNewSelectedAddons] = useState<string[]>([]);
   const [newCustomItems, setNewCustomItems] = useState<{ name: string; amount: string }[]>([]);
