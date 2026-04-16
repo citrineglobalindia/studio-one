@@ -266,6 +266,7 @@ export default function SAStudios() {
             const status = getStatus(org.id);
             const sub = getSubForOrg(org.id);
             const orgStats = analytics[org.id] || { clients: 0, projects: 0, revenue: 0, members: 0 };
+            const rest = restrictions[org.id];
 
             return (
               <Card key={org.id} className="group hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer"
