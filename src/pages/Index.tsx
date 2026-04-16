@@ -124,6 +124,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { currentRole } = useRole();
   const { organization } = useOrg();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   const eventDates = useMemo(() => {
     const dates: Date[] = [];
