@@ -863,7 +863,6 @@ export default function QuotationsPage() {
                 </div>
               )}
             </div>
-            </div>
 
             {/* Select Package */}
             <div className="space-y-3">
