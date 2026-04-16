@@ -508,7 +508,7 @@ export default function CommunicationsPage() {
                     <div
                       key={conv.id}
                       onClick={() => setSelectedExternal(conv)}
-                      className={`p-3 cursor-pointer transition-colors ${selectedExternal.id === conv.id ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/30"}`}
+                      className={`p-3 cursor-pointer transition-colors ${selectedExternal?.id === conv.id ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/30"}`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
