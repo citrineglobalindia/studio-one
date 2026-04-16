@@ -112,56 +112,7 @@ const studioPackages: StudioPackage[] = [
   },
 ];
 
-const sampleQuotations: Quotation[] = [
-  {
-    id: "q1", quotationNumber: "QT-2026-001", client: "Sneha & Rohan", clientPhone: "+91 98765 43210",
-    items: [{ type: "package", name: "Destination Wedding", amount: 500000 }, { type: "addon", name: "LED Wall Projection", amount: 15000 }],
-    totalAmount: 515000, discount: 15000, finalAmount: 500000,
-    status: "sent", sentDate: "2026-03-28", validUntil: "2026-04-15", createdAt: "2026-03-27", notes: "Udaipur venue – Oberoi Udaivilas",
-  },
-  {
-    id: "q2", quotationNumber: "QT-2026-002", client: "Ritu & Karan",
-    items: [{ type: "package", name: "Premium Package", amount: 250000 }, { type: "addon", name: "Pre-Wedding Shoot", amount: 35000 }],
-    totalAmount: 285000, discount: 10000, finalAmount: 275000,
-    status: "approved", sentDate: "2026-03-15", viewedDate: "2026-03-16", validUntil: "2026-04-10", createdAt: "2026-03-14",
-  },
-  {
-    id: "q3", quotationNumber: "QT-2026-003", client: "Divya & Arun",
-    items: [{ type: "package", name: "Royal Package", amount: 350000 }],
-    totalAmount: 350000, discount: 0, finalAmount: 350000,
-    status: "viewed", sentDate: "2026-03-25", viewedDate: "2026-03-26", validUntil: "2026-04-20", createdAt: "2026-03-24",
-  },
-  {
-    id: "q4", quotationNumber: "QT-2026-004", client: "Pooja & Nikhil",
-    items: [{ type: "package", name: "Classic Package", amount: 150000 }, { type: "addon", name: "Drone Coverage", amount: 25000 }],
-    totalAmount: 175000, discount: 15000, finalAmount: 160000,
-    status: "draft", validUntil: "2026-04-30", createdAt: "2026-03-30",
-  },
-  {
-    id: "q5", quotationNumber: "QT-2026-005", client: "Sunita & Raj",
-    items: [{ type: "package", name: "Premium Package", amount: 250000 }],
-    totalAmount: 250000, discount: 0, finalAmount: 250000,
-    status: "rejected", sentDate: "2026-03-10", validUntil: "2026-03-25", createdAt: "2026-03-09", notes: "Budget constraints – may revisit",
-  },
-  {
-    id: "q6", quotationNumber: "QT-2026-006", client: "Tara & Mohan",
-    items: [{ type: "package", name: "Classic Package", amount: 150000 }],
-    totalAmount: 150000, discount: 0, finalAmount: 150000,
-    status: "expired", sentDate: "2026-02-20", validUntil: "2026-03-15", createdAt: "2026-02-19",
-  },
-  {
-    id: "q7", quotationNumber: "QT-2026-007", client: "Aarti & Vivek", clientPhone: "+91 77665 54433",
-    items: [{ type: "package", name: "Royal Package", amount: 350000 }, { type: "addon", name: "Same-Day Edit", amount: 20000 }, { type: "addon", name: "Candid Specialist", amount: 30000 }],
-    totalAmount: 400000, discount: 25000, finalAmount: 375000,
-    status: "sent", sentDate: "2026-04-01", validUntil: "2026-04-20", createdAt: "2026-03-31", notes: "Jaipur – Palace wedding",
-  },
-  {
-    id: "q8", quotationNumber: "QT-2026-008", client: "Meghna & Sahil",
-    items: [{ type: "package", name: "Premium Package", amount: 250000 }, { type: "addon", name: "Pre-Wedding Shoot", amount: 35000 }, { type: "addon", name: "Premium Album", amount: 18000 }],
-    totalAmount: 303000, discount: 0, finalAmount: 303000,
-    status: "approved", sentDate: "2026-03-20", viewedDate: "2026-03-21", validUntil: "2026-04-15", createdAt: "2026-03-19",
-  },
-];
+const sampleQuotations: Quotation[] = [];
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ElementType }> = {
   draft: { label: "Draft", color: "text-muted-foreground", bgColor: "bg-muted/50", borderColor: "border-border", icon: FileText },
