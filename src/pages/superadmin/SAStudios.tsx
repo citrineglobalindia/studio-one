@@ -384,7 +384,19 @@ export default function SAStudios() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">{org.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{org.city || org.slug}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[10px] text-muted-foreground">{org.city || org.slug}</p>
+                      {rest && rest.disabledRoles.length > 0 && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-amber-500/30 text-amber-400">
+                          {rest.disabledRoles.length}R
+                        </Badge>
+                      )}
+                      {rest && rest.restrictedModules.length > 0 && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-amber-500/30 text-amber-400">
+                          {rest.restrictedModules.length}M
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div>{statusBadge(status)}</div>
