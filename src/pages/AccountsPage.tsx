@@ -16,8 +16,10 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { sampleProjects, type Payment, type PaymentStatus, type PaymentType } from "@/data/wedding-types";
-import { sampleClients } from "@/data/clients-data";
+import { useProjects } from "@/hooks/useProjects";
+import { useClients } from "@/hooks/useClients";
+import { useInvoices } from "@/hooks/useInvoices";
+import { type Payment, type PaymentStatus, type PaymentType } from "@/data/wedding-types";
 import { useRole } from "@/contexts/RoleContext";
 import {
   Search, IndianRupee, FileText, CheckCircle2, Clock, AlertCircle,
@@ -79,6 +81,9 @@ const modeIcons: Record<string, typeof CreditCard> = {
 const AccountsPage = () => {
   const navigate = useNavigate();
   const { currentRole, isAdmin } = useRole();
+  const { clients: dbClients } = useClients();
+  const { projects: dbProjects } = useProjects();
+  const { invoices: dbInvoices } = useInvoices();
   const [activeTab, setActiveTab] = useState("overview");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
