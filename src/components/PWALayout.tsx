@@ -252,7 +252,9 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
                 {/* Quick Access List */}
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.2em] px-1 mb-3">Account</p>
                 <div className="space-y-1.5">
-                  {(["profile", "settings", "notifications"] as AppModule[]).map((mod) => {
+                  {(["profile", "settings", "notifications"] as AppModule[])
+                    .filter((mod) => accessible.includes(mod))
+                    .map((mod) => {
                     const config = moduleConfig[mod];
                     return (
                       <motion.button

@@ -110,7 +110,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const navigate = useNavigate();
-  const { hasAccess, isAdmin } = useRole();
+  const { hasAccess } = useRole();
 
   const handleLogout = async () => {
     await signOut();

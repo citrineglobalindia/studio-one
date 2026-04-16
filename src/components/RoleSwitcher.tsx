@@ -3,9 +3,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shield } from "lucide-react";
 
 export function RoleSwitcher() {
-  const { currentRole, setCurrentRole, isAdmin } = useRole();
+  const { currentRole, setCurrentRole, isAdmin, studioDisabledRoles } = useRole();
 
-  // Only admins can switch roles (for testing)
   if (!isAdmin) {
     return (
       <div className="flex items-center gap-2">
@@ -15,6 +14,10 @@ export function RoleSwitcher() {
     );
   }
 
+  const visibleRoles = ALL_ROLES.filter(
+    (role) => role.value === "admin" || !studioDisabledRoles.includes(role.value)
+  );
+
   return (
     <div className="flex items-center gap-2">
       <Shield className="h-4 w-4 text-muted-foreground" />
@@ -23,7 +26,7 @@ export function RoleSwitcher() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {ALL_ROLES.map((r) => (
+          {visibleRoles.map((r) => (
             <SelectItem key={r.value} value={r.value} className="text-xs">
               {r.label}
             </SelectItem>

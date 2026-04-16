@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
+import { useOrg } from "@/contexts/OrgContext";
 import { PhotographerDashboard } from "@/components/dashboards/PhotographerDashboard";
 import { VideographerDashboard } from "@/components/dashboards/VideographerDashboard";
 import { EditorDashboard } from "@/components/dashboards/EditorDashboard";
@@ -122,7 +123,7 @@ const PremiumBar = ({ label, value, total, colorClass, delay, labelColor }: {
 const Index = () => {
   const navigate = useNavigate();
   const { currentRole } = useRole();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(today);
+  const { organization } = useOrg();
 
   const eventDates = useMemo(() => {
     const dates: Date[] = [];

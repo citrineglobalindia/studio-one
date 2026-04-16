@@ -51,7 +51,6 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "settings", label: "Settings", group: "System" },
 ];
 
-// Default access: each role gets specific modules
 const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   admin: ALL_MODULES.map((m) => m.value),
   vendor: ["dashboard", "projects", "calendar", "tasks", "communications", "notifications", "profile"],
@@ -73,22 +72,24 @@ interface RoleContextType {
   isAdmin: boolean;
   roleLoading: boolean;
   studioRestrictedModules: string[];
+  studioDisabledRoles: string[];
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [currentRole, setCurrentRole] = useState<AppRole>("admin");
+  const [currentRole, setCurrentRoleState] = useState<AppRole>("admin");
   const [roleAccess, setRoleAccess] = useState<Record<AppRole, AppModule[]>>(DEFAULT_ACCESS);
   const [roleLoading, setRoleLoading] = useState(true);
   const [studioRestrictedModules, setStudioRestrictedModules] = useState<string[]>([]);
+  const [studioDisabledRoles, setStudioDisabledRoles] = useState<string[]>([]);
 
-  // Fetch role from profile when user changes
   useEffect(() => {
     if (!user) {
-      setCurrentRole("admin");
+      setCurrentRoleState("admin");
       setStudioRestrictedModules([]);
+      setStudioDisabledRoles([]);
       setRoleLoading(false);
       return;
     }
@@ -96,67 +97,114 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const fetchRoleAndRestrictions = async () => {
       setRoleLoading(true);
 
-      // Fetch role
+      let nextRole: AppRole = "admin";
+      const impersonatedOrgId = typeof window !== "undefined"
+        ? localStorage.getItem("sa_impersonate_org")
+        : null;
+
       const { data: profileData } = await supabase
         .from("profiles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (profileData?.role) {
         const validRoles: AppRole[] = ["admin", "vendor", "editor", "telecaller", "videographer", "photographer", "hr", "accounts"];
         if (validRoles.includes(profileData.role as AppRole)) {
-          setCurrentRole(profileData.role as AppRole);
+          nextRole = profileData.role as AppRole;
         }
       }
 
-      // Fetch studio module restrictions via org membership
       try {
-        const { data: membership } = await supabase
-          .from("organization_members")
-          .select("organization_id")
-          .eq("user_id", user.id)
-          .limit(1)
-          .maybeSingle();
+        let targetOrgId: string | null = null;
 
-        if (membership?.organization_id) {
-          const { data: restrictions } = await supabase
-            .from("studio_module_restrictions")
-            .select("restricted_modules")
-            .eq("organization_id", membership.organization_id)
+        if (impersonatedOrgId) {
+          const { data: isSuperAdmin } = await supabase.rpc("is_super_admin", {
+            _user_id: user.id,
+          });
+
+          if (isSuperAdmin) {
+            targetOrgId = impersonatedOrgId;
+          }
+        }
+
+        if (!targetOrgId) {
+          const { data: membership } = await supabase
+            .from("organization_members")
+            .select("organization_id")
+            .eq("user_id", user.id)
+            .limit(1)
             .maybeSingle();
 
-          setStudioRestrictedModules(restrictions?.restricted_modules || []);
+          targetOrgId = membership?.organization_id ?? null;
+        }
+
+        if (targetOrgId) {
+          const [moduleRestrictionsRes, roleRestrictionsRes] = await Promise.all([
+            supabase
+              .from("studio_module_restrictions")
+              .select("restricted_modules")
+              .eq("organization_id", targetOrgId)
+              .maybeSingle(),
+            supabase
+              .from("studio_role_restrictions")
+              .select("disabled_roles")
+              .eq("organization_id", targetOrgId)
+              .maybeSingle(),
+          ]);
+
+          const disabledRoles = roleRestrictionsRes.data?.disabled_roles || [];
+
+          setStudioRestrictedModules(moduleRestrictionsRes.data?.restricted_modules || []);
+          setStudioDisabledRoles(disabledRoles);
+
+          if (nextRole !== "admin" && disabledRoles.includes(nextRole)) {
+            nextRole = "admin";
+          }
         } else {
           setStudioRestrictedModules([]);
+          setStudioDisabledRoles([]);
         }
       } catch {
         setStudioRestrictedModules([]);
+        setStudioDisabledRoles([]);
       }
 
+      setCurrentRoleState(nextRole);
       setRoleLoading(false);
     };
 
     fetchRoleAndRestrictions();
   }, [user]);
 
+  const setCurrentRole = useCallback((role: AppRole) => {
+    if (role !== "admin" && studioDisabledRoles.includes(role)) {
+      return;
+    }
+    setCurrentRoleState(role);
+  }, [studioDisabledRoles]);
+
   const hasAccess = useCallback(
     (module: AppModule) => {
-      // If module is restricted by super admin for this studio, deny
+      if (currentRole !== "admin" && studioDisabledRoles.includes(currentRole)) return false;
       if (studioRestrictedModules.includes(module)) return false;
       if (currentRole === "admin") return true;
       return roleAccess[currentRole]?.includes(module) ?? false;
     },
-    [currentRole, roleAccess, studioRestrictedModules]
+    [currentRole, roleAccess, studioRestrictedModules, studioDisabledRoles]
   );
 
-  const getAccessibleModules = useCallback(
-    () => {
-      const roleModules = roleAccess[currentRole] ?? [];
-      return roleModules.filter((m) => !studioRestrictedModules.includes(m));
-    },
-    [currentRole, roleAccess, studioRestrictedModules]
-  );
+  const getAccessibleModules = useCallback(() => {
+    if (currentRole !== "admin" && studioDisabledRoles.includes(currentRole)) {
+      return [];
+    }
+
+    const roleModules = currentRole === "admin"
+      ? ALL_MODULES.map((m) => m.value)
+      : roleAccess[currentRole] ?? [];
+
+    return roleModules.filter((m) => !studioRestrictedModules.includes(m));
+  }, [currentRole, roleAccess, studioRestrictedModules, studioDisabledRoles]);
 
   return (
     <RoleContext.Provider
@@ -170,6 +218,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         isAdmin: currentRole === "admin",
         roleLoading,
         studioRestrictedModules,
+        studioDisabledRoles,
       }}
     >
       {children}
