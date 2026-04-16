@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuotations } from "@/hooks/useQuotations";
+import { useClients } from "@/hooks/useClients";
+import { useLeads } from "@/hooks/useLeads";
 import { useOrg } from "@/contexts/OrgContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
