@@ -530,6 +530,14 @@ export default function CommunicationsPage() {
 
               {/* Chat Area */}
               <div className="flex-1 flex flex-col min-w-0">
+                {!selectedExternal ? (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <Mail className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No external conversations</p>
+                    </div>
+                  </div>
+                ) : (<>
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
