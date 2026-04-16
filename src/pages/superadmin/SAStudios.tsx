@@ -285,6 +285,9 @@ export default function SAStudios() {
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setResetTarget({ id: org.id, name: org.name }); }}>
                             <RotateCcw className="h-4 w-4 mr-2" /> Reset Studio
                           </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: org.id, name: org.name }); }}>
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete Studio
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
