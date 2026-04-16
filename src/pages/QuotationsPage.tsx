@@ -211,7 +211,7 @@ export default function QuotationsPage() {
   const grandTotal = Math.max(0, subtotal - discountAmt);
 
   const resetCreate = () => {
-    setNewClient(""); setNewClientPhone(""); setNewSelectedPkg(""); setNewSelectedAddons([]);
+    setNewClient(""); setNewClientPhone(""); setNewClientSource("manual"); setNewClientId(null); setNewSelectedPkg(""); setNewSelectedAddons([]);
     setNewCustomItems([]); setNewDiscount(""); setNewDiscountPercent(false); setNewNotes(""); setNewValidDate(undefined);
   };
 
