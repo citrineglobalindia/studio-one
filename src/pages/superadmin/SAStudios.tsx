@@ -95,6 +95,8 @@ export default function SAStudios() {
     setDeleteSuccess(true);
     fetchData();
   };
+
+  const fetchData = async () => {
     setLoading(true);
     const [orgsRes, subsRes, membersRes, plansRes, clientsRes, projectsRes, invoicesRes] = await Promise.all([
       supabase.from("organizations").select("*").order("created_at", { ascending: false }),
