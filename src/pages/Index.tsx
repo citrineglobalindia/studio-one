@@ -484,38 +484,38 @@ const Index = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <MiniPieCard
               title="Clients"
-              total={dbClients.length}
+              subtitle={`${dbClients.length} total`}
               data={[
-                { label: "Active", value: dbClients.filter(c => c.status === "active").length, color: "#22c55e" },
-                { label: "VIP", value: dbClients.filter(c => c.status === "vip").length, color: "hsl(var(--primary))" },
-                { label: "Past", value: dbClients.filter(c => c.status !== "active" && c.status !== "vip").length, color: "#94a3b8" },
+                { name: "Active", value: dbClients.filter(c => c.status === "active").length, color: "#22c55e" },
+                { name: "VIP", value: dbClients.filter(c => c.status === "vip").length, color: "hsl(var(--primary))" },
+                { name: "Past", value: dbClients.filter(c => c.status !== "active" && c.status !== "vip").length, color: "#94a3b8" },
               ]}
             />
             <MiniPieCard
               title="Leads"
-              total={dbLeads.length}
+              subtitle={`${dbLeads.length} total`}
               data={[
-                { label: "New", value: newLeads.length, color: "#3b82f6" },
-                { label: "Contacted", value: dbLeads.filter(l => l.status === "contacted").length, color: "#f59e0b" },
-                { label: "Converted", value: convertedLeads.length, color: "#22c55e" },
+                { name: "New", value: newLeads.length, color: "#3b82f6" },
+                { name: "Contacted", value: dbLeads.filter(l => l.status === "contacted").length, color: "#f59e0b" },
+                { name: "Converted", value: convertedLeads.length, color: "#22c55e" },
               ]}
             />
             <MiniPieCard
               title="Projects"
-              total={dbProjects.length}
+              subtitle={`${dbProjects.length} total`}
               data={[
-                { label: "Active", value: dbProjects.filter(p => p.status === "in-progress").length, color: "#3b82f6" },
-                { label: "Planning", value: dbProjects.filter(p => p.status === "planning" || p.status === "booked").length, color: "#f59e0b" },
-                { label: "Done", value: dbProjects.filter(p => p.status === "completed" || p.status === "delivered").length, color: "#22c55e" },
+                { name: "Active", value: dbProjects.filter(p => p.status === "in-progress").length, color: "#3b82f6" },
+                { name: "Planning", value: dbProjects.filter(p => p.status === "planning" || p.status === "booked").length, color: "#f59e0b" },
+                { name: "Done", value: dbProjects.filter(p => p.status === "completed" || p.status === "delivered").length, color: "#22c55e" },
               ]}
             />
             <MiniPieCard
               title="Invoices"
-              total={dbInvoices.length}
+              subtitle={`${dbInvoices.length} total`}
               data={[
-                { label: "Paid", value: dbInvoices.filter(i => i.status === "paid").length, color: "#22c55e" },
-                { label: "Pending", value: dbInvoices.filter(i => i.status === "pending" || i.status === "draft").length, color: "#f59e0b" },
-                { label: "Overdue", value: overdueInvoices.length, color: "#ef4444" },
+                { name: "Paid", value: dbInvoices.filter(i => i.status === "paid").length, color: "#22c55e" },
+                { name: "Pending", value: dbInvoices.filter(i => i.status === "pending" || i.status === "draft").length, color: "#f59e0b" },
+                { name: "Overdue", value: overdueInvoices.length, color: "#ef4444" },
               ]}
             />
           </div>
