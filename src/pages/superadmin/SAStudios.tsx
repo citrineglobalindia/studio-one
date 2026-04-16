@@ -341,6 +341,22 @@ export default function SAStudios() {
                       <Badge variant="secondary" className="text-xs">{plans[sub.plan_id]}</Badge>
                     </div>
                   )}
+
+                  {/* Role & Module Restrictions */}
+                  {rest && (rest.disabledRoles.length > 0 || rest.restrictedModules.length > 0) && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
+                      {rest.disabledRoles.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/5">
+                          <Shield className="h-3 w-3 mr-1" />{rest.disabledRoles.length} roles disabled
+                        </Badge>
+                      )}
+                      {rest.restrictedModules.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/5">
+                          <Blocks className="h-3 w-3 mr-1" />{rest.restrictedModules.length} modules restricted
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
