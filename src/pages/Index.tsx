@@ -197,7 +197,8 @@ const Index = () => {
               </motion.span>
             </div>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
-              Here's your studio pulse.{" "}
+               Here's your studio pulse.{" "}
+              <span className="text-primary font-medium">{dbClients.length} clients</span>,{" "}
               <span className="text-primary font-medium">{upcomingShoots.length} upcoming shoots</span> and{" "}
               <span className="text-primary font-medium">{pendingEdits.length} pending edits</span> await.
             </p>
