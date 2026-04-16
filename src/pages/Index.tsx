@@ -17,6 +17,7 @@ import { motion, useMotionValue, useTransform, animate, useInView } from "framer
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
 import { useOrg } from "@/contexts/OrgContext";
+import { useClients } from "@/hooks/useClients";
 import { PhotographerDashboard } from "@/components/dashboards/PhotographerDashboard";
 import { VideographerDashboard } from "@/components/dashboards/VideographerDashboard";
 import { EditorDashboard } from "@/components/dashboards/EditorDashboard";
@@ -124,7 +125,10 @@ const Index = () => {
   const navigate = useNavigate();
   const { currentRole } = useRole();
   const { organization } = useOrg();
+  const { clients: dbClients } = useClients();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const totalClientBudget = useMemo(() => dbClients.reduce((s, c) => s + (c.budget || 0), 0), [dbClients]);
 
   const eventDates = useMemo(() => {
     const dates: Date[] = [];
@@ -133,8 +137,12 @@ const Index = () => {
         dates.push(new Date(se.date));
       }
     });
+    // Also include client event dates from DB
+    dbClients.forEach((c) => {
+      if (c.event_date) dates.push(new Date(c.event_date));
+    });
     return dates;
-  }, []);
+  }, [dbClients]);
 
   const selectedDateEvents = useMemo(() => {
     if (!selectedDate) return [];
@@ -189,7 +197,8 @@ const Index = () => {
               </motion.span>
             </div>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
-              Here's your studio pulse.{" "}
+               Here's your studio pulse.{" "}
+              <span className="text-primary font-medium">{dbClients.length} clients</span>,{" "}
               <span className="text-primary font-medium">{upcomingShoots.length} upcoming shoots</span> and{" "}
               <span className="text-primary font-medium">{pendingEdits.length} pending edits</span> await.
             </p>
