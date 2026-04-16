@@ -124,7 +124,7 @@ const CalendarPage = () => {
   });
 
   const baseEvents: CalendarEvent[] = useMemo(() => {
-    return sampleProjects.flatMap((project) =>
+    const projectEvents = sampleProjects.flatMap((project) =>
       project.subEvents.map((se) => ({
         id: se.id,
         projectId: project.id,
@@ -138,7 +138,25 @@ const CalendarPage = () => {
         category: getCategory(se.name),
       }))
     );
-  }, []);
+
+    // Add DB client event dates
+    const clientEvents: CalendarEvent[] = dbClients
+      .filter((c) => c.event_date)
+      .map((c) => ({
+        id: `client-${c.id}`,
+        projectId: "",
+        clientLabel: c.partner_name ? `${c.name} & ${c.partner_name}` : c.name,
+        subEventName: c.event_type || "Event",
+        date: c.event_date!,
+        location: c.city || "",
+        status: "upcoming" as const,
+        teamCount: 0,
+        team: [],
+        category: getCategory(c.event_type || "Wedding"),
+      }));
+
+    return [...projectEvents, ...clientEvents];
+  }, [dbClients]);
 
   const allEvents = useMemo(() => [...baseEvents, ...customEvents], [baseEvents, customEvents]);
 
