@@ -233,7 +233,7 @@ export default function QuotationsPage() {
 
     createQuotation.mutate({
       organization_id: organization.id,
-      client_id: null,
+      client_id: newClientId,
       project_id: null,
       quotation_number: `QT-2026-${String(quotations.length + 1).padStart(3, "0")}`,
       client_name: newClient.trim(),
