@@ -8,8 +8,12 @@ interface Organization {
   slug: string;
   logo_url: string | null;
   owner_id: string;
-  team_size: string;
-  primary_color: string;
+  team_size: string | null;
+  primary_color: string | null;
+  city: string | null;
+  phone: string | null;
+  website: string | null;
+  instagram: string | null;
 }
 
 interface Subscription {
@@ -63,48 +67,73 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    try {
-      // Get user's org membership
-      const { data: membership } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", user.id)
-        .limit(1)
-        .single();
+    setOrgLoading(true);
 
-      if (!membership) {
+    try {
+      const impersonatedOrgId = typeof window !== "undefined"
+        ? localStorage.getItem("sa_impersonate_org")
+        : null;
+
+      const { data: isSuperAdmin } = await supabase.rpc("is_super_admin", {
+        _user_id: user.id,
+      });
+
+      let targetOrgId = impersonatedOrgId && isSuperAdmin ? impersonatedOrgId : null;
+
+      if (!targetOrgId) {
+        const { data: membership } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
+        targetOrgId = membership?.organization_id ?? null;
+      }
+
+      if (!targetOrgId) {
         setOrganization(null);
+        setSubscription(null);
         setOrgLoading(false);
         return;
       }
 
-      // Get org details
       const { data: org } = await supabase
         .from("organizations")
         .select("*")
-        .eq("id", membership.organization_id)
-        .single();
+        .eq("id", targetOrgId)
+        .maybeSingle();
 
-      setOrganization(org as Organization | null);
+      setOrganization((org as Organization | null) ?? null);
 
-      // Get subscription with plan
-      if (org) {
-        const { data: sub } = await supabase
-          .from("subscriptions")
-          .select("id, status, trial_ends_at, plan_id")
-          .eq("organization_id", org.id)
-          .single();
+      if (!org) {
+        setSubscription(null);
+        setOrgLoading(false);
+        return;
+      }
 
-        if (sub) {
-          const { data: plan } = await supabase
-            .from("subscription_plans")
-            .select("*")
-            .eq("id", sub.plan_id)
-            .single();
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("id, status, trial_ends_at, plan_id")
+        .eq("organization_id", org.id)
+        .maybeSingle();
 
-          setSubscription({
-            ...sub,
-            plan: plan ? {
+      if (!sub) {
+        setSubscription(null);
+        setOrgLoading(false);
+        return;
+      }
+
+      const { data: plan } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("id", sub.plan_id)
+        .maybeSingle();
+
+      setSubscription({
+        ...sub,
+        plan: plan
+          ? {
               id: plan.id,
               name: plan.name,
               slug: plan.slug,
@@ -112,12 +141,13 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
               max_projects: plan.max_projects ?? -1,
               max_team_members: plan.max_team_members ?? -1,
               features: (plan.features as string[]) || [],
-            } : null,
-          });
-        }
-      }
+            }
+          : null,
+      });
     } catch (err) {
       console.error("Error fetching org:", err);
+      setOrganization(null);
+      setSubscription(null);
     } finally {
       setOrgLoading(false);
     }
@@ -129,9 +159,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const canAccess = (feature: string): boolean => {
     if (!subscription?.plan) return true;
-    return subscription.plan.features.some(
-      f => f.toLowerCase().includes(feature.toLowerCase())
-    );
+    return subscription.plan.features.some((f) => f.toLowerCase().includes(feature.toLowerCase()));
   };
 
   const isWithinLimit = (resource: "clients" | "projects" | "team", count: number): boolean => {
@@ -142,19 +170,21 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       team: subscription.plan.max_team_members,
     };
     const limit = limits[resource];
-    return limit === -1 || count < limit; // -1 means unlimited
+    return limit === -1 || count < limit;
   };
 
   return (
-    <OrgContext.Provider value={{
-      organization,
-      subscription,
-      orgLoading,
-      hasOrg: !!organization,
-      canAccess,
-      isWithinLimit,
-      refreshOrg: fetchOrg,
-    }}>
+    <OrgContext.Provider
+      value={{
+        organization,
+        subscription,
+        orgLoading,
+        hasOrg: !!organization,
+        canAccess,
+        isWithinLimit,
+        refreshOrg: fetchOrg,
+      }}
+    >
       {children}
     </OrgContext.Provider>
   );
