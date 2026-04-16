@@ -77,7 +77,24 @@ export default function SAStudios() {
     fetchData();
   };
 
-  const fetchData = async () => {
+  const handleDeleteStudio = async () => {
+    if (!deleteTarget || deleteConfirmText !== "DELETE") return;
+    setDeleting(true);
+    const dataTables = ["deliverables", "attendance", "leaves", "invoices", "quotations", "albums", "projects", "clients", "leads", "employees", "team_members", "expenses"] as const;
+    for (const table of dataTables) {
+      await supabase.from(table).delete().eq("organization_id", deleteTarget.id);
+    }
+    // Delete restrictions, subscriptions, members, then org
+    await supabase.from("studio_module_restrictions").delete().eq("organization_id", deleteTarget.id);
+    await supabase.from("studio_role_restrictions").delete().eq("organization_id", deleteTarget.id);
+    await supabase.from("subscriptions").delete().eq("organization_id", deleteTarget.id);
+    await supabase.from("organization_members").delete().eq("organization_id", deleteTarget.id);
+    await supabase.from("organizations").delete().eq("id", deleteTarget.id);
+    setDeleting(false);
+    setDeleteConfirmText("");
+    setDeleteSuccess(true);
+    fetchData();
+  };
     setLoading(true);
     const [orgsRes, subsRes, membersRes, plansRes, clientsRes, projectsRes, invoicesRes] = await Promise.all([
       supabase.from("organizations").select("*").order("created_at", { ascending: false }),
