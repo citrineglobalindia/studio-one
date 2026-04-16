@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useClients } from "@/hooks/useClients";
 import { useProcessSteps, type ProcessStep } from "@/hooks/useProcessSteps";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Copy, CalendarIcon, CheckCircle2, Clock, Circle,
-  ChevronRight, GripVertical, ListChecks, Users, ArrowDown, Pencil,
+  ChevronRight, ListChecks, Users, Pencil, Save,
 } from "lucide-react";
 
 const EVENT_OPTIONS = [
@@ -41,11 +41,10 @@ export default function ProcessPlannerPage() {
 
   const handleAddStep = () => {
     if (!selectedClientId) return;
-    const newStepNumber = steps.length + 1;
     addStep.mutate(
       {
         client_id: selectedClientId,
-        step_number: newStepNumber,
+        step_number: steps.length + 1,
         heading: "",
         description: null,
         events: [],
@@ -96,7 +95,7 @@ export default function ProcessPlannerPage() {
         )}
       </div>
 
-      {/* Client Selector Card */}
+      {/* Client Selector */}
       <Card className="border-primary/20">
         <CardContent className="pt-6 pb-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -106,13 +105,13 @@ export default function ProcessPlannerPage() {
             <div className="flex-1 w-full">
               {clients.length === 0 && !clientsLoading ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-dashed border-border">
-                  <span className="text-sm text-muted-foreground">No clients found. Please add clients first from the Clients module.</span>
+                  <span className="text-sm text-muted-foreground">No clients found. Add clients first.</span>
                   <Button variant="outline" size="sm" asChild>
                     <a href="/clients">Go to Clients</a>
                   </Button>
                 </div>
               ) : (
-                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                <Select value={selectedClientId} onValueChange={(v) => { setSelectedClientId(v); setEditingStepId(null); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a client to plan their process…" />
                   </SelectTrigger>
@@ -129,12 +128,12 @@ export default function ProcessPlannerPage() {
             </div>
           </div>
 
-          {/* Progress Summary */}
+          {/* Progress */}
           {selectedClientId && steps.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">{steps.length} steps total</span>
+                  <span className="text-muted-foreground">{steps.length} steps</span>
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     {completedCount} done
@@ -180,7 +179,7 @@ export default function ProcessPlannerPage() {
             </div>
             <h3 className="font-semibold text-foreground mb-1">No Steps Yet</h3>
             <p className="text-sm text-muted-foreground max-w-sm mb-4">
-              Start building the workflow for <strong>{selectedClient?.name}</strong> by adding your first step.
+              Start building the workflow for <strong>{selectedClient?.name}</strong>.
             </p>
             <Button onClick={handleAddStep} disabled={addStep.isPending} className="gap-2">
               <Plus className="h-4 w-4" /> Add First Step
@@ -189,23 +188,22 @@ export default function ProcessPlannerPage() {
         </Card>
       )}
 
-      {/* Main Content: Timeline + Editor */}
+      {/* Timeline + Editor */}
       {selectedClientId && steps.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Timeline Column */}
+          {/* Timeline */}
           <div className="lg:col-span-2">
             <Card className="sticky top-4 overflow-hidden">
               <CardHeader className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-b border-border/50 pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <ListChecks className="h-4 w-4 text-primary" />
-                  Timeline
+                  <ListChecks className="h-4 w-4 text-primary" /> Timeline
                 </CardTitle>
                 <CardDescription>{selectedClient?.name}</CardDescription>
               </CardHeader>
               <CardContent className="pt-5 pb-6">
                 <div className="relative pl-6">
                   <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-primary/40 via-border to-border" />
-                  {steps.map((step, idx) => {
+                  {steps.map((step) => {
                     const cfg = STATUS_CONFIG[step.status] || STATUS_CONFIG.not_started;
                     const Icon = cfg.icon;
                     const isActive = editingStepId === step.id;
@@ -260,11 +258,11 @@ export default function ProcessPlannerPage() {
             </Card>
           </div>
 
-          {/* Editor Column */}
+          {/* Editor */}
           <div className="lg:col-span-3 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Step Details</h2>
-              <span className="text-xs text-muted-foreground">Click a step on the timeline to edit</span>
+              <span className="text-xs text-muted-foreground">Click a step to edit</span>
             </div>
             {steps.map((step) => (
               <StepEditorCard
@@ -272,7 +270,8 @@ export default function ProcessPlannerPage() {
                 step={step}
                 isExpanded={editingStepId === step.id}
                 onToggle={() => setEditingStepId(editingStepId === step.id ? null : step.id)}
-                onUpdate={(updates) => updateStep.mutate({ id: step.id, ...updates })}
+                onSave={(updates) => updateStep.mutate({ id: step.id, ...updates })}
+                isSaving={updateStep.isPending}
                 onDelete={() => {
                   deleteStep.mutate(step.id);
                   if (editingStepId === step.id) setEditingStepId(null);
@@ -287,37 +286,69 @@ export default function ProcessPlannerPage() {
   );
 }
 
-/* ─── Step Editor Card ─── */
+/* ─── Step Editor Card with local state + Save button ─── */
 function StepEditorCard({
   step,
   isExpanded,
   onToggle,
-  onUpdate,
+  onSave,
+  isSaving,
   onDelete,
   onDuplicate,
 }: {
   step: ProcessStep;
   isExpanded: boolean;
   onToggle: () => void;
-  onUpdate: (u: Partial<ProcessStep>) => void;
+  onSave: (u: Partial<ProcessStep>) => void;
+  isSaving: boolean;
   onDelete: () => void;
   onDuplicate: () => void;
 }) {
-  const [deadlineDate, setDeadlineDate] = useState<Date | undefined>(
+  const [localHeading, setLocalHeading] = useState(step.heading);
+  const [localDescription, setLocalDescription] = useState(step.description || "");
+  const [localStatus, setLocalStatus] = useState(step.status);
+  const [localEvents, setLocalEvents] = useState<string[]>(step.events);
+  const [localDeadline, setLocalDeadline] = useState<Date | undefined>(
     step.deadline ? new Date(step.deadline) : undefined
   );
-  const cfg = STATUS_CONFIG[step.status] || STATUS_CONFIG.not_started;
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Reset local state when step data changes (e.g. after save)
+  useEffect(() => {
+    setLocalHeading(step.heading);
+    setLocalDescription(step.description || "");
+    setLocalStatus(step.status);
+    setLocalEvents(step.events);
+    setLocalDeadline(step.deadline ? new Date(step.deadline) : undefined);
+    setIsDirty(false);
+  }, [step]);
+
+  const markDirty = () => setIsDirty(true);
 
   const toggleEvent = (event: string) => {
-    const next = step.events.includes(event)
-      ? step.events.filter((e) => e !== event)
-      : [...step.events, event];
-    onUpdate({ events: next });
+    setLocalEvents((prev) =>
+      prev.includes(event) ? prev.filter((e) => e !== event) : [...prev, event]
+    );
+    markDirty();
   };
 
+  const handleSave = () => {
+    onSave({
+      heading: localHeading,
+      description: localDescription || null,
+      status: localStatus,
+      events: localEvents,
+      deadline: localDeadline ? format(localDeadline, "yyyy-MM-dd") : null,
+    });
+    setIsDirty(false);
+  };
+
+  const cfg = STATUS_CONFIG[step.status] || STATUS_CONFIG.not_started;
+  const localCfg = STATUS_CONFIG[localStatus] || STATUS_CONFIG.not_started;
+
   const statusBorderColor =
-    step.status === "completed" ? "border-l-emerald-500" :
-    step.status === "in_progress" ? "border-l-amber-500" :
+    localStatus === "completed" ? "border-l-emerald-500" :
+    localStatus === "in_progress" ? "border-l-amber-500" :
     "border-l-muted-foreground/30";
 
   return (
@@ -344,6 +375,7 @@ function StepEditorCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isDirty && <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 text-[10px]">Unsaved</Badge>}
           <Badge variant="outline" className={cn("text-[10px] border", cfg.bgClass)}>{cfg.label}</Badge>
           <Pencil className={cn("h-3.5 w-3.5 transition-colors", isExpanded ? "text-primary" : "text-muted-foreground")} />
         </div>
@@ -356,15 +388,15 @@ function StepEditorCard({
             <div>
               <Label className="text-xs font-medium">Process Heading</Label>
               <Input
-                value={step.heading}
-                onChange={(e) => onUpdate({ heading: e.target.value })}
+                value={localHeading}
+                onChange={(e) => { setLocalHeading(e.target.value); markDirty(); }}
                 placeholder="e.g. Pre-Wedding Shoot"
                 className="mt-1"
               />
             </div>
             <div>
               <Label className="text-xs font-medium">Status</Label>
-              <Select value={step.status} onValueChange={(v) => onUpdate({ status: v })}>
+              <Select value={localStatus} onValueChange={(v) => { setLocalStatus(v); markDirty(); }}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -386,19 +418,16 @@ function StepEditorCard({
             <Label className="text-xs font-medium">Deadline</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full mt-1 justify-start text-left font-normal", !deadlineDate && "text-muted-foreground")}>
+                <Button variant="outline" className={cn("w-full mt-1 justify-start text-left font-normal", !localDeadline && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {deadlineDate ? format(deadlineDate, "PPP") : "Pick a deadline…"}
+                  {localDeadline ? format(localDeadline, "PPP") : "Pick a deadline…"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={deadlineDate}
-                  onSelect={(d) => {
-                    setDeadlineDate(d);
-                    onUpdate({ deadline: d ? format(d, "yyyy-MM-dd") : null });
-                  }}
+                  selected={localDeadline}
+                  onSelect={(d) => { setLocalDeadline(d); markDirty(); }}
                   className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
@@ -408,9 +437,9 @@ function StepEditorCard({
           <div>
             <Label className="text-xs font-medium">Description</Label>
             <Textarea
-              value={step.description || ""}
-              onChange={(e) => onUpdate({ description: e.target.value })}
-              placeholder="Detailed explanation of what needs to be done in this step…"
+              value={localDescription}
+              onChange={(e) => { setLocalDescription(e.target.value); markDirty(); }}
+              placeholder="Detailed explanation of what needs to be done…"
               className="mt-1 min-h-[70px]"
             />
           </div>
@@ -423,13 +452,13 @@ function StepEditorCard({
                   key={ev}
                   className={cn(
                     "flex items-center gap-2 cursor-pointer rounded-lg border p-2 text-xs transition-colors",
-                    step.events.includes(ev)
+                    localEvents.includes(ev)
                       ? "border-primary/50 bg-primary/5 text-foreground"
                       : "border-border hover:bg-accent/50 text-muted-foreground"
                   )}
                 >
                   <Checkbox
-                    checked={step.events.includes(ev)}
+                    checked={localEvents.includes(ev)}
                     onCheckedChange={() => toggleEvent(ev)}
                   />
                   {ev}
@@ -441,11 +470,22 @@ function StepEditorCard({
           <Separator />
 
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" className="text-xs gap-1.5" onClick={onDuplicate}>
-              <Copy className="h-3.5 w-3.5" /> Duplicate
-            </Button>
-            <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-destructive hover:text-destructive" onClick={onDelete}>
-              <Trash2 className="h-3.5 w-3.5" /> Delete Step
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="text-xs gap-1.5" onClick={onDuplicate}>
+                <Copy className="h-3.5 w-3.5" /> Duplicate
+              </Button>
+              <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-destructive hover:text-destructive" onClick={onDelete}>
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </Button>
+            </div>
+            <Button
+              onClick={handleSave}
+              disabled={!isDirty || isSaving}
+              className="gap-2"
+              size="sm"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? "Saving…" : "Save Step"}
             </Button>
           </div>
         </div>
