@@ -756,11 +756,113 @@ export default function QuotationsPage() {
           </SheetHeader>
 
           <div className="space-y-5">
-            {/* Client Info */}
+            {/* Client/Lead Selection */}
             <div className="space-y-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Client Details</p>
-              <Input value={newClient} onChange={(e) => setNewClient(e.target.value)} placeholder="Couple name (e.g. Priya & Rahul)" className="rounded-xl" />
-              <Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="Phone (optional)" className="rounded-xl" />
+              
+              {/* Source Toggle */}
+              <div className="flex gap-1.5 rounded-xl bg-muted/30 p-1 border border-border">
+                {([
+                  { key: "manual" as const, label: "Manual" },
+                  { key: "client" as const, label: "Client" },
+                  { key: "lead" as const, label: "Lead" },
+                ]).map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => { setNewClientSource(opt.key); setNewClient(""); setNewClientPhone(""); setNewClientId(null); }}
+                    className={cn(
+                      "flex-1 text-xs font-medium py-1.5 rounded-lg transition-all",
+                      newClientSource === opt.key
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {newClientSource === "manual" && (
+                <>
+                  <Input value={newClient} onChange={(e) => setNewClient(e.target.value)} placeholder="Couple name (e.g. Priya & Rahul)" className="rounded-xl" />
+                  <Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="Phone (optional)" className="rounded-xl" />
+                </>
+              )}
+
+              {newClientSource === "client" && (
+                <Select
+                  value={newClientId || ""}
+                  onValueChange={(val) => {
+                    const c = clients.find(c => c.id === val);
+                    if (c) {
+                      setNewClientId(c.id);
+                      setNewClient(c.name);
+                      setNewClientPhone(c.phone || "");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No clients found</div>
+                    )}
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex flex-col">
+                          <span>{c.name}</span>
+                          {c.phone && <span className="text-[10px] text-muted-foreground">{c.phone}</span>}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {newClientSource === "lead" && (
+                <Select
+                  value={newClientId || ""}
+                  onValueChange={(val) => {
+                    const l = leads.find(l => l.id === val);
+                    if (l) {
+                      setNewClientId(null); // leads don't link as client_id
+                      setNewClient(l.name);
+                      setNewClientPhone(l.phone || "");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select a lead" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leads.filter(l => l.status !== "converted").length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No active leads found</div>
+                    )}
+                    {leads.filter(l => l.status !== "converted").map(l => (
+                      <SelectItem key={l.id} value={l.id}>
+                        <div className="flex flex-col">
+                          <span>{l.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{l.source} • {l.status}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Show selected name preview for client/lead */}
+              {newClientSource !== "manual" && newClient && (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 px-3 py-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{newClient}</p>
+                    {newClientPhone && <p className="text-[10px] text-muted-foreground">{newClientPhone}</p>}
+                  </div>
+                  <Badge variant="outline" className="text-[9px] capitalize">{newClientSource}</Badge>
+                </div>
+              )}
+            </div>
             </div>
 
             {/* Select Package */}
