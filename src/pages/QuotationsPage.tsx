@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuotations } from "@/hooks/useQuotations";
+import { useClients } from "@/hooks/useClients";
+import { useLeads } from "@/hooks/useLeads";
 import { useOrg } from "@/contexts/OrgContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,6 +145,8 @@ const cardVariants = {
 export default function QuotationsPage() {
   const { organization } = useOrg();
   const { quotations: dbQuotations, isLoading, createQuotation, updateQuotation } = useQuotations();
+  const { clients } = useClients();
+  const { leads } = useLeads();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedPkg, setSelectedPkg] = useState<StudioPackage | null>(null);
@@ -153,6 +157,8 @@ export default function QuotationsPage() {
   // Create quotation state
   const [newClient, setNewClient] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientSource, setNewClientSource] = useState<"manual" | "client" | "lead">("manual");
+  const [newClientId, setNewClientId] = useState<string | null>(null);
   const [newSelectedPkg, setNewSelectedPkg] = useState<string>("");
   const [newSelectedAddons, setNewSelectedAddons] = useState<string[]>([]);
   const [newCustomItems, setNewCustomItems] = useState<{ name: string; amount: string }[]>([]);
@@ -205,7 +211,7 @@ export default function QuotationsPage() {
   const grandTotal = Math.max(0, subtotal - discountAmt);
 
   const resetCreate = () => {
-    setNewClient(""); setNewClientPhone(""); setNewSelectedPkg(""); setNewSelectedAddons([]);
+    setNewClient(""); setNewClientPhone(""); setNewClientSource("manual"); setNewClientId(null); setNewSelectedPkg(""); setNewSelectedAddons([]);
     setNewCustomItems([]); setNewDiscount(""); setNewDiscountPercent(false); setNewNotes(""); setNewValidDate(undefined);
   };
 
@@ -227,7 +233,7 @@ export default function QuotationsPage() {
 
     createQuotation.mutate({
       organization_id: organization.id,
-      client_id: null,
+      client_id: newClientId,
       project_id: null,
       quotation_number: `QT-2026-${String(quotations.length + 1).padStart(3, "0")}`,
       client_name: newClient.trim(),
@@ -750,11 +756,113 @@ export default function QuotationsPage() {
           </SheetHeader>
 
           <div className="space-y-5">
-            {/* Client Info */}
+            {/* Client/Lead Selection */}
             <div className="space-y-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Client Details</p>
-              <Input value={newClient} onChange={(e) => setNewClient(e.target.value)} placeholder="Couple name (e.g. Priya & Rahul)" className="rounded-xl" />
-              <Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="Phone (optional)" className="rounded-xl" />
+              
+              {/* Source Toggle */}
+              <div className="flex gap-1.5 rounded-xl bg-muted/30 p-1 border border-border">
+                {([
+                  { key: "manual" as const, label: "Manual" },
+                  { key: "client" as const, label: "Client" },
+                  { key: "lead" as const, label: "Lead" },
+                ]).map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => { setNewClientSource(opt.key); setNewClient(""); setNewClientPhone(""); setNewClientId(null); }}
+                    className={cn(
+                      "flex-1 text-xs font-medium py-1.5 rounded-lg transition-all",
+                      newClientSource === opt.key
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {newClientSource === "manual" && (
+                <>
+                  <Input value={newClient} onChange={(e) => setNewClient(e.target.value)} placeholder="Couple name (e.g. Priya & Rahul)" className="rounded-xl" />
+                  <Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="Phone (optional)" className="rounded-xl" />
+                </>
+              )}
+
+              {newClientSource === "client" && (
+                <Select
+                  value={newClientId || ""}
+                  onValueChange={(val) => {
+                    const c = clients.find(c => c.id === val);
+                    if (c) {
+                      setNewClientId(c.id);
+                      setNewClient(c.name);
+                      setNewClientPhone(c.phone || "");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No clients found</div>
+                    )}
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex flex-col">
+                          <span>{c.name}</span>
+                          {c.phone && <span className="text-[10px] text-muted-foreground">{c.phone}</span>}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {newClientSource === "lead" && (
+                <Select
+                  value={newClientId || ""}
+                  onValueChange={(val) => {
+                    const l = leads.find(l => l.id === val);
+                    if (l) {
+                      setNewClientId(null); // leads don't link as client_id
+                      setNewClient(l.name);
+                      setNewClientPhone(l.phone || "");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select a lead" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leads.filter(l => l.status !== "converted").length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No active leads found</div>
+                    )}
+                    {leads.filter(l => l.status !== "converted").map(l => (
+                      <SelectItem key={l.id} value={l.id}>
+                        <div className="flex flex-col">
+                          <span>{l.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{l.source} • {l.status}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Show selected name preview for client/lead */}
+              {newClientSource !== "manual" && newClient && (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 px-3 py-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{newClient}</p>
+                    {newClientPhone && <p className="text-[10px] text-muted-foreground">{newClientPhone}</p>}
+                  </div>
+                  <Badge variant="outline" className="text-[9px] capitalize">{newClientSource}</Badge>
+                </div>
+              )}
+            </div>
             </div>
 
             {/* Select Package */}
