@@ -17,6 +17,7 @@ import { motion, useMotionValue, useTransform, animate, useInView } from "framer
 import { cn } from "@/lib/utils";
 import { useRole } from "@/contexts/RoleContext";
 import { useOrg } from "@/contexts/OrgContext";
+import { useClients } from "@/hooks/useClients";
 import { PhotographerDashboard } from "@/components/dashboards/PhotographerDashboard";
 import { VideographerDashboard } from "@/components/dashboards/VideographerDashboard";
 import { EditorDashboard } from "@/components/dashboards/EditorDashboard";
