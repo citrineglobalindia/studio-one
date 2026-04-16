@@ -134,6 +134,19 @@ export default function SAStudios() {
       };
     });
     setAnalytics(analyticsMap);
+
+    // Build restrictions map
+    const restMap: Record<string, { disabledRoles: string[]; restrictedModules: string[] }> = {};
+    (roleRestRes.data || []).forEach((r: any) => {
+      if (!restMap[r.organization_id]) restMap[r.organization_id] = { disabledRoles: [], restrictedModules: [] };
+      restMap[r.organization_id].disabledRoles = r.disabled_roles || [];
+    });
+    (modRestRes.data || []).forEach((m: any) => {
+      if (!restMap[m.organization_id]) restMap[m.organization_id] = { disabledRoles: [], restrictedModules: [] };
+      restMap[m.organization_id].restrictedModules = m.restricted_modules || [];
+    });
+    setRestrictions(restMap);
+
     setLoading(false);
   };
 
