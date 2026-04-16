@@ -145,6 +145,8 @@ const cardVariants = {
 export default function QuotationsPage() {
   const { organization } = useOrg();
   const { quotations: dbQuotations, isLoading, createQuotation, updateQuotation } = useQuotations();
+  const { clients } = useClients();
+  const { leads } = useLeads();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedPkg, setSelectedPkg] = useState<StudioPackage | null>(null);
