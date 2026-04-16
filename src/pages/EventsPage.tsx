@@ -78,6 +78,8 @@ const AnimatedNumber = ({ value, delay = 0 }: { value: number; delay?: number })
 };
 
 export default function EventsPage() {
+  const { clients: dbClients } = useClients();
+  const { projects: dbProjects } = useProjects();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("all");
@@ -92,11 +94,27 @@ export default function EventsPage() {
   const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
 
   const allEvents: EventWithClient[] = useMemo(() => {
-    const base = sampleClients.flatMap(client =>
-      client.events.map(event => ({ ...event, clientName: client.name, clientId: client.id, assignedTeam: (assignments[event.id] || []).map(tid => teamMembers.find(t => t.id === tid)!).filter(Boolean) }))
-    );
+    // Build events from DB projects that have event dates
+    const base: EventWithClient[] = dbProjects
+      .filter(p => p.event_date)
+      .map(p => {
+        const client = dbClients.find(c => c.id === p.client_id);
+        const eventDate = new Date(p.event_date!);
+        const isUpcoming = eventDate >= new Date();
+        return {
+          id: p.id,
+          name: p.project_name,
+          date: p.event_date!,
+          venue: p.venue || "TBD",
+          type: (p.event_type || "wedding").toLowerCase(),
+          status: (p.status === "completed" || p.status === "delivered" ? "completed" : isUpcoming ? "upcoming" : "in-progress") as "upcoming" | "completed" | "in-progress",
+          clientName: client ? (client.partner_name ? `${client.name} & ${client.partner_name}` : client.name) : p.project_name,
+          clientId: p.client_id || "",
+          assignedTeam: (assignments[p.id] || []).map(tid => teamMembers.find(t => t.id === tid)!).filter(Boolean),
+        };
+      });
     return [...base, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [assignments, extraEvents]);
+  }, [dbProjects, dbClients, assignments, extraEvents]);
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(event => {
