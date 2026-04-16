@@ -51,7 +51,6 @@ const salesItems: SidebarItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
   { title: "Leads", url: "/leads", icon: UserPlus, module: "leads" },
   { title: "Clients", url: "/clients", icon: Users, module: "clients" },
-  { title: "Quotations", url: "/quotations", icon: FileText, module: "quotations" },
 ];
 
 const operationsItems: SidebarItem[] = [
@@ -66,8 +65,9 @@ const operationsItems: SidebarItem[] = [
 ];
 
 const financeItems: SidebarItem[] = [
-  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
+  { title: "Quotations", url: "/quotations", icon: FileText, module: "quotations" },
   { title: "Invoices", url: "/invoices", icon: CreditCard, module: "invoices" },
+  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
   { title: "Contracts", url: "/contracts", icon: Briefcase, module: "contracts" },
 ];
 
