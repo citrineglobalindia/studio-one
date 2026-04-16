@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { sampleProjects, sampleTeamMembers } from "@/data/wedding-types";
+import { useClients } from "@/hooks/useClients";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
