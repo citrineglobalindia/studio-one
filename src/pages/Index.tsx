@@ -47,7 +47,8 @@ const allFootage = sampleProjects.flatMap((p) =>
 const pendingEdits = allFootage.filter((f) => f.editStatus === "pending" || f.editStatus === "in-progress");
 const reviewEdits = allFootage.filter((f) => f.editStatus === "review");
 
-const convertedValue = sampleLeads.filter((l) => l.stage === "converted").reduce((s, l) => s + (l.budget || 0), 0);
+const convertedLeads = sampleLeads.filter((l) => l.stage === "converted");
+const convertedValue = convertedLeads.reduce((s, l) => s + (l.budget || 0), 0);
 
 // --- Animations ---
 const containerVariants = {
