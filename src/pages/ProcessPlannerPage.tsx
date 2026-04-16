@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useClients } from "@/hooks/useClients";
 import { useProcessSteps, type ProcessStep } from "@/hooks/useProcessSteps";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,11 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import {
   Plus, Trash2, Copy, CalendarIcon, CheckCircle2, Clock, Circle,
-  ChevronRight, GripVertical,
+  ChevronRight, GripVertical, ListChecks, Users, ArrowDown, Pencil,
 } from "lucide-react";
 
 const EVENT_OPTIONS = [
@@ -23,30 +25,39 @@ const EVENT_OPTIONS = [
   "Reception", "Engagement", "Baby Shower", "Birthday", "Corporate",
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Circle }> = {
-  not_started: { label: "Not Started", color: "bg-muted text-muted-foreground", icon: Circle },
-  in_progress: { label: "In Progress", color: "bg-amber-500/20 text-amber-400", icon: Clock },
-  completed: { label: "Completed", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle2 },
+const STATUS_CONFIG: Record<string, { label: string; dotClass: string; bgClass: string; icon: typeof Circle }> = {
+  not_started: { label: "Not Started", dotClass: "bg-muted-foreground/40", bgClass: "bg-muted/50 text-muted-foreground", icon: Circle },
+  in_progress: { label: "In Progress", dotClass: "bg-amber-500", bgClass: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: Clock },
+  completed: { label: "Completed", dotClass: "bg-emerald-500", bgClass: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30", icon: CheckCircle2 },
 };
 
 export default function ProcessPlannerPage() {
   const { clients, isLoading: clientsLoading } = useClients();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const { steps, isLoading, addStep, updateStep, deleteStep } = useProcessSteps(selectedClientId || undefined);
+  const [editingStepId, setEditingStepId] = useState<string | null>(null);
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
   const handleAddStep = () => {
     if (!selectedClientId) return;
-    addStep.mutate({
-      client_id: selectedClientId,
-      step_number: steps.length + 1,
-      heading: "",
-      description: null,
-      events: [],
-      deadline: null,
-      status: "not_started",
-    });
+    const newStepNumber = steps.length + 1;
+    addStep.mutate(
+      {
+        client_id: selectedClientId,
+        step_number: newStepNumber,
+        heading: "",
+        description: null,
+        events: [],
+        deadline: null,
+        status: "not_started",
+      },
+      {
+        onSuccess: (data: any) => {
+          if (data?.id) setEditingStepId(data.id);
+        },
+      }
+    );
   };
 
   const handleDuplicate = (step: ProcessStep) => {
@@ -61,113 +72,211 @@ export default function ProcessPlannerPage() {
     });
   };
 
+  const completedCount = steps.filter((s) => s.status === "completed").length;
+  const inProgressCount = steps.filter((s) => s.status === "in_progress").length;
+  const progressPercent = steps.length > 0 ? Math.round((completedCount / steps.length) * 100) : 0;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Process Planner</h1>
-          <p className="text-sm text-muted-foreground">Define step-by-step workflows for each client</p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+            <ListChecks className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-display font-bold text-foreground">Process Planner</h1>
+            <p className="text-sm text-muted-foreground">Define &amp; track step-by-step workflows for each client</p>
+          </div>
         </div>
+        {selectedClientId && (
+          <Button onClick={handleAddStep} disabled={addStep.isPending} className="gap-2">
+            <Plus className="h-4 w-4" /> Add Step
+          </Button>
+        )}
       </div>
 
-      {/* Client Selection */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-            <div className="flex-1 w-full">
-              <Label>Select Client</Label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a client…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Client Selector Card */}
+      <Card className="border-primary/20">
+        <CardContent className="pt-6 pb-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
+              <Users className="h-4 w-4" /> Client:
             </div>
-            {selectedClientId && (
-              <Button onClick={handleAddStep} disabled={addStep.isPending}>
-                <Plus className="h-4 w-4 mr-1" /> Add Step
-              </Button>
-            )}
+            <div className="flex-1 w-full">
+              {clients.length === 0 && !clientsLoading ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-dashed border-border">
+                  <span className="text-sm text-muted-foreground">No clients found. Please add clients first from the Clients module.</span>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="/clients">Go to Clients</a>
+                  </Button>
+                </div>
+              ) : (
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a client to plan their process…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span className="font-medium">{c.name}</span>
+                        {c.event_type && <span className="text-muted-foreground ml-2">• {c.event_type}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
+
+          {/* Progress Summary */}
+          {selectedClientId && steps.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-muted-foreground">{steps.length} steps total</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    {completedCount} done
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    {inProgressCount} active
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-primary">{progressPercent}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {!selectedClientId && (
-        <div className="text-center py-20 text-muted-foreground">
-          Select a client to view or create their process timeline.
-        </div>
+      {/* Empty States */}
+      {!selectedClientId && clients.length > 0 && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="h-16 w-16 rounded-2xl bg-muted/80 flex items-center justify-center mb-4">
+              <ListChecks className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">Select a Client</h3>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Choose a client from the dropdown above to view or create their process timeline.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {selectedClientId && steps.length === 0 && !isLoading && (
-        <div className="text-center py-20 text-muted-foreground">
-          No steps yet. Click "Add Step" to start building the process.
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <Plus className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">No Steps Yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-4">
+              Start building the workflow for <strong>{selectedClient?.name}</strong> by adding your first step.
+            </p>
+            <Button onClick={handleAddStep} disabled={addStep.isPending} className="gap-2">
+              <Plus className="h-4 w-4" /> Add First Step
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Timeline View */}
+      {/* Main Content: Timeline + Editor */}
       {selectedClientId && steps.length > 0 && (
-        <div className="space-y-6">
-          {/* Visual Timeline */}
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border/50">
-              <CardTitle className="text-lg">Timeline — {selectedClient?.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="relative pl-8">
-                <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-border" />
-                {steps.map((step, idx) => {
-                  const cfg = STATUS_CONFIG[step.status] || STATUS_CONFIG.not_started;
-                  const Icon = cfg.icon;
-                  return (
-                    <div key={step.id} className="relative mb-8 last:mb-0">
-                      <div className={cn(
-                        "absolute -left-[1.125rem] top-1 h-7 w-7 rounded-full flex items-center justify-center ring-4 ring-background",
-                        step.status === "completed" ? "bg-emerald-500" : step.status === "in_progress" ? "bg-amber-500" : "bg-muted-foreground/30"
-                      )}>
-                        <Icon className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-primary">STEP {step.step_number}</span>
-                          <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-semibold text-foreground">{step.heading || "Untitled Step"}</span>
-                          <Badge variant="secondary" className={cn("text-xs", cfg.color)}>{cfg.label}</Badge>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Timeline Column */}
+          <div className="lg:col-span-2">
+            <Card className="sticky top-4 overflow-hidden">
+              <CardHeader className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-b border-border/50 pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-primary" />
+                  Timeline
+                </CardTitle>
+                <CardDescription>{selectedClient?.name}</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-5 pb-6">
+                <div className="relative pl-6">
+                  <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-primary/40 via-border to-border" />
+                  {steps.map((step, idx) => {
+                    const cfg = STATUS_CONFIG[step.status] || STATUS_CONFIG.not_started;
+                    const Icon = cfg.icon;
+                    const isActive = editingStepId === step.id;
+                    return (
+                      <button
+                        key={step.id}
+                        type="button"
+                        onClick={() => setEditingStepId(isActive ? null : step.id)}
+                        className={cn(
+                          "relative w-full text-left mb-5 last:mb-0 group rounded-lg p-2.5 -ml-1 transition-all",
+                          isActive ? "bg-accent ring-1 ring-primary/30" : "hover:bg-accent/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute -left-[0.9rem] top-3 h-6 w-6 rounded-full flex items-center justify-center ring-[3px] ring-background transition-all",
+                          cfg.dotClass
+                        )}>
+                          <Icon className="h-3 w-3 text-white" />
                         </div>
-                        {step.deadline && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            📅 {format(new Date(step.deadline), "dd MMM yyyy")}
-                          </p>
-                        )}
-                        {step.events.length > 0 && (
-                          <div className="flex gap-1 mt-1 flex-wrap">
-                            {step.events.map((e) => (
-                              <Badge key={e} variant="outline" className="text-[10px]">{e}</Badge>
-                            ))}
+                        <div className="ml-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold tracking-wider text-primary/70 uppercase">Step {step.step_number}</span>
+                            <ChevronRight className="h-2.5 w-2.5 text-muted-foreground/50" />
+                            <span className="text-sm font-semibold text-foreground leading-tight">
+                              {step.heading || "Untitled Step"}
+                            </span>
                           </div>
-                        )}
-                        {step.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{step.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <Badge variant="outline" className={cn("text-[10px] h-5 border", cfg.bgClass)}>
+                              {cfg.label}
+                            </Badge>
+                            {step.deadline && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <CalendarIcon className="h-2.5 w-2.5" />
+                                {format(new Date(step.deadline), "dd MMM yyyy")}
+                              </span>
+                            )}
+                          </div>
+                          {step.events.length > 0 && (
+                            <div className="flex gap-1 mt-1.5 flex-wrap">
+                              {step.events.map((e) => (
+                                <Badge key={e} variant="secondary" className="text-[9px] h-4 px-1.5">{e}</Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Step Editor Cards */}
-          <div className="space-y-4">
+          {/* Editor Column */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">Step Details</h2>
+              <span className="text-xs text-muted-foreground">Click a step on the timeline to edit</span>
+            </div>
             {steps.map((step) => (
-              <StepCard
+              <StepEditorCard
                 key={step.id}
                 step={step}
+                isExpanded={editingStepId === step.id}
+                onToggle={() => setEditingStepId(editingStepId === step.id ? null : step.id)}
                 onUpdate={(updates) => updateStep.mutate({ id: step.id, ...updates })}
-                onDelete={() => deleteStep.mutate(step.id)}
+                onDelete={() => {
+                  deleteStep.mutate(step.id);
+                  if (editingStepId === step.id) setEditingStepId(null);
+                }}
                 onDuplicate={() => handleDuplicate(step)}
               />
             ))}
@@ -178,13 +287,18 @@ export default function ProcessPlannerPage() {
   );
 }
 
-function StepCard({
+/* ─── Step Editor Card ─── */
+function StepEditorCard({
   step,
+  isExpanded,
+  onToggle,
   onUpdate,
   onDelete,
   onDuplicate,
 }: {
   step: ProcessStep;
+  isExpanded: boolean;
+  onToggle: () => void;
   onUpdate: (u: Partial<ProcessStep>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -192,7 +306,6 @@ function StepCard({
   const [deadlineDate, setDeadlineDate] = useState<Date | undefined>(
     step.deadline ? new Date(step.deadline) : undefined
   );
-
   const cfg = STATUS_CONFIG[step.status] || STATUS_CONFIG.not_started;
 
   const toggleEvent = (event: string) => {
@@ -202,47 +315,80 @@ function StepCard({
     onUpdate({ events: next });
   };
 
+  const statusBorderColor =
+    step.status === "completed" ? "border-l-emerald-500" :
+    step.status === "in_progress" ? "border-l-amber-500" :
+    "border-l-muted-foreground/30";
+
   return (
-    <Card className="border-l-4" style={{ borderLeftColor: step.status === "completed" ? "var(--color-emerald-500, #10b981)" : step.status === "in_progress" ? "var(--color-amber-500, #f59e0b)" : "hsl(var(--muted-foreground) / 0.3)" }}>
-      <CardContent className="pt-4 space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-            <Badge variant="outline" className="font-bold">Step {step.step_number}</Badge>
-          </div>
-          <div className="flex items-center gap-1">
-            <Select value={step.status} onValueChange={(v) => onUpdate({ status: v })}>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDuplicate}><Copy className="h-3.5 w-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}><Trash2 className="h-3.5 w-3.5" /></Button>
+    <Card className={cn("border-l-4 transition-all", statusBorderColor, isExpanded && "ring-1 ring-primary/20 shadow-md")}>
+      {/* Collapsed Header */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/30 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="font-mono font-bold text-xs shrink-0">
+            {step.step_number}
+          </Badge>
+          <div>
+            <span className="font-semibold text-sm text-foreground">
+              {step.heading || "Untitled Step"}
+            </span>
+            {step.deadline && (
+              <span className="text-xs text-muted-foreground ml-2">
+                • {format(new Date(step.deadline), "dd MMM")}
+              </span>
+            )}
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn("text-[10px] border", cfg.bgClass)}>{cfg.label}</Badge>
+          <Pencil className={cn("h-3.5 w-3.5 transition-colors", isExpanded ? "text-primary" : "text-muted-foreground")} />
+        </div>
+      </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs">Process Heading</Label>
-            <Input
-              value={step.heading}
-              onChange={(e) => onUpdate({ heading: e.target.value })}
-              placeholder="e.g. Pre-Wedding Shoot"
-              className="mt-1"
-            />
+      {/* Expanded Editor */}
+      {isExpanded && (
+        <div className="px-4 pb-4 space-y-4 border-t border-border/50 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-medium">Process Heading</Label>
+              <Input
+                value={step.heading}
+                onChange={(e) => onUpdate({ heading: e.target.value })}
+                placeholder="e.g. Pre-Wedding Shoot"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Status</Label>
+              <Select value={step.status} onValueChange={(v) => onUpdate({ status: v })}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>
+                      <span className="flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full", v.dotClass)} />
+                        {v.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <div>
-            <Label className="text-xs">Deadline</Label>
+            <Label className="text-xs font-medium">Deadline</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-full mt-1 justify-start text-left font-normal", !deadlineDate && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {deadlineDate ? format(deadlineDate, "PPP") : "Pick date"}
+                  {deadlineDate ? format(deadlineDate, "PPP") : "Pick a deadline…"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -258,33 +404,52 @@ function StepCard({
               </PopoverContent>
             </Popover>
           </div>
-        </div>
 
-        <div>
-          <Label className="text-xs">Description</Label>
-          <Textarea
-            value={step.description || ""}
-            onChange={(e) => onUpdate({ description: e.target.value })}
-            placeholder="Detailed explanation of this step…"
-            className="mt-1 min-h-[60px]"
-          />
-        </div>
+          <div>
+            <Label className="text-xs font-medium">Description</Label>
+            <Textarea
+              value={step.description || ""}
+              onChange={(e) => onUpdate({ description: e.target.value })}
+              placeholder="Detailed explanation of what needs to be done in this step…"
+              className="mt-1 min-h-[70px]"
+            />
+          </div>
 
-        <div>
-          <Label className="text-xs mb-2 block">Event Selection</Label>
-          <div className="flex flex-wrap gap-2">
-            {EVENT_OPTIONS.map((ev) => (
-              <label key={ev} className="flex items-center gap-1.5 cursor-pointer">
-                <Checkbox
-                  checked={step.events.includes(ev)}
-                  onCheckedChange={() => toggleEvent(ev)}
-                />
-                <span className="text-xs">{ev}</span>
-              </label>
-            ))}
+          <div>
+            <Label className="text-xs font-medium mb-2 block">Event Selection</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {EVENT_OPTIONS.map((ev) => (
+                <label
+                  key={ev}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer rounded-lg border p-2 text-xs transition-colors",
+                    step.events.includes(ev)
+                      ? "border-primary/50 bg-primary/5 text-foreground"
+                      : "border-border hover:bg-accent/50 text-muted-foreground"
+                  )}
+                >
+                  <Checkbox
+                    checked={step.events.includes(ev)}
+                    onCheckedChange={() => toggleEvent(ev)}
+                  />
+                  {ev}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" className="text-xs gap-1.5" onClick={onDuplicate}>
+              <Copy className="h-3.5 w-3.5" /> Duplicate
+            </Button>
+            <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-destructive hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="h-3.5 w-3.5" /> Delete Step
+            </Button>
           </div>
         </div>
-      </CardContent>
+      )}
     </Card>
   );
 }
