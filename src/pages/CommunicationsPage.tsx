@@ -476,6 +476,7 @@ export default function CommunicationsPage() {
                     </Button>
                   </div>
                 </div>
+              </>)}
               </div>
             </div>
           </TabsContent>
