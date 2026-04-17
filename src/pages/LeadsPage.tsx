@@ -858,6 +858,16 @@ const LeadsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ═══ REMINDER DIALOG ═══ */}
+      {reminderLead && (
+        <LeadReminderDialog
+          open={!!reminderLead}
+          onOpenChange={(v) => !v && setReminderLead(null)}
+          leadId={reminderLead.id}
+          leadName={reminderLead.name}
+        />
+      )}
     </div>
   );
 };
