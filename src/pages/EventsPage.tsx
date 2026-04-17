@@ -42,16 +42,15 @@ interface TeamMember {
   avatar: string;
 }
 
-const teamMembers: TeamMember[] = [
-  { id: "t1", name: "Arjun Mehta", role: "Lead Photographer", avatar: "AM" },
-  { id: "t2", name: "Sneha Patil", role: "Videographer", avatar: "SP" },
-  { id: "t3", name: "Vikram Joshi", role: "Editor", avatar: "VJ" },
-  { id: "t4", name: "Riya Das", role: "Assistant Photographer", avatar: "RD" },
-  { id: "t5", name: "Karan Singh", role: "Drone Operator", avatar: "KS" },
-  { id: "t6", name: "Meera Nair", role: "Makeup & Styling", avatar: "MN" },
-  { id: "t7", name: "Rohit Verma", role: "Lighting Technician", avatar: "RV" },
-  { id: "t8", name: "Ananya Gupta", role: "Second Shooter", avatar: "AG" },
-];
+// (Team members come from Supabase via useTeamMembers() — derivation lives inside the component.)
+
+const initialsOf = (fullName: string) =>
+  fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("") || "?";
 
 const eventEmojis: Record<string, string> = {
   wedding: "💒", mehendi: "🌿", haldi: "💛", sangeet: "💃",
@@ -80,6 +79,20 @@ const AnimatedNumber = ({ value, delay = 0 }: { value: number; delay?: number })
 export default function EventsPage() {
   const { clients: dbClients } = useClients();
   const { projects: dbProjects } = useProjects();
+  const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
+
+  // Derive the UI-shaped team list from real Supabase rows
+  const teamMembers: TeamMember[] = useMemo(
+    () =>
+      dbTeamMembers.map((m) => ({
+        id: m.id,
+        name: m.full_name,
+        role: m.role,
+        avatar: initialsOf(m.full_name),
+      })),
+    [dbTeamMembers]
+  );
+
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("all");
@@ -114,7 +127,7 @@ export default function EventsPage() {
         };
       });
     return [...base, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [dbProjects, dbClients, assignments, extraEvents]);
+  }, [dbProjects, dbClients, assignments, extraEvents, teamMembers]);
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(event => {
