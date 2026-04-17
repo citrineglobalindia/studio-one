@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useProjects } from "@/hooks/useProjects";
+import { useEvents } from "@/hooks/useEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import {
@@ -83,6 +84,7 @@ export default function ClientDetailPage() {
   const { clients, isLoading, updateClient, deleteClient } = useClients();
   const { invoices } = useInvoices();
   const { projects } = useProjects();
+  const { events: dbEvents } = useEvents();
 
   const client = clients.find((c: any) => c.id === id) as AnyClient | undefined;
 
@@ -237,6 +239,37 @@ export default function ClientDetailPage() {
     () => projects.filter((p: any) => p.client_id === id),
     [projects, id]
   );
+
+  // Merge project-linked events AND events from the events table for this client
+  const clientEvents = useMemo(() => {
+    const fromProjects = clientProjects
+      .filter((p: any) => p.event_date)
+      .map((p: any) => ({
+        id: p.id,
+        source: "project" as const,
+        name: p.project_name,
+        date: p.event_date,
+        venue: p.venue || "",
+        type: p.event_type || "Event",
+        status: p.status || "planning",
+      }));
+    const fromEvents = dbEvents
+      .filter((e: any) => e.client_id === id)
+      .map((e: any) => ({
+        id: e.id,
+        source: "event" as const,
+        name: e.name,
+        date: e.event_date,
+        venue: e.venue || "",
+        type: e.event_type || "Event",
+        status: e.status || "upcoming",
+        start_time: e.start_time,
+        end_time: e.end_time,
+      }));
+    return [...fromProjects, ...fromEvents].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [clientProjects, dbEvents, id]);
   const totalInvoiced = clientInvoices.reduce((s: number, inv: any) => s + (inv.total_amount || 0), 0);
   const totalPaid = clientInvoices.reduce((s: number, inv: any) => s + (inv.amount_paid || 0), 0);
   const totalDue = totalInvoiced - totalPaid;
@@ -460,7 +493,7 @@ export default function ClientDetailPage() {
               { value: "overview",  icon: Users,         label: "Overview" },
               { value: "projects",  icon: Briefcase,     label: "Projects",  count: clientProjects.length },
               { value: "invoices",  icon: Receipt,       label: "Invoices",  count: clientInvoices.length },
-              { value: "events",    icon: CalendarDays,  label: "Events",    count: clientProjects.filter((p: any) => p.event_date).length },
+              { value: "events",    icon: CalendarDays,  label: "Events",    count: clientEvents.length },
               { value: "process",   icon: ClipboardList, label: "Process",   count: processSteps.length },
               { value: "contracts", icon: FileText,      label: "Contracts" },
               { value: "team",      icon: UsersRound,    label: "Team",      count: teamMembers.length },
@@ -586,22 +619,29 @@ export default function ClientDetailPage() {
               ))}
             </TabsContent>
 
-            {/* ───── EVENTS (derived from projects with an event_date) ───── */}
+            {/* ───── EVENTS (from events table + projects with an event_date) ───── */}
             <TabsContent value="events" className="mt-0 space-y-3">
-              {clientProjects.filter((p: any) => p.event_date).length === 0 ? (
-                <EmptyState icon={<CalendarDays className="h-10 w-10" />} text="No scheduled events" />
-              ) : clientProjects.filter((p: any) => p.event_date).map((p: any, i: number) => (
-                <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+              {clientEvents.length === 0 ? (
+                <EmptyState icon={<CalendarDays className="h-10 w-10" />} text="No scheduled events" subtext="Add events on the Events page — they'll appear here automatically." actionLabel="Go to Events" onAction={() => navigate("/events")} />
+              ) : clientEvents.map((e, i) => (
+                <motion.div key={e.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                   className="flex items-center gap-4 rounded-xl border border-border p-4 bg-gradient-to-r from-primary/5 to-transparent">
                   <div className="h-14 w-14 rounded-xl bg-primary/15 flex flex-col items-center justify-center text-primary shrink-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(p.event_date).toLocaleDateString("en-IN", { month: "short" })}</span>
-                    <span className="text-xl font-black leading-none">{new Date(p.event_date).getDate()}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(e.date).toLocaleDateString("en-IN", { month: "short" })}</span>
+                    <span className="text-xl font-black leading-none">{new Date(e.date).getDate()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{p.project_name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{p.event_type || "Event"} · {p.venue || "Venue TBD"}</p>
+                    <p className="text-sm font-semibold text-foreground">{e.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                      {e.type || "Event"} · {e.venue || "Venue TBD"}
+                      {(e as any).start_time && ` · ${String((e as any).start_time).slice(0, 5)}`}
+                    </p>
                   </div>
-                  <Badge variant="outline" className="text-[10px] capitalize">{p.status}</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="outline" className="text-[10px] capitalize">{e.status}</Badge>
+                    {e.source === "event" && <Badge variant="secondary" className="text-[9px]">event</Badge>}
+                    {e.source === "project" && <Badge variant="secondary" className="text-[9px]">project</Badge>}
+                  </div>
                 </motion.div>
               ))}
             </TabsContent>
