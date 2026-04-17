@@ -18,6 +18,7 @@ import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEvents } from "@/hooks/useEvents";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { cn } from "@/lib/utils";
 
 interface ClientEvent {
@@ -83,6 +84,7 @@ export default function EventsPage() {
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
   const { events: dbEvents, addEvent, updateEvent, deleteEvent } = useEvents();
+  const { byEvent: assignmentsByEvent, setAssignments: saveEventAssignments } = useEventTeamAssignments();
 
   // Derive the UI-shaped team list from real Supabase rows
   const teamMembers: TeamMember[] = useMemo(
@@ -102,7 +104,33 @@ export default function EventsPage() {
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
   const [assignSheetOpen, setAssignSheetOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventWithClient | null>(null);
-  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
+  // Pending edits to assignments — applied to a single event's checkboxes
+  // before Save writes them to Supabase.
+  const [draftAssignments, setDraftAssignments] = useState<Record<string, string[]>>({});
+
+  // "Committed" assignments come straight from Supabase via the hook.
+  // Drafts override saved values so ticking feels instant.
+  const assignments: Record<string, string[]> = useMemo(() => {
+    const saved = assignmentsByEvent();
+    return { ...saved, ...draftAssignments };
+  }, [assignmentsByEvent, draftAssignments]);
+
+  // Legacy setter retained so existing toggle / bulk-assign callers keep compiling.
+  // It only mutates the draft — saved rows only change via saveAssignment().
+  const setAssignments: React.Dispatch<React.SetStateAction<Record<string, string[]>>> = (updater) => {
+    setDraftAssignments((prev) => {
+      const merged = { ...assignmentsByEvent(), ...prev };
+      const next = typeof updater === "function" ? (updater as any)(merged) : updater;
+      const saved = assignmentsByEvent();
+      const diff: Record<string, string[]> = {};
+      for (const k of Object.keys(next)) {
+        const a = [...(next[k] || [])].sort().join(",");
+        const b = [...(saved[k] || [])].sort().join(",");
+        if (a !== b) diff[k] = next[k];
+      }
+      return diff;
+    });
+  };
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -234,7 +262,23 @@ export default function EventsPage() {
   const toggleMember = (eventId: string, memberId: string) => {
     setAssignments(prev => { const current = prev[eventId] || []; const updated = current.includes(memberId) ? current.filter(id => id !== memberId) : [...current, memberId]; return { ...prev, [eventId]: updated }; });
   };
-  const saveAssignment = () => { if (selectedEvent) { toast.success(`${assignments[selectedEvent.id]?.length || 0} members assigned to ${selectedEvent.name}`); } setAssignSheetOpen(false); };
+  const saveAssignment = () => {
+    if (!selectedEvent) { setAssignSheetOpen(false); return; }
+    const memberIds = assignments[selectedEvent.id] || [];
+    saveEventAssignments.mutate(
+      { eventId: selectedEvent.id, memberIds },
+      {
+        onSuccess: () => {
+          setDraftAssignments((prev) => {
+            const next = { ...prev };
+            delete next[selectedEvent.id];
+            return next;
+          });
+          setAssignSheetOpen(false);
+        },
+      }
+    );
+  };
   const toggleSelectEvent = (id: string) => setSelectedEvents(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const handleBulkAssign = () => {
