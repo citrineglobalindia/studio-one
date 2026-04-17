@@ -181,18 +181,22 @@ const LeadsPage = () => {
       toast.error("Name and phone are required");
       return;
     }
+    if (!/^\d{10}$/.test(newLead.phone)) {
+      toast.error("Phone must be exactly 10 digits");
+      return;
+    }
     addLead.mutate({
       name: newLead.name,
       phone: newLead.phone,
       email: newLead.email || null,
       city: newLead.city || null,
       source: newLead.source,
-      status: "new",
       event_type: newLead.eventType,
       event_date: newLead.eventDate || null,
-      budget: newLead.budget ? parseInt(newLead.budget) : null,
+      budget: newLead.budget ? Number(newLead.budget) : null,
       notes: newLead.notes || null,
       assigned_to: newLead.assignedTo || null,
+      status: "new",
       follow_up_date: null,
       converted_client_id: null,
     });
