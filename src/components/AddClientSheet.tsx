@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -18,20 +19,31 @@ import {
   Sparkles, IndianRupee, FileText,
 } from "lucide-react";
 
-const clientSchema = z.object({
-  name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
-  partner_name: z.string().trim().max(100).optional().or(z.literal("")),
-  phone: z.string().trim().min(10, "Enter a valid phone number").max(15),
-  email: z.string().trim().email("Enter a valid email").max(255).optional().or(z.literal("")),
-  city: z.string().trim().max(100).optional().or(z.literal("")),
-  source: z.string().min(1, "Select a source"),
-  event_type: z.string().optional().or(z.literal("")),
-  event_date: z.string().optional().or(z.literal("")),
-  delivery_date: z.string().optional().or(z.literal("")),
-  status: z.string().default("active"),
-  budget: z.string().optional().or(z.literal("")),
-  notes: z.string().trim().max(500).optional().or(z.literal("")),
-});
+const clientSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+    partner_name: z.string().trim().max(100).optional().or(z.literal("")),
+    phone: z.string().trim().min(10, "Enter a valid phone number").max(15),
+    email: z.string().trim().email("Enter a valid email").max(255).optional().or(z.literal("")),
+    city: z.string().trim().max(100).optional().or(z.literal("")),
+    source: z.string().min(1, "Select a source"),
+    event_types: z.array(z.string()).default([]),
+    other_event_type: z.string().trim().max(50).optional().or(z.literal("")),
+    event_date: z.string().optional().or(z.literal("")),
+    delivery_date: z.string().optional().or(z.literal("")),
+    budget: z.string().optional().or(z.literal("")),
+    notes: z.string().trim().max(500).optional().or(z.literal("")),
+  })
+  .refine(
+    (v) => {
+      // If "Other" is ticked, require the custom text
+      if (v.event_types.includes("Other")) {
+        return !!v.other_event_type && v.other_event_type.trim().length > 0;
+      }
+      return true;
+    },
+    { message: "Please specify the other event type", path: ["other_event_type"] }
+  );
 
 type ClientFormValues = z.infer<typeof clientSchema>;
 
@@ -42,19 +54,36 @@ interface AddClientSheetProps {
 }
 
 const sources = ["Instagram", "Referral", "Website", "Google", "WhatsApp", "Facebook", "Other"];
-const eventTypes = ["Wedding", "Pre-Wedding", "Engagement", "Reception", "Corporate", "Birthday"];
+const EVENT_TYPES = ["Wedding", "Pre-Wedding", "Engagement", "Reception", "Corporate", "Birthday", "Other"];
 
 export function AddClientSheet({ open, onOpenChange, onAdd }: AddClientSheetProps) {
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      name: "", partner_name: "", phone: "", email: "", city: "",
-      source: "", event_type: "Wedding", event_date: "", delivery_date: "",
-      status: "active", budget: "", notes: "",
+      name: "",
+      partner_name: "",
+      phone: "",
+      email: "",
+      city: "",
+      source: "",
+      event_types: [],
+      other_event_type: "",
+      event_date: "",
+      delivery_date: "",
+      budget: "",
+      notes: "",
     },
   });
 
+  const selectedTypes = form.watch("event_types");
+  const showOtherInput = selectedTypes.includes("Other");
+
   const onSubmit = (values: ClientFormValues) => {
+    // If "Other" was chosen, replace the literal "Other" token with the custom text.
+    const finalTypes = values.event_types.map((t) =>
+      t === "Other" ? (values.other_event_type.trim() || "Other") : t
+    );
+
     onAdd({
       name: values.name,
       partner_name: values.partner_name || null,
@@ -62,12 +91,16 @@ export function AddClientSheet({ open, onOpenChange, onAdd }: AddClientSheetProp
       email: values.email || null,
       city: values.city || null,
       source: values.source || null,
-      event_type: values.event_type || null,
+      // New array column:
+      event_types: finalTypes,
+      // Legacy single-string column — keep writing a joined value so existing
+      // tables / filters that still read event_type keep working.
+      event_type: finalTypes.length > 0 ? finalTypes.join(", ") : null,
       event_date: values.event_date || null,
       delivery_date: values.delivery_date || null,
-      status: values.status,
       budget: values.budget ? parseFloat(values.budget) : null,
       notes: values.notes || null,
+      // status is set by DB default ('active') — no longer collected from the form
     });
     form.reset();
     onOpenChange(false);
@@ -203,67 +236,92 @@ export function AddClientSheet({ open, onOpenChange, onAdd }: AddClientSheetProp
               )} />
             </div>
 
-            {/* Source & Status */}
+            {/* Source & Event Types */}
             <div className="space-y-1 mb-1 pt-2">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" /> Source & Status
+                <Sparkles className="h-3 w-3" /> Source & Events
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormField control={form.control} name="source" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Lead Source *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Select source" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {sources.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-[10px]" />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="event_type" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Event Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {eventTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-[10px]" />
-                </FormItem>
-              )} />
-            </div>
-
-            <FormField control={form.control} name="status" render={({ field }) => (
+            <FormField control={form.control} name="source" render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Status</FormLabel>
+                <FormLabel className="text-xs">Lead Source *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
+                      <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="vip">VIP</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="on-hold">On Hold</SelectItem>
+                    {sources.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-[10px]" />
               </FormItem>
             )} />
+
+            {/* Event Types — multi-select checkboxes */}
+            <FormField
+              control={form.control}
+              name="event_types"
+              render={() => (
+                <FormItem>
+                  <FormLabel className="text-xs">Event Types</FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    {EVENT_TYPES.map((evt) => (
+                      <FormField
+                        key={evt}
+                        control={form.control}
+                        name="event_types"
+                        render={({ field }) => {
+                          const checked = field.value?.includes(evt);
+                          return (
+                            <label
+                              className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm cursor-pointer select-none transition-colors ${
+                                checked
+                                  ? "bg-primary/10 border-primary/40 text-primary"
+                                  : "bg-card border-border hover:border-primary/20"
+                              }`}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(value) => {
+                                  const current = field.value ?? [];
+                                  if (value) {
+                                    field.onChange([...current, evt]);
+                                  } else {
+                                    field.onChange(current.filter((v) => v !== evt));
+                                    // If Other was unchecked, clear its text too
+                                    if (evt === "Other") {
+                                      form.setValue("other_event_type", "");
+                                    }
+                                  }
+                                }}
+                              />
+                              <span>{evt}</span>
+                            </label>
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+
+            {/* Other event type text input — only shown when "Other" is checked */}
+            {showOtherInput && (
+              <FormField control={form.control} name="other_event_type" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs">Specify other event type *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Baby Shower, Anniversary..." className="h-9 text-sm" {...field} />
+                  </FormControl>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )} />
+            )}
 
             <FormField control={form.control} name="notes" render={({ field }) => (
               <FormItem>
