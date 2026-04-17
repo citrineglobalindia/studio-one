@@ -726,15 +726,21 @@ const LeadsPage = () => {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Phone *</Label>
-                <Input placeholder="9876543210" value={newLead.phone} onChange={(e) => setNewLead((p) => ({ ...p, phone: e.target.value }))} />
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="9876543210"
+                  value={newLead.phone}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setNewLead((p) => ({ ...p, phone: digits }));
+                  }}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Email</Label>
                 <Input placeholder="email@example.com" value={newLead.email} onChange={(e) => setNewLead((p) => ({ ...p, email: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Company</Label>
-                <Input placeholder="Company name" value={newLead.company} onChange={(e) => setNewLead((p) => ({ ...p, company: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">City</Label>
