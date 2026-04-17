@@ -771,18 +771,6 @@ const LeadsPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Assign To</Label>
-              <Select value={newLead.assignedTo} onValueChange={(v) => setNewLead((p) => ({ ...p, assignedTo: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select team member" /></SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
               <Label className="text-xs font-medium">Notes</Label>
               <Textarea placeholder="Any details about this lead..." value={newLead.notes} onChange={(e) => setNewLead((p) => ({ ...p, notes: e.target.value }))} rows={3} />
             </div>
