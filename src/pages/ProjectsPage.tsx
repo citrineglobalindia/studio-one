@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useProjects, type Project } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { useOrg } from "@/contexts/OrgContext";
 import { useClients } from "@/hooks/useClients";
 
@@ -60,6 +61,19 @@ const ProjectsPage = () => {
   const { organization } = useOrg();
   const { projects, isLoading, addProject, deleteProject } = useProjects();
   const { members: teamMembers } = useTeamMembers();
+  const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
+
+  // For each project, merge the legacy assigned_team (names) with event_team_assignments
+  // (real team_members) so the crew count reflects both sources.
+  const projectCrewCount = (project: any): number => {
+    const namesSet = new Set<string>(project.assigned_team || []);
+    const assignedIds = assignmentsByEvent()[project.id] || [];
+    for (const id of assignedIds) {
+      const m = teamMembers.find((t: any) => t.id === id);
+      namesSet.add(m ? m.full_name : id);
+    }
+    return namesSet.size;
+  };
   const { clients } = useClients();
   const [addOpen, setAddOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -338,7 +352,7 @@ const ProjectsPage = () => {
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     {project.event_date && <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarDays className="h-3 w-3 shrink-0" /><span>{new Date(project.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span></div>}
                     {(project.client?.city || project.venue) && <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{project.client?.city || project.venue}</span></div>}
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Users className="h-3 w-3 shrink-0" /><span>{project.assigned_team?.length || 0} crew</span></div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Users className="h-3 w-3 shrink-0" /><span>{projectCrewCount(project)} crew</span></div>
                   </div>
                   <div className="pt-3 border-t border-border">
                     <div className="flex items-center justify-between mb-1.5">
