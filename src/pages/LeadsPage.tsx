@@ -57,6 +57,7 @@ const LeadsPage = () => {
   const [importedRows, setImportedRows] = useState<Record<string, string>[]>([]);
   const [importing, setImporting] = useState(false);
   const [importHistory, setImportHistory] = useState<{ date: string; count: number; filename: string }[]>([]);
+  const [reminderLead, setReminderLead] = useState<{ id: string; name: string } | null>(null);
 
   // ═══ EXPORT CSV ═══
   const handleExportCSV = () => {
