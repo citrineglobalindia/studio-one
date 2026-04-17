@@ -550,49 +550,65 @@ export default function ClientDetailPage() {
           </TabsList>
 
           <div className="p-5">
-            {/* ───── MANAGE (admin-editable grid for all Live Clients view fields) ───── */}
-            <TabsContent value="manage" className="mt-0 space-y-6">
-              {/* Projects section */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-primary" /> Projects ({clientProjects.length})
-                  </h3>
+            {/* ───── MANAGE (hierarchy: client → project → events table) ───── */}
+            <TabsContent value="manage" className="mt-0 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-primary" /> Projects &amp; Events ({clientProjects.length} / {dbEvents.filter((e: any) => e.client_id === id).length})
+                </h3>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/events")}>
+                    <CalendarDays className="h-3.5 w-3.5" /> Add Event
+                  </Button>
                   <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/projects")}>
                     <Plus className="h-3.5 w-3.5" /> New Project
                   </Button>
                 </div>
-                {clientProjects.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    No projects for this client yet.
-                  </div>
-                ) : clientProjects.map((p: any) => (
-                  <ProjectManageRow key={p.id} project={p} onSave={(patch) => updateProject.mutate({ id: p.id, ...(patch as any) })} />
-                ))}
               </div>
 
-              {/* Events section */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-primary" /> Events ({dbEvents.filter((e: any) => e.client_id === id).length})
-                  </h3>
-                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/events")}>
-                    <Plus className="h-3.5 w-3.5" /> New Event
-                  </Button>
+              {clientProjects.length === 0 && dbEvents.filter((e: any) => e.client_id === id).length === 0 && (
+                <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  No projects or events for this client yet.
                 </div>
-                {(() => {
-                  const rows = dbEvents.filter((e: any) => e.client_id === id);
-                  if (rows.length === 0) return (
-                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      No events for this client yet.
-                    </div>
-                  );
-                  return rows.map((e: any) => (
-                    <EventManageRow key={e.id} event={e} onSave={(patch) => updateEvent.mutate({ id: e.id, ...(patch as any) })} />
-                  ));
-                })()}
-              </div>
+              )}
+
+              {clientProjects.map((p: any) => (
+                <ProjectManageRow
+                  key={p.id}
+                  project={p}
+                  events={(dbEvents as any[]).filter((e) => e.client_id === id && (e.project_id === p.id || !e.project_id))}
+                  teamMembers={dbTeamMembers}
+                  assignmentsByEvent={assignmentsByEvent}
+                  onSave={(patch) => updateProject.mutate({ id: p.id, ...(patch as any) })}
+                  onSaveEvent={(eid, patch) => updateEvent.mutate({ id: eid, ...(patch as any) })}
+                />
+              ))}
+
+              {/* Orphan events: belong to this client but not linked to any listed project */}
+              {(() => {
+                const linkedEventIds = new Set<string>();
+                for (const p of clientProjects) {
+                  for (const e of dbEvents as any[]) {
+                    if (e.client_id === id && (e.project_id === p.id || !e.project_id)) linkedEventIds.add(e.id);
+                  }
+                }
+                const orphans = (dbEvents as any[]).filter((e) => e.client_id === id && !linkedEventIds.has(e.id));
+                if (orphans.length === 0) return null;
+                return (
+                  <div className="rounded-xl border border-dashed border-border p-4 mt-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Events not tied to any listed project</p>
+                    {orphans.map((e: any) => (
+                      <EventManageRow
+                        key={e.id}
+                        event={e}
+                        teamMembers={dbTeamMembers}
+                        assignmentsByEvent={assignmentsByEvent}
+                        onSave={(patch) => updateEvent.mutate({ id: e.id, ...(patch as any) })}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             {/* ───── OVERVIEW ───── */}
@@ -926,6 +942,28 @@ const EVENT_STATUS_OPTIONS   = ["upcoming", "in-progress", "completed", "cancell
 const STAGE_OPTIONS          = ["pending", "in-progress", "done"];
 const PAYMENT_OPTIONS        = ["pending", "partial", "paid"];
 const DELIVERY_OPTIONS       = ["pending", "delivered", "on-hold"];
+const QUOTATION_STATUS_OPTIONS = ["pending", "sent", "accepted", "rejected"];
+
+// Stages used to compute the per-event "Delivery %" column
+const EVENT_STAGE_KEYS = [
+  "data_copy_status",
+  "backup_status",
+  "delivery_hdd_status",
+  "video_editing_status",
+  "album_design_status",
+  "delivery_status",
+] as const;
+
+function computeEventProgress(ev: any): number {
+  let done = 0;
+  let total = 0;
+  for (const k of EVENT_STAGE_KEYS) {
+    total++;
+    const v = ev[k];
+    if (v === "done" || v === "delivered" || v === "completed") done++;
+  }
+  return total === 0 ? 0 : Math.round((done / total) * 100);
+}
 
 // Tiny inline <select> so we don't have to repeat Tailwind classes 15 times
 const StageSelect = ({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) => (
@@ -935,7 +973,21 @@ const StageSelect = ({ value, onChange, options }: { value: string; onChange: (v
   </select>
 );
 
-function ProjectManageRow({ project, onSave }: { project: any; onSave: (patch: any) => void }) {
+function ProjectManageRow({
+  project,
+  onSave,
+  events = [],
+  teamMembers = [],
+  assignmentsByEvent,
+  onSaveEvent,
+}: {
+  project: any;
+  onSave: (patch: any) => void;
+  events?: any[];
+  teamMembers?: any[];
+  assignmentsByEvent?: () => Record<string, string[]>;
+  onSaveEvent?: (eventId: string, patch: any) => void;
+}) {
   const [open, setOpen] = useState(true);
   const initial = {
     project_name:           project.project_name           ?? "",
@@ -1076,11 +1128,42 @@ function ProjectManageRow({ project, onSave }: { project: any; onSave: (patch: a
           </div>
         </div>
       )}
+
+      {/* ───── Nested events table ───── */}
+      {events.length > 0 && assignmentsByEvent && onSaveEvent && (
+        <div className="border-t border-border bg-background">
+          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+            <CalendarDays className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Events ({events.length})</span>
+          </div>
+          <div className="px-3 pb-3">
+            {events.map((e) => (
+              <EventManageRow
+                key={e.id}
+                event={e}
+                teamMembers={teamMembers}
+                assignmentsByEvent={assignmentsByEvent}
+                onSave={(patch) => onSaveEvent(e.id, patch)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) => void }) {
+function EventManageRow({
+  event,
+  onSave,
+  teamMembers = [],
+  assignmentsByEvent,
+}: {
+  event: any;
+  onSave: (patch: any) => void;
+  teamMembers?: any[];
+  assignmentsByEvent?: () => Record<string, string[]>;
+}) {
   const [open, setOpen] = useState(false);
   const initial = {
     name:                      event.name                      ?? "",
@@ -1091,10 +1174,14 @@ function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) =>
     venue:                     event.venue                     ?? "",
     status:                    event.status                    ?? "upcoming",
     notes:                     event.notes                     ?? "",
-    quotation_services:        event.quotation_services        ?? "",
+    quotation_services_status: event.quotation_services_status ?? "pending",
     actual_services:           event.actual_services           ?? "",
+    card_number:               event.card_number               ?? "",
+    raw_data_size:             event.raw_data_size             ?? "",
     data_copy_status:          event.data_copy_status          ?? "pending",
-    photo_filter_grade_status: event.photo_filter_grade_status ?? "pending",
+    backup_status:             event.backup_status             ?? "pending",
+    delivery_hdd_status:       event.delivery_hdd_status       ?? "pending",
+    photo_filter_grade:        event.photo_filter_grade        ?? "",
     video_editing_status:      event.video_editing_status      ?? "pending",
     album_design_status:       event.album_design_status       ?? "pending",
     assigned_date:             event.assigned_date             ?? "",
@@ -1113,10 +1200,14 @@ function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) =>
       venue:                     form.venue || null,
       status:                    form.status,
       notes:                     form.notes || null,
-      quotation_services:        form.quotation_services || null,
+      quotation_services_status: form.quotation_services_status,
       actual_services:           form.actual_services || null,
+      card_number:               form.card_number || null,
+      raw_data_size:             form.raw_data_size || null,
       data_copy_status:          form.data_copy_status,
-      photo_filter_grade_status: form.photo_filter_grade_status,
+      backup_status:             form.backup_status,
+      delivery_hdd_status:       form.delivery_hdd_status,
+      photo_filter_grade:        form.photo_filter_grade || null,
       video_editing_status:      form.video_editing_status,
       album_design_status:       form.album_design_status,
       assigned_date:             form.assigned_date || null,
@@ -1124,18 +1215,52 @@ function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) =>
     });
   };
 
+  // Technicians assigned to THIS event, derived from event_team_assignments + team_members
+  const assignedMembers = (() => {
+    if (!assignmentsByEvent) return [] as any[];
+    const ids = assignmentsByEvent()[event.id] || [];
+    return ids.map((mid) => teamMembers.find((m: any) => m.id === mid)).filter(Boolean);
+  })();
+
+  // Progress percentage from stage fields (live — updates as admin toggles stages)
+  const progressPct = computeEventProgress({
+    ...event,
+    ...form,
+  });
+
   return (
     <div className="rounded-xl border border-border bg-card mb-3 overflow-hidden">
       <button type="button" onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
-        <div className="flex items-center gap-3">
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          <div className="text-left">
-            <p className="text-sm font-semibold text-foreground">{event.name}</p>
-            <p className="text-[10px] text-muted-foreground capitalize">{fmtDate(event.event_date)} · {event.status}</p>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="text-left min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-foreground">{event.name}</p>
+              <Badge variant="outline" className="text-[9px] capitalize">{event.status}</Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {fmtDate(event.event_date)}
+              {event.start_time && ` · ${String(event.start_time).slice(0, 5)}`}
+              {event.venue && ` · ${event.venue}`}
+            </p>
+            {assignedMembers.length > 0 && (
+              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                {assignedMembers.slice(0, 4).map((m: any) => (
+                  <span key={m.id} className="inline-flex items-center gap-1 text-[9px] rounded-full bg-primary/10 text-primary px-2 py-0.5 border border-primary/20">
+                    {m.full_name} <span className="text-muted-foreground">· {m.role}</span>
+                  </span>
+                ))}
+                {assignedMembers.length > 4 && <span className="text-[9px] text-muted-foreground">+{assignedMembers.length - 4}</span>}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-right">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Delivery</p>
+            <p className="text-[11px] font-bold text-foreground tabular-nums">{progressPct}%</p>
+          </div>
           {dirty && <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-500/30">Unsaved</Badge>}
           <span className="text-muted-foreground text-xs">{open ? "Hide" : "Edit"}</span>
         </div>
@@ -1160,18 +1285,48 @@ function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) =>
 
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Services</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Quotation Services</Label><Input value={form.quotation_services} onChange={(e) => setForm({ ...form, quotation_services: e.target.value })} placeholder="What was quoted" /></div>
-            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Actual Services</Label><Input value={form.actual_services} onChange={(e) => setForm({ ...form, actual_services: e.target.value })} placeholder="What was delivered" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Quotation Services (status)</Label><StageSelect value={form.quotation_services_status} onChange={(v) => setForm({ ...form, quotation_services_status: v })} options={QUOTATION_STATUS_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Actual Services</Label><Input value={form.actual_services} onChange={(e) => setForm({ ...form, actual_services: e.target.value })} placeholder="e.g. Candid + Video + Drone" /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Assigned Date</Label><Input type="date" value={form.assigned_date} onChange={(e) => setForm({ ...form, assigned_date: e.target.value })} /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery Status</Label><StageSelect value={form.delivery_status} onChange={(v) => setForm({ ...form, delivery_status: v })} options={DELIVERY_OPTIONS} /></div>
           </div>
 
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Data Tracking</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Card Number</Label><Input value={form.card_number} onChange={(e) => setForm({ ...form, card_number: e.target.value })} placeholder="SD-01" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Raw Data Size</Label><Input value={form.raw_data_size} onChange={(e) => setForm({ ...form, raw_data_size: e.target.value })} placeholder="e.g. 1.2 GB or 800 MB" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Data Copy</Label><StageSelect value={form.data_copy_status} onChange={(v) => setForm({ ...form, data_copy_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Backup</Label><StageSelect value={form.backup_status} onChange={(v) => setForm({ ...form, backup_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery HDD</Label><StageSelect value={form.delivery_hdd_status} onChange={(v) => setForm({ ...form, delivery_hdd_status: v })} options={STAGE_OPTIONS} /></div>
+          </div>
+
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Post-Production</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Data Copy</Label><StageSelect value={form.data_copy_status} onChange={(v) => setForm({ ...form, data_copy_status: v })} options={STAGE_OPTIONS} /></div>
-            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Photo Filter &amp; Grade</Label><StageSelect value={form.photo_filter_grade_status} onChange={(v) => setForm({ ...form, photo_filter_grade_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1 sm:col-span-2"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Photo Filter &amp; Grade (free text)</Label><Input value={form.photo_filter_grade} onChange={(e) => setForm({ ...form, photo_filter_grade: e.target.value })} placeholder="e.g. Warm cinematic, Kodak Portra look…" /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Video Editing</Label><StageSelect value={form.video_editing_status} onChange={(v) => setForm({ ...form, video_editing_status: v })} options={STAGE_OPTIONS} /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Album Design</Label><StageSelect value={form.album_design_status} onChange={(v) => setForm({ ...form, album_design_status: v })} options={STAGE_OPTIONS} /></div>
+          </div>
+
+          {/* Technicians — read-only (change via Events > Assign Team) */}
+          <div className="pt-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Assigned Technicians</p>
+            {assignedMembers.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">
+                No technicians yet. Use Events → Assign Team to add people.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {assignedMembers.map((m: any) => (
+                  <span key={m.id} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs">
+                    <span className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[9px] font-bold">
+                      {String(m.full_name).split(" ").filter(Boolean).slice(0, 2).map((p: string) => p[0]?.toUpperCase()).join("")}
+                    </span>
+                    <span className="font-medium text-foreground">{m.full_name}</span>
+                    <span className="text-muted-foreground capitalize">· {m.role}</span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">
