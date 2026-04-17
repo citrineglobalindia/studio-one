@@ -18,6 +18,8 @@ import { useClients } from "@/hooks/useClients";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useProjects } from "@/hooks/useProjects";
 import { useEvents } from "@/hooks/useEvents";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import {
@@ -85,6 +87,8 @@ export default function ClientDetailPage() {
   const { invoices } = useInvoices();
   const { projects } = useProjects();
   const { events: dbEvents } = useEvents();
+  const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
+  const { members: dbTeamMembers } = useTeamMembers();
 
   const client = clients.find((c: any) => c.id === id) as AnyClient | undefined;
 
@@ -623,27 +627,52 @@ export default function ClientDetailPage() {
             <TabsContent value="events" className="mt-0 space-y-3">
               {clientEvents.length === 0 ? (
                 <EmptyState icon={<CalendarDays className="h-10 w-10" />} text="No scheduled events" subtext="Add events on the Events page — they'll appear here automatically." actionLabel="Go to Events" onAction={() => navigate("/events")} />
-              ) : clientEvents.map((e, i) => (
-                <motion.div key={e.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                  className="flex items-center gap-4 rounded-xl border border-border p-4 bg-gradient-to-r from-primary/5 to-transparent">
-                  <div className="h-14 w-14 rounded-xl bg-primary/15 flex flex-col items-center justify-center text-primary shrink-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(e.date).toLocaleDateString("en-IN", { month: "short" })}</span>
-                    <span className="text-xl font-black leading-none">{new Date(e.date).getDate()}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{e.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                      {e.type || "Event"} · {e.venue || "Venue TBD"}
-                      {(e as any).start_time && ` · ${String((e as any).start_time).slice(0, 5)}`}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <Badge variant="outline" className="text-[10px] capitalize">{e.status}</Badge>
-                    {e.source === "event" && <Badge variant="secondary" className="text-[9px]">event</Badge>}
-                    {e.source === "project" && <Badge variant="secondary" className="text-[9px]">project</Badge>}
-                  </div>
-                </motion.div>
-              ))}
+              ) : clientEvents.map((e, i) => {
+                const assignedIds = assignmentsByEvent()[e.id] || [];
+                const assignedMembers = assignedIds
+                  .map((id) => dbTeamMembers.find((m: any) => m.id === id))
+                  .filter(Boolean) as any[];
+                return (
+                  <motion.div key={e.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-border p-4 bg-gradient-to-r from-primary/5 to-transparent">
+                    <div className="h-14 w-14 rounded-xl bg-primary/15 flex flex-col items-center justify-center text-primary shrink-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(e.date).toLocaleDateString("en-IN", { month: "short" })}</span>
+                      <span className="text-xl font-black leading-none">{new Date(e.date).getDate()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{e.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                        {e.type || "Event"} · {e.venue || "Venue TBD"}
+                        {(e as any).start_time && ` · ${String((e as any).start_time).slice(0, 5)}`}
+                      </p>
+                      {assignedMembers.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex -space-x-2">
+                            {assignedMembers.slice(0, 5).map((m: any) => (
+                              <div key={m.id} className="h-6 w-6 rounded-full bg-primary/15 border-2 border-background flex items-center justify-center text-[9px] font-bold text-primary" title={`${m.full_name} — ${m.role}`}>
+                                {String(m.full_name).split(" ").filter(Boolean).slice(0, 2).map((p: string) => p[0]?.toUpperCase()).join("")}
+                              </div>
+                            ))}
+                            {assignedMembers.length > 5 && (
+                              <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[9px] font-medium text-muted-foreground">
+                                +{assignedMembers.length - 5}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {assignedMembers.map((m: any) => m.full_name).join(", ")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Badge variant="outline" className="text-[10px] capitalize">{e.status}</Badge>
+                      {e.source === "event" && <Badge variant="secondary" className="text-[9px]">event</Badge>}
+                      {e.source === "project" && <Badge variant="secondary" className="text-[9px]">project</Badge>}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </TabsContent>
 
             {/* ───── PROCESS PLAN ───── */}
