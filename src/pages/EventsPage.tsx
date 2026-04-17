@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useEvents } from "@/hooks/useEvents";
 import { cn } from "@/lib/utils";
 
 interface ClientEvent {
@@ -80,6 +81,7 @@ export default function EventsPage() {
   const { clients: dbClients } = useClients();
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
+  const { events: dbEvents, addEvent, deleteEvent } = useEvents();
 
   // Derive the UI-shaped team list from real Supabase rows
   const teamMembers: TeamMember[] = useMemo(
@@ -107,11 +109,11 @@ export default function EventsPage() {
   const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
 
   const allEvents: EventWithClient[] = useMemo(() => {
-    // Build events from DB projects that have event dates
-    const base: EventWithClient[] = dbProjects
-      .filter(p => p.event_date)
-      .map(p => {
-        const client = dbClients.find(c => c.id === p.client_id);
+    // 1) Events built from DB "projects" that have event_dates (legacy)
+    const fromProjects: EventWithClient[] = dbProjects
+      .filter((p) => p.event_date)
+      .map((p) => {
+        const client = dbClients.find((c) => c.id === p.client_id);
         const eventDate = new Date(p.event_date!);
         const isUpcoming = eventDate >= new Date();
         return {
@@ -123,11 +125,35 @@ export default function EventsPage() {
           status: (p.status === "completed" || p.status === "delivered" ? "completed" : isUpcoming ? "upcoming" : "in-progress") as "upcoming" | "completed" | "in-progress",
           clientName: client ? (client.partner_name ? `${client.name} & ${client.partner_name}` : client.name) : p.project_name,
           clientId: p.client_id || "",
-          assignedTeam: (assignments[p.id] || []).map(tid => teamMembers.find(t => t.id === tid)!).filter(Boolean),
+          assignedTeam: (assignments[p.id] || []).map((tid) => teamMembers.find((t) => t.id === tid)!).filter(Boolean),
         };
       });
-    return [...base, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [dbProjects, dbClients, assignments, extraEvents, teamMembers]);
+
+    // 2) Events created from the "Add Event" form — now properly persisted in the events table
+    const fromDb: EventWithClient[] = dbEvents.map((e) => {
+      const client = dbClients.find((c) => c.id === e.client_id);
+      const eventDate = new Date(e.event_date);
+      const isUpcoming = eventDate >= new Date();
+      const computedStatus =
+        e.status === "completed" ? "completed" :
+        e.status === "in-progress" ? "in-progress" :
+        isUpcoming ? "upcoming" : "in-progress";
+      return {
+        id: e.id,
+        name: e.name,
+        date: e.event_date,
+        venue: e.venue || "TBD",
+        type: (e.event_type || "wedding").toLowerCase(),
+        status: computedStatus,
+        notes: e.notes ?? undefined,
+        clientName: client ? (client.partner_name ? `${client.name} & ${client.partner_name}` : client.name) : "Studio Event",
+        clientId: e.client_id || "",
+        assignedTeam: (assignments[e.id] || []).map((tid) => teamMembers.find((t) => t.id === tid)!).filter(Boolean),
+      };
+    });
+
+    return [...fromProjects, ...fromDb, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [dbProjects, dbClients, dbEvents, assignments, extraEvents, teamMembers]);
 
   // Members who are already booked on the selected event's date for a DIFFERENT
   // event — they get hidden from the Assign Team list to prevent double-booking.
@@ -178,13 +204,31 @@ export default function EventsPage() {
   };
 
   const handleAddEvent = () => {
-    if (!newEvent.name || !newEvent.date || !newEvent.venue) { toast.error("Name, date and venue are required"); return; }
-    const client = dbClients.find(c => c.id === newEvent.clientId);
-    const event: EventWithClient = { id: `ev-${Date.now()}`, name: newEvent.name, date: newEvent.date, venue: newEvent.venue, type: newEvent.type, status: "upcoming", notes: newEvent.notes || undefined, clientName: client?.name || "Studio Event", clientId: newEvent.clientId || "", assignedTeam: [] };
-    setExtraEvents(prev => [...prev, event]);
-    setAddEventOpen(false);
-    setNewEvent({ clientId: "", name: "", type: "wedding", date: "", venue: "", notes: "" });
-    toast.success("Event added!");
+    if (!newEvent.name || !newEvent.date || !newEvent.venue) {
+      toast.error("Name, date and venue are required");
+      return;
+    }
+    // Persist to Supabase so it survives reload and multiple events per client/date work
+    addEvent.mutate(
+      {
+        client_id: newEvent.clientId || null,
+        project_id: null,
+        name: newEvent.name,
+        event_type: newEvent.type,
+        event_date: newEvent.date,
+        start_time: null,
+        end_time: null,
+        venue: newEvent.venue,
+        notes: newEvent.notes || null,
+        status: "upcoming",
+      },
+      {
+        onSuccess: () => {
+          setAddEventOpen(false);
+          setNewEvent({ clientId: "", name: "", type: "wedding", date: "", venue: "", notes: "" });
+        },
+      }
+    );
   };
 
   // Group events by month for timeline view
