@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { toast } from "sonner";
 
@@ -10,6 +11,7 @@ export interface DbLeadReminder {
   id: string;
   organization_id: string;
   lead_id: string;
+  created_by: string | null;
   title: string;
   notes: string | null;
   reminder_type: ReminderType;
@@ -17,97 +19,114 @@ export interface DbLeadReminder {
   meeting_link: string | null;
   location: string | null;
   status: ReminderStatus;
-  created_by: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export function useLeadReminders(leadId?: string) {
-  const { organization } = useOrg();
-  const orgId = organization?.id;
+/** Payload shape sent by the dialog; status defaults to "pending" */
+export interface NewReminderInput {
+  lead_id: string;
+  title: string;
+  notes: string | null;
+  reminder_type: ReminderType;
+  scheduled_at: string;
+  meeting_link: string | null;
+  location: string | null;
+  status?: ReminderStatus;
+}
+
+export function useLeadReminders(leadId: string | null | undefined) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const { organization } = useOrg();
+  const orgId = organization?.id ?? null;
 
   const query = useQuery({
-    queryKey: ["lead_reminders", orgId, leadId ?? "all"],
+    queryKey: ["lead_reminders", leadId],
+    enabled: !!leadId,
     queryFn: async () => {
-      if (!orgId) return [];
-      let q = supabase
+      if (!leadId) return [] as DbLeadReminder[];
+      const { data, error } = await supabase
         .from("lead_reminders")
         .select("*")
-        .eq("organization_id", orgId)
+        .eq("lead_id", leadId)
         .order("scheduled_at", { ascending: true });
-      if (leadId) q = q.eq("lead_id", leadId);
-      const { data, error } = await q;
       if (error) throw error;
-      return (data || []) as DbLeadReminder[];
+      return (data as DbLeadReminder[]) ?? [];
     },
-    enabled: !!orgId,
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["lead_reminders", orgId] });
-
-  const addReminder = useMutation({
-    mutationFn: async (
-      r: Omit<DbLeadReminder, "id" | "created_at" | "updated_at" | "organization_id" | "completed_at" | "created_by"> & {
-        created_by?: string | null;
-      },
-    ) => {
-      if (!orgId) throw new Error("No organization");
+  const addMutation = useMutation({
+    mutationFn: async (input: NewReminderInput) => {
+      if (!orgId) throw new Error("No organization loaded — cannot create reminder.");
       const { data, error } = await supabase
         .from("lead_reminders")
-        .insert({ ...r, organization_id: orgId })
+        .insert({
+          organization_id: orgId,
+          lead_id: input.lead_id,
+          created_by: user?.id ?? null,
+          title: input.title,
+          notes: input.notes,
+          reminder_type: input.reminder_type,
+          scheduled_at: input.scheduled_at,
+          meeting_link: input.meeting_link,
+          location: input.location,
+          status: input.status ?? "pending",
+        })
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as DbLeadReminder;
     },
     onSuccess: () => {
-      invalidate();
+      qc.invalidateQueries({ queryKey: ["lead_reminders", leadId] });
       toast.success("Reminder added");
     },
-    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
-  }).mutateAsync;
-
-  const updateReminder = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<DbLeadReminder> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("lead_reminders")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+    onError: (e) => {
+      toast.error((e as Error).message || "Failed to add reminder");
     },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Reminder updated");
-    },
-    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
-  }).mutateAsync;
+  });
 
-  const deleteReminder = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("lead_reminders").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      invalidate();
+      qc.invalidateQueries({ queryKey: ["lead_reminders", leadId] });
       toast.success("Reminder deleted");
     },
-    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
-  }).mutateAsync;
+    onError: (e) => {
+      toast.error((e as Error).message || "Failed to delete reminder");
+    },
+  });
 
-  const markComplete = (id: string) =>
-    updateReminder({ id, status: "completed", completed_at: new Date().toISOString() });
+  const completeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("lead_reminders")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lead_reminders", leadId] });
+      toast.success("Marked complete");
+    },
+    onError: (e) => {
+      toast.error((e as Error).message || "Failed to update reminder");
+    },
+  });
 
   return {
-    reminders: query.data ?? [],
+    reminders: (query.data as DbLeadReminder[]) ?? [],
     isLoading: query.isLoading,
-    addReminder,
-    updateReminder,
-    deleteReminder,
-    markComplete,
+    error: query.error as Error | null,
+    /** Returns a Promise — dialog awaits this. */
+    addReminder: addMutation.mutateAsync,
+    /** Fire-and-forget — dialog doesn't await. */
+    deleteReminder: (id: string) => deleteMutation.mutate(id),
+    markComplete: (id: string) => completeMutation.mutate(id),
   };
 }
