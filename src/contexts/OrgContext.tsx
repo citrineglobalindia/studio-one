@@ -14,6 +14,10 @@ interface Organization {
   phone: string | null;
   website: string | null;
   instagram: string | null;
+  // Added for Settings page editable fields:
+  email: string | null;
+  address: string | null;
+  gst_number: string | null;
 }
 
 interface Subscription {
