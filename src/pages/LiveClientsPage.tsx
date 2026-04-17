@@ -118,9 +118,12 @@ export default function LiveClientsPage() {
           }
           return Array.from(byId.values());
         })(),
-        // Events tied to THIS project (admin-created) — one row per DB event.
-        // Projects are NOT auto-treated as events. Admin must explicitly create
-        // events on the Events page and pick the project when creating.
+        // Events tied to THIS client / project — one row per DB event.
+        // Rules:
+        //   • Event must belong to the same client (e.client_id === p.client_id).
+        //   • If the event has a project_id, it must match this project.
+        //   • If the event has NO project_id (legacy rows), show it under all of
+        //     the client's projects — admin can relink it on the Events page.
         events: ((): any[] => {
           if (!p.client_id) return [];
           const byMap = assignmentsByEvent();
@@ -130,7 +133,11 @@ export default function LiveClientsPage() {
               .filter(Boolean)
               .map((m: any) => ({ id: m.id, name: m.full_name, role: m.role }));
           return (dbEvents as any[])
-            .filter((e) => e.project_id === p.id)
+            .filter((e) => {
+              if (e.client_id !== p.client_id) return false;
+              if (e.project_id && e.project_id !== p.id) return false;
+              return true;
+            })
             .map((e) => ({ ...e, assignedTeam: resolveTeam(e.id) }))
             .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
         })() as any,
