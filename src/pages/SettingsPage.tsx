@@ -18,7 +18,7 @@ import {
   Settings, Building2, Bell, Shield, Palette, Globe, CreditCard,
   Upload, Image, Droplets, FileText, Download, Database, Key,
   MessageSquare, Mail, Smartphone, Zap, CheckCircle2, AlertTriangle,
-  Copy, ExternalLink, RefreshCw, Trash2, Save, Eye, EyeOff,
+  Copy, ExternalLink, RefreshCw, Trash2, Save, Eye, EyeOff, Loader2,
 } from "lucide-react";
 
 const formatRoleLabel = (role: string) => {
@@ -41,11 +41,43 @@ const getInitials = (value: string) => {
   return initials || "SU";
 };
 
+// Shape of the fields we load & save from profiles
+interface ProfileRow {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  phone: string | null;
+  role: string | null;
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { organization } = useOrg();
+  const { organization, refreshOrg } = useOrg();
   const { currentRole } = useRole();
+
+  // Auth / org -derived values used across tabs
   const [ownerEmail, setOwnerEmail] = useState("");
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+
+  // Editable form state — Studio Information
+  const [studioForm, setStudioForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    website: "",
+    address: "",
+    city: "",
+    gst_number: "",
+  });
+  const [studioSaving, setStudioSaving] = useState(false);
+
+  // Editable form state — Your Profile
+  const [profileForm, setProfileForm] = useState({
+    full_name: "",
+    phone: "",
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+
   const [notifications, setNotifications] = useState({
     emailLeads: true, whatsappLeads: true, paymentReminders: true,
     shootReminders: true, editUpdates: false, marketingReports: true,
@@ -60,6 +92,7 @@ export default function SettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const isImpersonatingStudio = typeof window !== "undefined" && !!localStorage.getItem("sa_impersonate_org");
 
+  // Load owner email (from organization_members) once we know the org
   useEffect(() => {
     let active = true;
 
@@ -82,26 +115,126 @@ export default function SettingsPage() {
     };
 
     fetchOwnerEmail();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [organization?.id]);
 
-  const studioName = organization?.name ?? "";
-  const studioPhone = organization?.phone ?? "";
-  const studioWebsite = organization?.website ?? "";
-  const studioCity = organization?.city ?? "";
+  // Seed the Studio form whenever the organization changes (or reloads)
+  useEffect(() => {
+    if (!organization) return;
+    setStudioForm({
+      name: organization.name ?? "",
+      phone: organization.phone ?? "",
+      // organization.email may not exist on old rows until migration runs; guard
+      email: (organization as any).email ?? ownerEmail ?? "",
+      website: organization.website ?? "",
+      address: (organization as any).address ?? "",
+      city: organization.city ?? "",
+      gst_number: (organization as any).gst_number ?? "",
+    });
+  }, [organization, ownerEmail]);
+
+  // Load & seed the profile form for the signed-in user
+  useEffect(() => {
+    let active = true;
+
+    const fetchProfile = async () => {
+      if (!user?.id) {
+        if (active) { setProfile(null); setProfileForm({ full_name: "", phone: "" }); }
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, user_id, display_name, phone, role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      setProfile((data as ProfileRow | null) ?? null);
+      setProfileForm({
+        full_name: data?.display_name ?? (user.user_metadata?.full_name as string | undefined) ?? user.email?.split("@")[0] ?? "",
+        phone: (data as any)?.phone ?? "",
+      });
+    };
+
+    fetchProfile();
+    return () => { active = false; };
+  }, [user?.id]);
+
   const studioPrimaryColor = organization?.primary_color ?? "";
-  const studioEmail = ownerEmail || (!isImpersonatingStudio ? user?.email ?? "" : "");
-  const displayName = isImpersonatingStudio
-    ? (studioName || "Studio User")
-    : ((user?.user_metadata?.full_name as string | undefined) || user?.email?.split("@")[0] || studioName || "Studio User");
-  const displayInitials = getInitials(displayName);
   const roleLabel = formatRoleLabel(currentRole);
-  const invoiceFooter = studioName
-    ? `Thank you for choosing ${studioName}. Payments are non-refundable.`
+  const displayName = profileForm.full_name || user?.email?.split("@")[0] || "Studio User";
+  const displayInitials = getInitials(displayName);
+  const invoiceFooter = studioForm.name
+    ? `Thank you for choosing ${studioForm.name}. Payments are non-refundable.`
     : "";
+
+  // Save handlers ---------------------------------------------------------
+
+  const handleSaveStudio = async () => {
+    if (!organization?.id) {
+      toast.error("No studio loaded");
+      return;
+    }
+    if (!studioForm.name.trim()) {
+      toast.error("Studio name is required");
+      return;
+    }
+
+    setStudioSaving(true);
+    const { error } = await supabase
+      .from("organizations")
+      .update({
+        name: studioForm.name.trim(),
+        phone: studioForm.phone || null,
+        email: studioForm.email || null,
+        website: studioForm.website || null,
+        address: studioForm.address || null,
+        city: studioForm.city || null,
+        gst_number: studioForm.gst_number || null,
+      })
+      .eq("id", organization.id);
+    setStudioSaving(false);
+
+    if (error) {
+      toast.error(`Failed to save: ${error.message}`);
+      return;
+    }
+
+    toast.success("Studio information saved");
+    await refreshOrg();
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!user?.id) {
+      toast.error("Not signed in");
+      return;
+    }
+    if (!profileForm.full_name.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+
+    setProfileSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        display_name: profileForm.full_name.trim(),
+        phone: profileForm.phone || null,
+      })
+      .eq("user_id", user.id);
+    setProfileSaving(false);
+
+    if (error) {
+      toast.error(`Failed to update profile: ${error.message}`);
+      return;
+    }
+
+    toast.success("Profile updated");
+  };
+
+  // ----------------------------------------------------------------------
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -131,32 +264,102 @@ export default function SettingsPage() {
           ))}
         </TabsList>
 
+        {/* =========================== STUDIO TAB (EDITABLE) =========================== */}
         <TabsContent value="studio" className="space-y-6">
+          {/* Studio Information */}
           <div className="rounded-xl bg-card border border-border p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="font-display font-semibold text-foreground">Studio Information</h2>
-              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20"><CheckCircle2 className="h-3 w-3 mr-1" /> Verified</Badge>
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Verified
+              </Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Studio Name</Label><Input value={studioName} readOnly placeholder="Not set" /></div>
-              <div className="space-y-2"><Label>Phone</Label><Input value={studioPhone} readOnly placeholder="Not set" /></div>
-              <div className="space-y-2"><Label>Email</Label><Input value={studioEmail} readOnly placeholder="Not set" /></div>
-              <div className="space-y-2"><Label>Website</Label><Input value={studioWebsite} readOnly placeholder="Not set" /></div>
-              <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Textarea value="" readOnly placeholder="Not set" rows={2} /></div>
-              <div className="space-y-2"><Label>City</Label><Input value={studioCity} readOnly placeholder="Not set" /></div>
-              <div className="space-y-2"><Label>GST Number</Label><Input value="" readOnly placeholder="Not set" /></div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-name">Studio Name</Label>
+                <Input
+                  id="studio-name"
+                  value={studioForm.name}
+                  onChange={(e) => setStudioForm({ ...studioForm, name: e.target.value })}
+                  placeholder="Your studio name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-phone">Phone</Label>
+                <Input
+                  id="studio-phone"
+                  value={studioForm.phone}
+                  onChange={(e) => setStudioForm({ ...studioForm, phone: e.target.value })}
+                  placeholder="+91 9876543210"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-email">Email</Label>
+                <Input
+                  id="studio-email"
+                  type="email"
+                  value={studioForm.email}
+                  onChange={(e) => setStudioForm({ ...studioForm, email: e.target.value })}
+                  placeholder="studio@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-website">Website</Label>
+                <Input
+                  id="studio-website"
+                  value={studioForm.website}
+                  onChange={(e) => setStudioForm({ ...studioForm, website: e.target.value })}
+                  placeholder="https://yourstudio.com"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="studio-address">Address</Label>
+                <Textarea
+                  id="studio-address"
+                  value={studioForm.address}
+                  onChange={(e) => setStudioForm({ ...studioForm, address: e.target.value })}
+                  placeholder="Street, area"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-city">City</Label>
+                <Input
+                  id="studio-city"
+                  value={studioForm.city}
+                  onChange={(e) => setStudioForm({ ...studioForm, city: e.target.value })}
+                  placeholder="Bangalore"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-gst">GST Number</Label>
+                <Input
+                  id="studio-gst"
+                  value={studioForm.gst_number}
+                  onChange={(e) => setStudioForm({ ...studioForm, gst_number: e.target.value })}
+                  placeholder="29ABCDE1234F1Z5"
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2 pt-2">
-              <Button className="gap-2"><Save className="h-3.5 w-3.5" /> Save Changes</Button>
+              <Button className="gap-2" onClick={handleSaveStudio} disabled={studioSaving}>
+                {studioSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {studioSaving ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </div>
 
+          {/* Your Profile */}
           <div className="rounded-xl bg-card border border-border p-6 space-y-5">
             <h2 className="font-display font-semibold text-foreground">Your Profile</h2>
             <div className="flex items-center gap-4 mb-4">
               <div className="relative">
-                <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center text-xl font-bold text-primary">{displayInitials}</div>
-                <button className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center border-2 border-background"><Upload className="h-3 w-3 text-primary-foreground" /></button>
+                <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center text-xl font-bold text-primary">
+                  {displayInitials}
+                </div>
+                <button className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+                  <Upload className="h-3 w-3 text-primary-foreground" />
+                </button>
               </div>
               <div>
                 <p className="text-foreground font-semibold">{displayName}</p>
@@ -164,14 +367,47 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Full Name</Label><Input value={displayName} readOnly /></div>
-              <div className="space-y-2"><Label>Role</Label><Input value={roleLabel} readOnly /></div>
-              <div className="space-y-2"><Label>Email</Label><Input value={studioEmail || user?.email || ""} readOnly placeholder="Not set" /></div>
-              <div className="space-y-2"><Label>Phone</Label><Input value={studioPhone} readOnly placeholder="Not set" /></div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-name">Full Name</Label>
+                <Input
+                  id="profile-name"
+                  value={profileForm.full_name}
+                  onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-role">Role</Label>
+                <Input id="profile-role" value={roleLabel} readOnly />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-email">Email</Label>
+                <Input
+                  id="profile-email"
+                  value={user?.email ?? ""}
+                  readOnly
+                  placeholder="Not set"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Email changes require verification — contact support to change your login email.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-phone">Phone</Label>
+                <Input
+                  id="profile-phone"
+                  value={profileForm.phone}
+                  onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                  placeholder="+91 9876543210"
+                />
+              </div>
             </div>
-            <Button className="gap-2"><Save className="h-3.5 w-3.5" /> Update Profile</Button>
+            <Button className="gap-2" onClick={handleUpdateProfile} disabled={profileSaving}>
+              {profileSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {profileSaving ? "Saving..." : "Update Profile"}
+            </Button>
           </div>
         </TabsContent>
+        {/* ============================================================================ */}
 
         <TabsContent value="branding" className="space-y-6">
           <div className="rounded-xl bg-card border border-border p-6 space-y-5">
@@ -310,8 +546,8 @@ export default function SettingsPage() {
             <h2 className="font-display font-semibold text-foreground">Delivery Channels</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { icon: Mail, label: "Email", desc: studioEmail || "Not set", active: Boolean(studioEmail) },
-                { icon: MessageSquare, label: "WhatsApp", desc: studioPhone || "Not set", active: Boolean(studioPhone) },
+                { icon: Mail, label: "Email", desc: studioForm.email || "Not set", active: Boolean(studioForm.email) },
+                { icon: MessageSquare, label: "WhatsApp", desc: studioForm.phone || "Not set", active: Boolean(studioForm.phone) },
                 { icon: Smartphone, label: "Push Notifications", desc: "Browser & mobile", active: false },
               ].map((ch) => (
                 <div key={ch.label} className={cn("rounded-xl border p-4 text-center transition-all cursor-pointer", ch.active ? "border-primary/30 bg-primary/5" : "border-border hover:border-primary/20")}>
