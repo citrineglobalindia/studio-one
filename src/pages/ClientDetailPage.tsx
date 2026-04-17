@@ -923,55 +923,81 @@ function EmptyState({ icon, text, subtext, actionLabel, onAction }: {
 
 const PROJECT_STATUS_OPTIONS = ["planning", "booked", "in_progress", "editing", "delivered", "completed"];
 const EVENT_STATUS_OPTIONS   = ["upcoming", "in-progress", "completed", "cancelled"];
+const STAGE_OPTIONS          = ["pending", "in-progress", "done"];
+const PAYMENT_OPTIONS        = ["pending", "partial", "paid"];
+const DELIVERY_OPTIONS       = ["pending", "delivered", "on-hold"];
+
+// Tiny inline <select> so we don't have to repeat Tailwind classes 15 times
+const StageSelect = ({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) => (
+  <select value={value} onChange={(e) => onChange(e.target.value)}
+    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm capitalize">
+    {options.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+  </select>
+);
 
 function ProjectManageRow({ project, onSave }: { project: any; onSave: (patch: any) => void }) {
   const [open, setOpen] = useState(true);
-  const [form, setForm] = useState({
-    project_name:   project.project_name   ?? "",
-    event_type:     project.event_type     ?? "",
-    event_date:     project.event_date     ?? "",
-    delivery_date:  project.delivery_date  ?? "",
-    venue:          project.venue          ?? "",
-    status:         project.status         ?? "planning",
-    total_amount:   String(project.total_amount ?? ""),
-    amount_paid:    String(project.amount_paid  ?? ""),
-    card_number:    project.card_number    ?? "",
-    raw_data_size:  project.raw_data_size  ?? "",
-    backup_number:  project.backup_number  ?? "",
-    delivery_hdd:   project.delivery_hdd   ?? "",
-    notes:          project.notes          ?? "",
-  });
-  const dirty = JSON.stringify(form) !== JSON.stringify({
-    project_name:   project.project_name   ?? "",
-    event_type:     project.event_type     ?? "",
-    event_date:     project.event_date     ?? "",
-    delivery_date:  project.delivery_date  ?? "",
-    venue:          project.venue          ?? "",
-    status:         project.status         ?? "planning",
-    total_amount:   String(project.total_amount ?? ""),
-    amount_paid:    String(project.amount_paid  ?? ""),
-    card_number:    project.card_number    ?? "",
-    raw_data_size:  project.raw_data_size  ?? "",
-    backup_number:  project.backup_number  ?? "",
-    delivery_hdd:   project.delivery_hdd   ?? "",
-    notes:          project.notes          ?? "",
-  });
+  const initial = {
+    project_name:           project.project_name           ?? "",
+    event_type:             project.event_type             ?? "",
+    event_date:             project.event_date             ?? "",
+    delivery_date:          project.delivery_date          ?? "",
+    venue:                  project.venue                  ?? "",
+    status:                 project.status                 ?? "planning",
+    total_amount:           String(project.total_amount    ?? ""),
+    amount_paid:            String(project.amount_paid     ?? ""),
+    card_number:            project.card_number            ?? "",
+    raw_data_size:          project.raw_data_size          ?? "",
+    backup_number:          project.backup_number          ?? "",
+    delivery_hdd:           project.delivery_hdd           ?? "",
+    notes:                  project.notes                  ?? "",
+    service_taken:          project.service_taken          ?? "",
+    album_sheets:           String(project.album_sheets    ?? ""),
+    data_backup_status:     project.data_backup_status     ?? "pending",
+    first_delivery_date:    project.first_delivery_date    ?? "",
+    payment_status:         project.payment_status         ?? "pending",
+    delivery_status:        project.delivery_status        ?? "pending",
+    follow_up_call:         project.follow_up_call         ?? "",
+    video_progress:         project.video_progress         ?? "pending",
+    album_design_status:    project.album_design_status    ?? "pending",
+    album_print_status:     project.album_print_status     ?? "pending",
+    final_delivery_date:    project.final_delivery_date    ?? "",
+    final_delivery_status:  project.final_delivery_status  ?? "pending",
+    final_payment_status:   project.final_payment_status   ?? "pending",
+    data_filtration_status: project.data_filtration_status ?? "pending",
+  };
+  const [form, setForm] = useState(initial);
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   const handleSave = () => {
     onSave({
-      project_name:  form.project_name,
-      event_type:    form.event_type || null,
-      event_date:    form.event_date || null,
-      delivery_date: form.delivery_date || null,
-      venue:         form.venue || null,
-      status:        form.status,
-      total_amount:  form.total_amount ? Number(form.total_amount) : 0,
-      amount_paid:   form.amount_paid  ? Number(form.amount_paid)  : 0,
-      card_number:   form.card_number || null,
-      raw_data_size: form.raw_data_size || null,
-      backup_number: form.backup_number || null,
-      delivery_hdd:  form.delivery_hdd || null,
-      notes:         form.notes || null,
+      project_name:           form.project_name,
+      event_type:             form.event_type || null,
+      event_date:             form.event_date || null,
+      delivery_date:          form.delivery_date || null,
+      venue:                  form.venue || null,
+      status:                 form.status,
+      total_amount:           form.total_amount ? Number(form.total_amount) : 0,
+      amount_paid:            form.amount_paid  ? Number(form.amount_paid)  : 0,
+      card_number:            form.card_number || null,
+      raw_data_size:          form.raw_data_size || null,
+      backup_number:          form.backup_number || null,
+      delivery_hdd:           form.delivery_hdd || null,
+      notes:                  form.notes || null,
+      service_taken:          form.service_taken || null,
+      album_sheets:           form.album_sheets ? Number(form.album_sheets) : null,
+      data_backup_status:     form.data_backup_status,
+      first_delivery_date:    form.first_delivery_date || null,
+      payment_status:         form.payment_status,
+      delivery_status:        form.delivery_status,
+      follow_up_call:         form.follow_up_call || null,
+      video_progress:         form.video_progress,
+      album_design_status:    form.album_design_status,
+      album_print_status:     form.album_print_status,
+      final_delivery_date:    form.final_delivery_date || null,
+      final_delivery_status:  form.final_delivery_status,
+      final_payment_status:   form.final_payment_status,
+      data_filtration_status: form.data_filtration_status,
     });
   };
 
@@ -1017,6 +1043,24 @@ function ProjectManageRow({ project, onSave }: { project: any; onSave: (patch: a
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Raw Data Size</Label><Input value={form.raw_data_size} onChange={(e) => setForm({ ...form, raw_data_size: e.target.value })} placeholder="e.g. 1.2 TB" /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Backup Number</Label><Input value={form.backup_number} onChange={(e) => setForm({ ...form, backup_number: e.target.value })} placeholder="B-01" /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery HDD</Label><Input value={form.delivery_hdd} onChange={(e) => setForm({ ...form, delivery_hdd: e.target.value })} placeholder="HDD-05" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Service Taken</Label><Input value={form.service_taken} onChange={(e) => setForm({ ...form, service_taken: e.target.value })} placeholder="e.g. Photography + Video" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Album Sheets</Label><Input type="number" value={form.album_sheets} onChange={(e) => setForm({ ...form, album_sheets: e.target.value })} placeholder="40" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Data Backup</Label><StageSelect value={form.data_backup_status} onChange={(v) => setForm({ ...form, data_backup_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Data Filtration</Label><StageSelect value={form.data_filtration_status} onChange={(v) => setForm({ ...form, data_filtration_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Video Progress</Label><StageSelect value={form.video_progress} onChange={(v) => setForm({ ...form, video_progress: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Album Design</Label><StageSelect value={form.album_design_status} onChange={(v) => setForm({ ...form, album_design_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Album Print</Label><StageSelect value={form.album_print_status} onChange={(v) => setForm({ ...form, album_print_status: v })} options={STAGE_OPTIONS} /></div>
+          </div>
+
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Delivery &amp; Payment</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">1st Delivery Date</Label><Input type="date" value={form.first_delivery_date} onChange={(e) => setForm({ ...form, first_delivery_date: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Final Delivery Date</Label><Input type="date" value={form.final_delivery_date} onChange={(e) => setForm({ ...form, final_delivery_date: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery Status</Label><StageSelect value={form.delivery_status} onChange={(v) => setForm({ ...form, delivery_status: v })} options={DELIVERY_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Final Delivery Status</Label><StageSelect value={form.final_delivery_status} onChange={(v) => setForm({ ...form, final_delivery_status: v })} options={DELIVERY_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Payment Status</Label><StageSelect value={form.payment_status} onChange={(v) => setForm({ ...form, payment_status: v })} options={PAYMENT_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Final Payment Status</Label><StageSelect value={form.final_payment_status} onChange={(v) => setForm({ ...form, final_payment_status: v })} options={PAYMENT_OPTIONS} /></div>
+            <div className="space-y-1 sm:col-span-2"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Follow-up Call / Good Will</Label><Input value={form.follow_up_call} onChange={(e) => setForm({ ...form, follow_up_call: e.target.value })} placeholder="Last call date / note" /></div>
           </div>
 
           <div className="space-y-1">
@@ -1038,37 +1082,45 @@ function ProjectManageRow({ project, onSave }: { project: any; onSave: (patch: a
 
 function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) => void }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name:        event.name        ?? "",
-    event_type:  event.event_type  ?? "",
-    event_date:  event.event_date  ?? "",
-    start_time:  event.start_time  ? String(event.start_time).slice(0, 5) : "",
-    end_time:    event.end_time    ? String(event.end_time).slice(0, 5)   : "",
-    venue:       event.venue       ?? "",
-    status:      event.status      ?? "upcoming",
-    notes:       event.notes       ?? "",
-  });
-  const dirty = JSON.stringify(form) !== JSON.stringify({
-    name:        event.name        ?? "",
-    event_type:  event.event_type  ?? "",
-    event_date:  event.event_date  ?? "",
-    start_time:  event.start_time  ? String(event.start_time).slice(0, 5) : "",
-    end_time:    event.end_time    ? String(event.end_time).slice(0, 5)   : "",
-    venue:       event.venue       ?? "",
-    status:      event.status      ?? "upcoming",
-    notes:       event.notes       ?? "",
-  });
+  const initial = {
+    name:                      event.name                      ?? "",
+    event_type:                event.event_type                ?? "",
+    event_date:                event.event_date                ?? "",
+    start_time:                event.start_time                ? String(event.start_time).slice(0, 5) : "",
+    end_time:                  event.end_time                  ? String(event.end_time).slice(0, 5)   : "",
+    venue:                     event.venue                     ?? "",
+    status:                    event.status                    ?? "upcoming",
+    notes:                     event.notes                     ?? "",
+    quotation_services:        event.quotation_services        ?? "",
+    actual_services:           event.actual_services           ?? "",
+    data_copy_status:          event.data_copy_status          ?? "pending",
+    photo_filter_grade_status: event.photo_filter_grade_status ?? "pending",
+    video_editing_status:      event.video_editing_status      ?? "pending",
+    album_design_status:       event.album_design_status       ?? "pending",
+    assigned_date:             event.assigned_date             ?? "",
+    delivery_status:           event.delivery_status           ?? "pending",
+  };
+  const [form, setForm] = useState(initial);
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   const handleSave = () => {
     onSave({
-      name:       form.name,
-      event_type: form.event_type || null,
-      event_date: form.event_date,
-      start_time: form.start_time ? `${form.start_time}:00` : null,
-      end_time:   form.end_time   ? `${form.end_time}:00`   : null,
-      venue:      form.venue || null,
-      status:     form.status,
-      notes:      form.notes || null,
+      name:                      form.name,
+      event_type:                form.event_type || null,
+      event_date:                form.event_date,
+      start_time:                form.start_time ? `${form.start_time}:00` : null,
+      end_time:                  form.end_time   ? `${form.end_time}:00`   : null,
+      venue:                     form.venue || null,
+      status:                    form.status,
+      notes:                     form.notes || null,
+      quotation_services:        form.quotation_services || null,
+      actual_services:           form.actual_services || null,
+      data_copy_status:          form.data_copy_status,
+      photo_filter_grade_status: form.photo_filter_grade_status,
+      video_editing_status:      form.video_editing_status,
+      album_design_status:       form.album_design_status,
+      assigned_date:             form.assigned_date || null,
+      delivery_status:           form.delivery_status,
     });
   };
 
@@ -1105,6 +1157,23 @@ function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) =>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Start Time</Label><Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
             <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">End Time</Label><Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></div>
           </div>
+
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Services</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Quotation Services</Label><Input value={form.quotation_services} onChange={(e) => setForm({ ...form, quotation_services: e.target.value })} placeholder="What was quoted" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Actual Services</Label><Input value={form.actual_services} onChange={(e) => setForm({ ...form, actual_services: e.target.value })} placeholder="What was delivered" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Assigned Date</Label><Input type="date" value={form.assigned_date} onChange={(e) => setForm({ ...form, assigned_date: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery Status</Label><StageSelect value={form.delivery_status} onChange={(v) => setForm({ ...form, delivery_status: v })} options={DELIVERY_OPTIONS} /></div>
+          </div>
+
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Post-Production</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Data Copy</Label><StageSelect value={form.data_copy_status} onChange={(v) => setForm({ ...form, data_copy_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Photo Filter &amp; Grade</Label><StageSelect value={form.photo_filter_grade_status} onChange={(v) => setForm({ ...form, photo_filter_grade_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Video Editing</Label><StageSelect value={form.video_editing_status} onChange={(v) => setForm({ ...form, video_editing_status: v })} options={STAGE_OPTIONS} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Album Design</Label><StageSelect value={form.album_design_status} onChange={(v) => setForm({ ...form, album_design_status: v })} options={STAGE_OPTIONS} /></div>
+          </div>
+
           <div className="space-y-1">
             <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Notes</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
