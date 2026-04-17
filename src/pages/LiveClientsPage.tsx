@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useProjects } from "@/hooks/useProjects";
 import { useDeliverables } from "@/hooks/useDeliverables";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { LiveClient, Deliverable } from "@/data/live-clients-data";
@@ -47,6 +49,8 @@ export default function LiveClientsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const { projects, isLoading: projectsLoading } = useProjects();
   const { deliverables, isLoading: deliverablesLoading } = useDeliverables();
+  const { members: teamMembersDb } = useTeamMembers();
+  const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
 
   // Map DB projects + deliverables to LiveClient format for existing view components
   const liveClients: LiveClient[] = useMemo(() => {
@@ -82,7 +86,21 @@ export default function LiveClientsPage() {
         phone: p.client?.phone || "",
         overallProgress,
         status: projectStatus,
-        team: (p.assigned_team || []).map((name, i) => ({ id: `t-${i}`, name, role: "Crew", avatar: undefined })),
+        // Merge legacy assigned_team (names) with real event_team_assignments for this project
+        team: (() => {
+          const byId = new Map<string, { id: string; name: string; role: string; avatar: undefined }>();
+          (p.assigned_team || []).forEach((name: string, i: number) => {
+            const match = teamMembersDb.find((m: any) => m.full_name === name);
+            const id = match ? match.id : `name-${i}`;
+            byId.set(id, { id, name: match ? match.full_name : name, role: match ? match.role : "Crew", avatar: undefined });
+          });
+          const assignedIds = assignmentsByEvent()[p.id] || [];
+          for (const mid of assignedIds) {
+            const m = teamMembersDb.find((x: any) => x.id === mid);
+            if (m && !byId.has(m.id)) byId.set(m.id, { id: m.id, name: m.full_name, role: m.role, avatar: undefined });
+          }
+          return Array.from(byId.values());
+        })(),
         deliverables: mappedDeliverables,
         financials: {
           estimatedAmount: p.total_amount || 0,
