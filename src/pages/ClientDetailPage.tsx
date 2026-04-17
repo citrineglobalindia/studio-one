@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -597,15 +597,12 @@ export default function ClientDetailPage() {
                 return (
                   <div className="rounded-xl border border-dashed border-border p-4 mt-3">
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Events not tied to any listed project</p>
-                    {orphans.map((e: any) => (
-                      <EventManageRow
-                        key={e.id}
-                        event={e}
-                        teamMembers={dbTeamMembers}
-                        assignmentsByEvent={assignmentsByEvent}
-                        onSave={(patch) => updateEvent.mutate({ id: e.id, ...(patch as any) })}
-                      />
-                    ))}
+                    <EventsTable
+                      events={orphans}
+                      teamMembers={dbTeamMembers}
+                      assignmentsByEvent={assignmentsByEvent}
+                      onSaveEvent={(eid, patch) => updateEvent.mutate({ id: eid, ...(patch as any) })}
+                    />
                   </div>
                 );
               })()}
@@ -1132,23 +1129,274 @@ function ProjectManageRow({
       {/* ───── Nested events table ───── */}
       {events.length > 0 && assignmentsByEvent && onSaveEvent && (
         <div className="border-t border-border bg-background">
-          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
             <CalendarDays className="h-3.5 w-3.5 text-primary" />
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Events ({events.length})</span>
           </div>
-          <div className="px-3 pb-3">
-            {events.map((e) => (
-              <EventManageRow
-                key={e.id}
-                event={e}
-                teamMembers={teamMembers}
-                assignmentsByEvent={assignmentsByEvent}
-                onSave={(patch) => onSaveEvent(e.id, patch)}
-              />
-            ))}
-          </div>
+          <EventsTable
+            events={events}
+            teamMembers={teamMembers}
+            assignmentsByEvent={assignmentsByEvent}
+            onSaveEvent={onSaveEvent}
+          />
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// EventsTable — one row per event, with an inline expandable editor.
+// ─────────────────────────────────────────────────────────────────────
+function EventsTable({
+  events,
+  teamMembers,
+  assignmentsByEvent,
+  onSaveEvent,
+}: {
+  events: any[];
+  teamMembers: any[];
+  assignmentsByEvent: () => Record<string, string[]>;
+  onSaveEvent: (eventId: string, patch: any) => void;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
+    <div className="overflow-x-auto px-3 pb-3">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-muted/30 text-muted-foreground">
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">#</th>
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Event</th>
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Type</th>
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Date &middot; Time</th>
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Venue</th>
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Status</th>
+            <th className="text-left py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Technicians</th>
+            <th className="text-right py-2 px-2 font-semibold uppercase tracking-wider text-[10px]">Delivery %</th>
+            <th className="py-2 px-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((e, idx) => {
+            const members = (assignmentsByEvent()[e.id] || [])
+              .map((mid) => teamMembers.find((m: any) => m.id === mid))
+              .filter(Boolean) as any[];
+            const progress = computeEventProgress(e);
+            const isOpen = openId === e.id;
+            const statusStyle =
+              e.status === "completed" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
+              e.status === "cancelled" ? "bg-destructive/10 text-destructive border-destructive/30" :
+              e.status === "in-progress" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" :
+              "bg-blue-500/10 text-blue-600 border-blue-500/30";
+            return (
+              <React.Fragment key={e.id}>
+                <tr className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                  <td className="py-2.5 px-2 text-muted-foreground">{idx + 1}</td>
+                  <td className="py-2.5 px-2 font-semibold text-foreground whitespace-nowrap">{e.name}</td>
+                  <td className="py-2.5 px-2 text-muted-foreground capitalize whitespace-nowrap">{e.event_type || "—"}</td>
+                  <td className="py-2.5 px-2 text-muted-foreground whitespace-nowrap">
+                    {fmtDate(e.event_date) || "—"}
+                    {e.start_time && <span className="text-foreground ml-1">&middot; {String(e.start_time).slice(0, 5)}</span>}
+                    {e.end_time && <span> – {String(e.end_time).slice(0, 5)}</span>}
+                  </td>
+                  <td className="py-2.5 px-2 text-muted-foreground">{e.venue || "—"}</td>
+                  <td className="py-2.5 px-2">
+                    <Badge variant="outline" className={cn("text-[9px] capitalize", statusStyle)}>{e.status}</Badge>
+                  </td>
+                  <td className="py-2.5 px-2">
+                    {members.length === 0 ? (
+                      <span className="text-muted-foreground italic text-[10px]">None</span>
+                    ) : (
+                      <div className="flex -space-x-1.5">
+                        {members.slice(0, 3).map((m: any) => (
+                          <span key={m.id} title={`${m.full_name} · ${m.role}`}
+                            className="h-6 w-6 rounded-full bg-primary/15 border-2 border-background text-[9px] font-bold text-primary flex items-center justify-center">
+                            {String(m.full_name).split(" ").filter(Boolean).slice(0, 2).map((p: string) => p[0]?.toUpperCase()).join("")}
+                          </span>
+                        ))}
+                        {members.length > 3 && (
+                          <span className="h-6 w-6 rounded-full bg-muted border-2 border-background text-[9px] font-medium text-muted-foreground flex items-center justify-center">
+                            +{members.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-2 text-right">
+                    <div className="inline-flex items-center gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-primary to-emerald-500" style={{ width: `${progress}%` }} />
+                      </div>
+                      <span className="font-bold text-foreground tabular-nums">{progress}%</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2 text-right">
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" onClick={() => setOpenId(isOpen ? null : e.id)}>
+                      {isOpen ? "Hide" : "Edit"}
+                    </Button>
+                  </td>
+                </tr>
+                {isOpen && (
+                  <tr className="bg-muted/10">
+                    <td colSpan={9} className="p-0">
+                      <div className="p-4 border-t border-border/50">
+                        <EventEditor
+                          event={e}
+                          teamMembers={teamMembers}
+                          assignedMembers={members}
+                          onClose={() => setOpenId(null)}
+                          onSave={(patch) => { onSaveEvent(e.id, patch); setOpenId(null); }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Editor form that appears inside an expanded row of EventsTable
+function EventEditor({
+  event,
+  teamMembers,
+  assignedMembers,
+  onSave,
+  onClose,
+}: {
+  event: any;
+  teamMembers: any[];
+  assignedMembers: any[];
+  onSave: (patch: any) => void;
+  onClose: () => void;
+}) {
+  const initial = {
+    name:                      event.name                      ?? "",
+    event_type:                event.event_type                ?? "",
+    event_date:                event.event_date                ?? "",
+    start_time:                event.start_time                ? String(event.start_time).slice(0, 5) : "",
+    end_time:                  event.end_time                  ? String(event.end_time).slice(0, 5)   : "",
+    venue:                     event.venue                     ?? "",
+    status:                    event.status                    ?? "upcoming",
+    notes:                     event.notes                     ?? "",
+    quotation_services_status: event.quotation_services_status ?? "pending",
+    actual_services:           event.actual_services           ?? "",
+    card_number:               event.card_number               ?? "",
+    raw_data_size:             event.raw_data_size             ?? "",
+    data_copy_status:          event.data_copy_status          ?? "pending",
+    backup_status:             event.backup_status             ?? "pending",
+    delivery_hdd_status:       event.delivery_hdd_status       ?? "pending",
+    photo_filter_grade:        event.photo_filter_grade        ?? "",
+    video_editing_status:      event.video_editing_status      ?? "pending",
+    album_design_status:       event.album_design_status       ?? "pending",
+    assigned_date:             event.assigned_date             ?? "",
+    delivery_status:           event.delivery_status           ?? "pending",
+  };
+  const [form, setForm] = useState(initial);
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+
+  const handleSave = () => {
+    onSave({
+      name:                      form.name,
+      event_type:                form.event_type || null,
+      event_date:                form.event_date,
+      start_time:                form.start_time ? `${form.start_time}:00` : null,
+      end_time:                  form.end_time   ? `${form.end_time}:00`   : null,
+      venue:                     form.venue || null,
+      status:                    form.status,
+      notes:                     form.notes || null,
+      quotation_services_status: form.quotation_services_status,
+      actual_services:           form.actual_services || null,
+      card_number:               form.card_number || null,
+      raw_data_size:             form.raw_data_size || null,
+      data_copy_status:          form.data_copy_status,
+      backup_status:             form.backup_status,
+      delivery_hdd_status:       form.delivery_hdd_status,
+      photo_filter_grade:        form.photo_filter_grade || null,
+      video_editing_status:      form.video_editing_status,
+      album_design_status:       form.album_design_status,
+      assigned_date:             form.assigned_date || null,
+      delivery_status:           form.delivery_status,
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Basic</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="space-y-1 sm:col-span-2 lg:col-span-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Type</Label><Input value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} placeholder="mehendi / haldi / …" /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Status</Label>
+          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            {EVENT_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date</Label><Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Start Time</Label><Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">End Time</Label><Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></div>
+        <div className="space-y-1 sm:col-span-2 lg:col-span-3"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Venue</Label><Input value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} /></div>
+      </div>
+
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Services</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Quotation (status)</Label><StageSelect value={form.quotation_services_status} onChange={(v) => setForm({ ...form, quotation_services_status: v })} options={QUOTATION_STATUS_OPTIONS} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Actual Services</Label><Input value={form.actual_services} onChange={(e) => setForm({ ...form, actual_services: e.target.value })} placeholder="Candid + Video + Drone" /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Assigned Date</Label><Input type="date" value={form.assigned_date} onChange={(e) => setForm({ ...form, assigned_date: e.target.value })} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery Status</Label><StageSelect value={form.delivery_status} onChange={(v) => setForm({ ...form, delivery_status: v })} options={DELIVERY_OPTIONS} /></div>
+      </div>
+
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Data Tracking</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Card Number</Label><Input value={form.card_number} onChange={(e) => setForm({ ...form, card_number: e.target.value })} placeholder="SD-01" /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Raw Data Size</Label><Input value={form.raw_data_size} onChange={(e) => setForm({ ...form, raw_data_size: e.target.value })} placeholder="1.2 GB" /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Data Copy</Label><StageSelect value={form.data_copy_status} onChange={(v) => setForm({ ...form, data_copy_status: v })} options={STAGE_OPTIONS} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Backup</Label><StageSelect value={form.backup_status} onChange={(v) => setForm({ ...form, backup_status: v })} options={STAGE_OPTIONS} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery HDD</Label><StageSelect value={form.delivery_hdd_status} onChange={(v) => setForm({ ...form, delivery_hdd_status: v })} options={STAGE_OPTIONS} /></div>
+      </div>
+
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Post-Production</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="space-y-1 lg:col-span-2"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Photo Filter &amp; Grade (free text)</Label><Input value={form.photo_filter_grade} onChange={(e) => setForm({ ...form, photo_filter_grade: e.target.value })} placeholder="Warm cinematic …" /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Video Editing</Label><StageSelect value={form.video_editing_status} onChange={(v) => setForm({ ...form, video_editing_status: v })} options={STAGE_OPTIONS} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Album Design</Label><StageSelect value={form.album_design_status} onChange={(v) => setForm({ ...form, album_design_status: v })} options={STAGE_OPTIONS} /></div>
+      </div>
+
+      <div className="pt-2">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Assigned Technicians (change via Events page)</p>
+        {assignedMembers.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">None assigned.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {assignedMembers.map((m: any) => (
+              <span key={m.id} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs">
+                <span className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[9px] font-bold">
+                  {String(m.full_name).split(" ").filter(Boolean).slice(0, 2).map((p: string) => p[0]?.toUpperCase()).join("")}
+                </span>
+                <span className="font-medium text-foreground">{m.full_name}</span>
+                <span className="text-muted-foreground capitalize">· {m.role}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Notes</Label>
+        <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={onClose}>Close</Button>
+        <Button size="sm" onClick={handleSave} disabled={!dirty}>
+          <Save className="h-3.5 w-3.5 mr-1" /> Save
+        </Button>
+      </div>
     </div>
   );
 }
