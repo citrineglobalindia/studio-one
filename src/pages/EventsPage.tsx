@@ -18,7 +18,6 @@ import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEvents } from "@/hooks/useEvents";
-import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { cn } from "@/lib/utils";
 
 interface ClientEvent {
@@ -84,7 +83,6 @@ export default function EventsPage() {
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
   const { events: dbEvents, addEvent, updateEvent, deleteEvent } = useEvents();
-  const { byEvent: assignmentsByEvent, setAssignments: saveEventAssignments } = useEventTeamAssignments();
 
   // Derive the UI-shaped team list from real Supabase rows
   const teamMembers: TeamMember[] = useMemo(
@@ -104,37 +102,11 @@ export default function EventsPage() {
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
   const [assignSheetOpen, setAssignSheetOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventWithClient | null>(null);
-  // Pending edits to assignments — applied to a single event's checkboxes
-  // before Save writes them to Supabase.
-  const [draftAssignments, setDraftAssignments] = useState<Record<string, string[]>>({});
-
-  // "Committed" assignments come straight from Supabase via the hook.
-  // Drafts override saved values so ticking feels instant.
-  const assignments: Record<string, string[]> = useMemo(() => {
-    const saved = assignmentsByEvent();
-    return { ...saved, ...draftAssignments };
-  }, [assignmentsByEvent, draftAssignments]);
-
-  // Legacy setter retained so existing toggle / bulk-assign callers keep compiling.
-  // It only mutates the draft — saved rows only change via saveAssignment().
-  const setAssignments: React.Dispatch<React.SetStateAction<Record<string, string[]>>> = (updater) => {
-    setDraftAssignments((prev) => {
-      const merged = { ...assignmentsByEvent(), ...prev };
-      const next = typeof updater === "function" ? (updater as any)(merged) : updater;
-      const saved = assignmentsByEvent();
-      const diff: Record<string, string[]> = {};
-      for (const k of Object.keys(next)) {
-        const a = [...(next[k] || [])].sort().join(",");
-        const b = [...(saved[k] || [])].sort().join(",");
-        if (a !== b) diff[k] = next[k];
-      }
-      return diff;
-    });
-  };
+  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({ clientId: "", name: "", type: "wedding" as ClientEvent["type"], date: "", startTime: "", endTime: "", venue: "", notes: "" });
+  const [newEvent, setNewEvent] = useState({ clientId: "", projectId: "", name: "", type: "wedding" as ClientEvent["type"], date: "", startTime: "", endTime: "", venue: "", notes: "" });
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
 
@@ -146,6 +118,7 @@ export default function EventsPage() {
     setEditingEventId(e.id);
     setNewEvent({
       clientId: e.client_id || "",
+      projectId: e.project_id || "",
       name: e.name,
       type: (e.event_type || "wedding") as ClientEvent["type"],
       date: e.event_date,
@@ -159,7 +132,7 @@ export default function EventsPage() {
 
   const openAddEvent = () => {
     setEditingEventId(null);
-    setNewEvent({ clientId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
+    setNewEvent({ clientId: "", projectId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
     setAddEventOpen(true);
   };
 
@@ -177,27 +150,8 @@ export default function EventsPage() {
   };
 
   const allEvents: EventWithClient[] = useMemo(() => {
-    // 1) Events built from DB "projects" that have event_dates (legacy)
-    const fromProjects: EventWithClient[] = dbProjects
-      .filter((p) => p.event_date)
-      .map((p) => {
-        const client = dbClients.find((c) => c.id === p.client_id);
-        const eventDate = new Date(p.event_date!);
-        const isUpcoming = eventDate >= new Date();
-        return {
-          id: p.id,
-          name: p.project_name,
-          date: p.event_date!,
-          venue: p.venue || "TBD",
-          type: (p.event_type || "wedding").toLowerCase(),
-          status: (p.status === "completed" || p.status === "delivered" ? "completed" : isUpcoming ? "upcoming" : "in-progress") as "upcoming" | "completed" | "in-progress",
-          clientName: client ? (client.partner_name ? `${client.name} & ${client.partner_name}` : client.name) : p.project_name,
-          clientId: p.client_id || "",
-          assignedTeam: (assignments[p.id] || []).map((tid) => teamMembers.find((t) => t.id === tid)!).filter(Boolean),
-        };
-      });
-
-    // 2) Events created from the "Add Event" form — now properly persisted in the events table
+    // Events come ONLY from the events table — admin must explicitly create them
+    // and pick a client + project. Projects are no longer auto-treated as events.
     const fromDb: EventWithClient[] = dbEvents.map((e) => {
       const client = dbClients.find((c) => c.id === e.client_id);
       const eventDate = new Date(e.event_date);
@@ -220,8 +174,8 @@ export default function EventsPage() {
       };
     });
 
-    return [...fromProjects, ...fromDb, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [dbProjects, dbClients, dbEvents, assignments, extraEvents, teamMembers]);
+    return [...fromDb, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [dbClients, dbEvents, assignments, extraEvents, teamMembers]);
 
   // Members who are already booked on the selected event's date for a DIFFERENT
   // event — they get hidden from the Assign Team list to prevent double-booking.
@@ -262,23 +216,7 @@ export default function EventsPage() {
   const toggleMember = (eventId: string, memberId: string) => {
     setAssignments(prev => { const current = prev[eventId] || []; const updated = current.includes(memberId) ? current.filter(id => id !== memberId) : [...current, memberId]; return { ...prev, [eventId]: updated }; });
   };
-  const saveAssignment = () => {
-    if (!selectedEvent) { setAssignSheetOpen(false); return; }
-    const memberIds = assignments[selectedEvent.id] || [];
-    saveEventAssignments.mutate(
-      { eventId: selectedEvent.id, memberIds },
-      {
-        onSuccess: () => {
-          setDraftAssignments((prev) => {
-            const next = { ...prev };
-            delete next[selectedEvent.id];
-            return next;
-          });
-          setAssignSheetOpen(false);
-        },
-      }
-    );
-  };
+  const saveAssignment = () => { if (selectedEvent) { toast.success(`${assignments[selectedEvent.id]?.length || 0} members assigned to ${selectedEvent.name}`); } setAssignSheetOpen(false); };
   const toggleSelectEvent = (id: string) => setSelectedEvents(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const handleBulkAssign = () => {
@@ -295,6 +233,7 @@ export default function EventsPage() {
 
     const payload = {
       client_id: newEvent.clientId || null,
+      project_id: newEvent.projectId || null,
       name: newEvent.name,
       event_type: newEvent.type,
       event_date: newEvent.date,
@@ -307,7 +246,7 @@ export default function EventsPage() {
     const afterSave = () => {
       setAddEventOpen(false);
       setEditingEventId(null);
-      setNewEvent({ clientId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
+      setNewEvent({ clientId: "", projectId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
     };
 
     if (editingEventId) {
@@ -590,7 +529,50 @@ export default function EventsPage() {
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader><SheetTitle className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> {editingEventId ? "Edit Event" : "Add New Event"}</SheetTitle></SheetHeader>
           <div className="mt-6 space-y-4">
-            <div className="space-y-1.5"><Label className="text-xs font-medium">Client</Label><Select value={newEvent.clientId} onValueChange={(v) => setNewEvent(p => ({ ...p, clientId: v }))}><SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger><SelectContent>{dbClients.map((c) => (<SelectItem key={c.id} value={c.id}>{c.partner_name ? `${c.name} & ${c.partner_name}` : c.name}</SelectItem>))}</SelectContent></Select></div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Client *</Label>
+              <Select
+                value={newEvent.clientId}
+                onValueChange={(v) => setNewEvent((p) => ({ ...p, clientId: v, projectId: "" }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                <SelectContent>
+                  {dbClients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.partner_name ? `${c.name} & ${c.partner_name}` : c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newEvent.clientId && (() => {
+              const matchingProjects = dbProjects.filter((pr) => pr.client_id === newEvent.clientId);
+              return (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Project</Label>
+                  {matchingProjects.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground italic px-1">
+                      No projects yet for this client. Create one in Projects first to link this event.
+                    </p>
+                  ) : (
+                    <Select
+                      value={newEvent.projectId}
+                      onValueChange={(v) => setNewEvent((p) => ({ ...p, projectId: v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                      <SelectContent>
+                        {matchingProjects.map((pr) => (
+                          <SelectItem key={pr.id} value={pr.id}>
+                            {pr.project_name}
+                            {pr.event_type ? ` · ${pr.event_type}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              );
+            })()}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Event Type</Label>
               <div className="grid grid-cols-4 gap-2">
