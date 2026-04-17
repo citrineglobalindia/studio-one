@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useInView } from "framer-motion";
-import { CalendarDays, MapPin, Users, Clock, Filter, Search, UserPlus, X, Check, Plus, Download, LayoutGrid, List, ChevronRight, MoreVertical, Trash2, Eye, SlidersHorizontal } from "lucide-react";
+import { CalendarDays, MapPin, Users, Clock, Filter, Search, UserPlus, X, Check, Plus, Download, LayoutGrid, List, ChevronRight, MoreVertical, Trash2, Eye, SlidersHorizontal, Pencil, Ban } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ const statusConfig: Record<string, { color: string; label: string }> = {
   upcoming: { color: "bg-blue-500/10 text-blue-600 border-blue-500/20", label: "Upcoming" },
   "in-progress": { color: "bg-amber-500/10 text-amber-600 border-amber-500/20", label: "In Progress" },
   completed: { color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", label: "Completed" },
+  cancelled: { color: "bg-destructive/10 text-destructive border-destructive/20 line-through", label: "Cancelled" },
 };
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } } } as const;
@@ -81,7 +82,7 @@ export default function EventsPage() {
   const { clients: dbClients } = useClients();
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
-  const { events: dbEvents, addEvent, deleteEvent } = useEvents();
+  const { events: dbEvents, addEvent, updateEvent, deleteEvent } = useEvents();
 
   // Derive the UI-shaped team list from real Supabase rows
   const teamMembers: TeamMember[] = useMemo(
@@ -106,7 +107,46 @@ export default function EventsPage() {
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({ clientId: "", name: "", type: "wedding" as ClientEvent["type"], date: "", startTime: "", endTime: "", venue: "", notes: "" });
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
+
+  const isDbEvent = (eventId: string) => dbEvents.some((e) => e.id === eventId);
+
+  const openEditEvent = (eventId: string) => {
+    const e = dbEvents.find((x) => x.id === eventId);
+    if (!e) { toast.error("This event is linked to a project — edit it on the Projects page."); return; }
+    setEditingEventId(e.id);
+    setNewEvent({
+      clientId: e.client_id || "",
+      name: e.name,
+      type: (e.event_type || "wedding") as ClientEvent["type"],
+      date: e.event_date,
+      startTime: e.start_time ? e.start_time.slice(0, 5) : "",
+      endTime:   e.end_time   ? e.end_time.slice(0, 5)   : "",
+      venue: e.venue || "",
+      notes: e.notes || "",
+    });
+    setAddEventOpen(true);
+  };
+
+  const openAddEvent = () => {
+    setEditingEventId(null);
+    setNewEvent({ clientId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
+    setAddEventOpen(true);
+  };
+
+  const handleCancelEvent = (eventId: string) => {
+    if (!isDbEvent(eventId)) { toast.error("This event is linked to a project — cancel it on the Projects page."); return; }
+    if (!window.confirm("Mark this event as cancelled?")) return;
+    updateEvent.mutate({ id: eventId, status: "cancelled" });
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (!isDbEvent(eventId)) { toast.error("This event is linked to a project — delete it on the Projects page."); return; }
+    if (!window.confirm("Delete this event? This can't be undone.")) return;
+    deleteEvent.mutate(eventId);
+    setAssignments((prev) => { const next = { ...prev }; delete next[eventId]; return next; });
+  };
 
   const allEvents: EventWithClient[] = useMemo(() => {
     // 1) Events built from DB "projects" that have event_dates (legacy)
@@ -208,27 +248,29 @@ export default function EventsPage() {
       toast.error("Name, date and venue are required");
       return;
     }
-    // Persist to Supabase so it survives reload and multiple events per client/date work
-    addEvent.mutate(
-      {
-        client_id: newEvent.clientId || null,
-        project_id: null,
-        name: newEvent.name,
-        event_type: newEvent.type,
-        event_date: newEvent.date,
-        start_time: newEvent.startTime ? `${newEvent.startTime}:00` : null,
-        end_time:   newEvent.endTime   ? `${newEvent.endTime}:00`   : null,
-        venue: newEvent.venue,
-        notes: newEvent.notes || null,
-        status: "upcoming",
-      },
-      {
-        onSuccess: () => {
-          setAddEventOpen(false);
-          setNewEvent({ clientId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
-        },
-      }
-    );
+
+    const payload = {
+      client_id: newEvent.clientId || null,
+      name: newEvent.name,
+      event_type: newEvent.type,
+      event_date: newEvent.date,
+      start_time: newEvent.startTime ? `${newEvent.startTime}:00` : null,
+      end_time:   newEvent.endTime   ? `${newEvent.endTime}:00`   : null,
+      venue: newEvent.venue,
+      notes: newEvent.notes || null,
+    };
+
+    const afterSave = () => {
+      setAddEventOpen(false);
+      setEditingEventId(null);
+      setNewEvent({ clientId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
+    };
+
+    if (editingEventId) {
+      updateEvent.mutate({ id: editingEventId, ...payload }, { onSuccess: afterSave });
+    } else {
+      addEvent.mutate({ ...payload, project_id: null, status: "upcoming" }, { onSuccess: afterSave });
+    }
   };
 
   // Group events by month for timeline view
@@ -257,7 +299,7 @@ export default function EventsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-2 hidden sm:flex"><Download className="h-3.5 w-3.5" /> Export</Button>
-          <Button size="sm" className="gap-2 rounded-xl" onClick={() => setAddEventOpen(true)}><Plus className="h-4 w-4" /> Add Event</Button>
+          <Button size="sm" className="gap-2 rounded-xl" onClick={openAddEvent}><Plus className="h-4 w-4" /> Add Event</Button>
         </div>
       </motion.div>
 
@@ -374,6 +416,15 @@ export default function EventsPage() {
                             <Button size="sm" variant={event.assignedTeam.length > 0 ? "outline" : "default"} className="shrink-0" onClick={() => openAssignSheet(event)}>
                               <UserPlus className="h-3.5 w-3.5 mr-1" />{event.assignedTeam.length > 0 ? "Edit" : "Assign"}
                             </Button>
+                            <EventActions
+                              eventId={event.id}
+                              canManage={isDbEvent(event.id)}
+                              status={event.status}
+                              onEdit={() => openEditEvent(event.id)}
+                              onReassign={() => openAssignSheet(event)}
+                              onCancel={() => handleCancelEvent(event.id)}
+                              onDelete={() => handleDeleteEvent(event.id)}
+                            />
                           </div>
                         </div>
                       </motion.div>
@@ -421,6 +472,15 @@ export default function EventsPage() {
                           <Button size="sm" variant={event.assignedTeam.length > 0 ? "outline" : "default"} className="shrink-0" onClick={() => openAssignSheet(event)}>
                             <UserPlus className="h-3.5 w-3.5 mr-1" />{event.assignedTeam.length > 0 ? "Edit" : "Assign"}
                           </Button>
+                          <EventActions
+                            eventId={event.id}
+                            canManage={isDbEvent(event.id)}
+                            status={event.status}
+                            onEdit={() => openEditEvent(event.id)}
+                            onReassign={() => openAssignSheet(event)}
+                            onCancel={() => handleCancelEvent(event.id)}
+                            onDelete={() => handleDeleteEvent(event.id)}
+                          />
                         </div>
                       </div>
                     </div>
@@ -484,7 +544,7 @@ export default function EventsPage() {
       {/* Add Event Sheet */}
       <Sheet open={addEventOpen} onOpenChange={setAddEventOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader><SheetTitle className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> Add New Event</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> {editingEventId ? "Edit Event" : "Add New Event"}</SheetTitle></SheetHeader>
           <div className="mt-6 space-y-4">
             <div className="space-y-1.5"><Label className="text-xs font-medium">Client</Label><Select value={newEvent.clientId} onValueChange={(v) => setNewEvent(p => ({ ...p, clientId: v }))}><SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger><SelectContent>{dbClients.map((c) => (<SelectItem key={c.id} value={c.id}>{c.partner_name ? `${c.name} & ${c.partner_name}` : c.name}</SelectItem>))}</SelectContent></Select></div>
             <div className="space-y-1.5">
@@ -508,10 +568,14 @@ export default function EventsPage() {
               <div className="space-y-1.5"><Label className="text-xs font-medium">End Time</Label><Input type="time" value={newEvent.endTime} onChange={(e) => setNewEvent(p => ({ ...p, endTime: e.target.value }))} /></div>
             </div>
             <div className="space-y-1.5"><Label className="text-xs font-medium">Notes</Label><Textarea placeholder="Special requirements..." value={newEvent.notes} onChange={(e) => setNewEvent(p => ({ ...p, notes: e.target.value }))} rows={2} /></div>
-            <Button className="w-full" onClick={handleAddEvent}><Plus className="h-4 w-4 mr-1" /> Add Event</Button>
+            <Button className="w-full" onClick={handleAddEvent}>
+              {editingEventId ? <><Pencil className="h-4 w-4 mr-1" /> Save Changes</> : <><Plus className="h-4 w-4 mr-1" /> Add Event</>}
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* (Edit / Reassign / Cancel / Delete menu component is defined at the bottom of this file.) */}
 
       {/* Mobile Filter Sheet */}
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
@@ -530,5 +594,63 @@ export default function EventsPage() {
         </SheetContent>
       </Sheet>
     </motion.div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Per-event dropdown menu (Edit / Reassign / Cancel / Delete)
+// Greys out destructive actions if the event is derived from a project
+// (canManage=false) rather than created via the Add Event form.
+// ────────────────────────────────────────────────────────────────────────────
+function EventActions({
+  eventId,
+  canManage,
+  status,
+  onEdit,
+  onReassign,
+  onCancel,
+  onDelete,
+}: {
+  eventId: string;
+  canManage: boolean;
+  status: string;
+  onEdit: () => void;
+  onReassign: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+          title="More actions"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem disabled={!canManage} onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5 mr-2" /> Edit event
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onReassign}>
+          <UserPlus className="h-3.5 w-3.5 mr-2" /> Reassign team
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!canManage || status === "cancelled"} onClick={onCancel}>
+          <Ban className="h-3.5 w-3.5 mr-2" /> Cancel event
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!canManage} onClick={onDelete} className="text-destructive focus:text-destructive">
+          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+        </DropdownMenuItem>
+        {!canManage && (
+          <div className="px-2 py-1.5 text-[10px] text-muted-foreground border-t mt-1">
+            This event is linked to a project. Manage it on the Projects page.
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
