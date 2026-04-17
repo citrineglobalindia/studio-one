@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SubscriptionManager } from "@/components/SubscriptionManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ interface ProfileRow {
   display_name: string | null;
   phone: string | null;
   role: string | null;
+  avatar_url: string | null;
 }
 
 export default function SettingsPage() {
@@ -77,6 +78,11 @@ export default function SettingsPage() {
     phone: "",
   });
   const [profileSaving, setProfileSaving] = useState(false);
+
+  // Avatar upload state + hidden file input ref
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [notifications, setNotifications] = useState({
     emailLeads: true, whatsappLeads: true, paymentReminders: true,
@@ -145,7 +151,7 @@ export default function SettingsPage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, user_id, display_name, phone, role")
+        .select("id, user_id, display_name, phone, role, avatar_url")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -156,6 +162,7 @@ export default function SettingsPage() {
         full_name: data?.display_name ?? (user.user_metadata?.full_name as string | undefined) ?? user.email?.split("@")[0] ?? "",
         phone: (data as any)?.phone ?? "",
       });
+      setAvatarUrl((data as any)?.avatar_url ?? null);
     };
 
     fetchProfile();
@@ -204,6 +211,67 @@ export default function SettingsPage() {
 
     toast.success("Studio information saved");
     await refreshOrg();
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset input so the same file can be picked again if needed
+    if (e.target) e.target.value = "";
+    if (!file) return;
+
+    if (!user?.id) {
+      toast.error("Not signed in");
+      return;
+    }
+
+    // Size & type validation
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2 MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+
+    setAvatarUploading(true);
+
+    // Path must start with user_id so the RLS policy allows the write
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const path = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { cacheControl: "3600", upsert: true });
+
+    if (uploadError) {
+      setAvatarUploading(false);
+      toast.error(`Upload failed: ${uploadError.message}`);
+      return;
+    }
+
+    // Public URL + cache-buster so the new image actually renders
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("user_id", user.id);
+
+    setAvatarUploading(false);
+
+    if (updateError) {
+      toast.error(`Saved image but couldn't update profile: ${updateError.message}`);
+      return;
+    }
+
+    setAvatarUrl(publicUrl);
+    toast.success("Profile picture updated");
   };
 
   const handleUpdateProfile = async () => {
@@ -354,16 +422,45 @@ export default function SettingsPage() {
             <h2 className="font-display font-semibold text-foreground">Your Profile</h2>
             <div className="flex items-center gap-4 mb-4">
               <div className="relative">
-                <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center text-xl font-bold text-primary">
-                  {displayInitials}
+                <div className="h-16 w-16 rounded-2xl bg-primary/20 overflow-hidden flex items-center justify-center text-xl font-bold text-primary">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{displayInitials}</span>
+                  )}
                 </div>
-                <button className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center border-2 border-background">
-                  <Upload className="h-3 w-3 text-primary-foreground" />
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  disabled={avatarUploading}
+                  aria-label="Upload profile picture"
+                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center border-2 border-background hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {avatarUploading ? (
+                    <Loader2 className="h-3 w-3 text-primary-foreground animate-spin" />
+                  ) : (
+                    <Upload className="h-3 w-3 text-primary-foreground" />
+                  )}
                 </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarFileChange}
+                />
               </div>
               <div>
                 <p className="text-foreground font-semibold">{displayName}</p>
                 <p className="text-sm text-muted-foreground">{roleLabel}</p>
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  disabled={avatarUploading}
+                  className="text-xs text-primary hover:underline mt-1 disabled:opacity-60"
+                >
+                  {avatarUploading ? "Uploading..." : avatarUrl ? "Change photo" : "Upload photo"}
+                </button>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
