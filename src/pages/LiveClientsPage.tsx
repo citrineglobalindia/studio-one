@@ -13,6 +13,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useDeliverables } from "@/hooks/useDeliverables";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
+import { useEvents } from "@/hooks/useEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { LiveClient, Deliverable } from "@/data/live-clients-data";
@@ -51,6 +52,7 @@ export default function LiveClientsPage() {
   const { deliverables, isLoading: deliverablesLoading } = useDeliverables();
   const { members: teamMembersDb } = useTeamMembers();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
+  const { events: dbEvents } = useEvents();
 
   // Map DB projects + deliverables to LiveClient format for existing view components
   const liveClients: LiveClient[] = useMemo(() => {
@@ -86,21 +88,59 @@ export default function LiveClientsPage() {
         phone: p.client?.phone || "",
         overallProgress,
         status: projectStatus,
-        // Merge legacy assigned_team (names) with real event_team_assignments for this project
+        // Merge legacy assigned_team (names) with event_team_assignments for
+        // (a) this project's id AND (b) every event belonging to this client —
+        // so if you assigned team via the Events page for a Mehendi event, it
+        // still counts towards this client's live-client team.
         team: (() => {
+          const byEventMap = assignmentsByEvent();
+          const clientEventIds: string[] = [p.id];
+          if (p.client_id) {
+            for (const e of dbEvents as any[]) {
+              if (e.client_id === p.client_id) clientEventIds.push(e.id);
+            }
+          }
+
           const byId = new Map<string, { id: string; name: string; role: string; avatar: undefined }>();
           (p.assigned_team || []).forEach((name: string, i: number) => {
             const match = teamMembersDb.find((m: any) => m.full_name === name);
             const id = match ? match.id : `name-${i}`;
             byId.set(id, { id, name: match ? match.full_name : name, role: match ? match.role : "Crew", avatar: undefined });
           });
-          const assignedIds = assignmentsByEvent()[p.id] || [];
-          for (const mid of assignedIds) {
-            const m = teamMembersDb.find((x: any) => x.id === mid);
-            if (m && !byId.has(m.id)) byId.set(m.id, { id: m.id, name: m.full_name, role: m.role, avatar: undefined });
+          for (const eid of clientEventIds) {
+            const ids = byEventMap[eid] || [];
+            for (const mid of ids) {
+              const m = teamMembersDb.find((x: any) => x.id === mid);
+              if (m && !byId.has(m.id)) byId.set(m.id, { id: m.id, name: m.full_name, role: m.role, avatar: undefined });
+            }
           }
           return Array.from(byId.values());
         })(),
+        // Events belonging to this client — so EventTrackingView / CardView can
+        // show all shoot days (Mehendi, Haldi, Sangeet, etc.) under one client.
+        events: ((): any[] => {
+          if (!p.client_id) return [];
+          return (dbEvents as any[])
+            .filter((e) => e.client_id === p.client_id)
+            .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
+            .map((e) => ({
+              id: e.id,
+              name: e.name,
+              event_type: e.event_type,
+              event_date: e.event_date,
+              start_time: e.start_time,
+              end_time: e.end_time,
+              venue: e.venue,
+              status: e.status,
+              assignedTeam: ((byMap: any) => {
+                const ids = byMap[e.id] || [];
+                return ids
+                  .map((mid: string) => teamMembersDb.find((m: any) => m.id === mid))
+                  .filter(Boolean)
+                  .map((m: any) => ({ id: m.id, name: m.full_name, role: m.role }));
+              })(assignmentsByEvent()),
+            }));
+        })() as any,
         deliverables: mappedDeliverables,
         financials: {
           estimatedAmount: p.total_amount || 0,
