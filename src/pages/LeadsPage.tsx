@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import LeadReminderDialog from "@/components/leads/LeadReminderDialog";
 
 const stages: LeadStage[] = ["new", "contacted", "proposal-sent", "converted", "lost"];
 const teamMembers = ["Raj Patel", "Vikram Singh", "Neha Sharma", "Amit Verma"];
@@ -56,6 +57,7 @@ const LeadsPage = () => {
   const [importedRows, setImportedRows] = useState<Record<string, string>[]>([]);
   const [importing, setImporting] = useState(false);
   const [importHistory, setImportHistory] = useState<{ date: string; count: number; filename: string }[]>([]);
+  const [reminderLead, setReminderLead] = useState<{ id: string; name: string } | null>(null);
 
   // ═══ EXPORT CSV ═══
   const handleExportCSV = () => {
@@ -612,6 +614,15 @@ const LeadsPage = () => {
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                               <PhoneCall className="h-4 w-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => setReminderLead({ id: lead.id, name: lead.name })}
+                              title="Reminders"
+                            >
+                              <Bell className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -847,6 +858,16 @@ const LeadsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ═══ REMINDER DIALOG ═══ */}
+      {reminderLead && (
+        <LeadReminderDialog
+          open={!!reminderLead}
+          onOpenChange={(v) => !v && setReminderLead(null)}
+          leadId={reminderLead.id}
+          leadName={reminderLead.name}
+        />
+      )}
     </div>
   );
 };
