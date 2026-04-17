@@ -291,12 +291,42 @@ export default function ClientDetailPage() {
       .then(({ data }) => setProcessSteps(data || []));
   }, [client?.id]);
 
-  // ---- aggregated team members across client's projects ----
+  // ---- aggregated team members across client's projects AND events ----
+  // Pulls from two sources:
+  //   (1) legacy projects.assigned_team TEXT[] (names)
+  //   (2) event_team_assignments (real team_member rows) for this client's events & projects
   const teamMembers = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of clientProjects) (p.assigned_team || []).forEach((m: string) => set.add(m));
-    return Array.from(set);
-  }, [clientProjects]);
+    const map = new Map<string, { id: string; name: string; role: string }>();
+
+    // From projects.assigned_team (legacy — just names)
+    for (const p of clientProjects) {
+      (p.assigned_team || []).forEach((name: string) => {
+        if (!name) return;
+        // Prefer a team-member row match if we have one (so role/initials are real)
+        const match = dbTeamMembers.find((m: any) => m.full_name === name);
+        const id = match ? match.id : `name:${name}`;
+        if (!map.has(id)) map.set(id, { id, name: match ? match.full_name : name, role: match ? match.role : "Crew" });
+      });
+    }
+
+    // From event_team_assignments for everything related to this client
+    const byEventMap = assignmentsByEvent();
+    const relevantEventIds = [
+      ...clientProjects.map((p: any) => p.id),
+      ...dbEvents.filter((e: any) => e.client_id === id).map((e: any) => e.id),
+    ];
+    for (const eid of relevantEventIds) {
+      const memberIds = byEventMap[eid] || [];
+      for (const mid of memberIds) {
+        const m = dbTeamMembers.find((x: any) => x.id === mid);
+        if (m && !map.has(m.id)) {
+          map.set(m.id, { id: m.id, name: m.full_name, role: m.role });
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }, [clientProjects, dbEvents, assignmentsByEvent, dbTeamMembers, id]);
 
   // ---- loading / not-found ----
   if (isLoading) {
@@ -707,19 +737,20 @@ export default function ClientDetailPage() {
               <EmptyState icon={<FileText className="h-10 w-10" />} text="No contracts yet" subtext="Contract management is coming soon." />
             </TabsContent>
 
-            {/* ───── TEAM (aggregated from projects.assigned_team) ───── */}
+            {/* ───── TEAM (from projects + event_team_assignments) ───── */}
             <TabsContent value="team" className="mt-0">
               {teamMembers.length === 0 ? (
-                <EmptyState icon={<UsersRound className="h-10 w-10" />} text="No team assigned" subtext="Assign team to any of this client's projects and they'll appear here." />
+                <EmptyState icon={<UsersRound className="h-10 w-10" />} text="No team assigned" subtext="Assign team to any of this client's projects or events and they'll appear here." />
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {teamMembers.map((m, i) => (
-                    <motion.div key={m} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                       className="flex flex-col items-center p-4 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
                       <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-rose-400/20 flex items-center justify-center text-sm font-bold text-primary">
-                        {initials(m)}
+                        {initials(m.name)}
                       </div>
-                      <p className="text-sm font-medium text-foreground mt-2 text-center">{m}</p>
+                      <p className="text-sm font-medium text-foreground mt-2 text-center">{m.name}</p>
+                      <p className="text-[10px] text-muted-foreground text-center capitalize">{m.role}</p>
                     </motion.div>
                   ))}
                 </div>
