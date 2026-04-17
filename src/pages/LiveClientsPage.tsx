@@ -14,6 +14,7 @@ import { useDeliverables } from "@/hooks/useDeliverables";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { useEvents } from "@/hooks/useEvents";
+import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { LiveClient, Deliverable } from "@/data/live-clients-data";
@@ -53,6 +54,7 @@ export default function LiveClientsPage() {
   const { members: teamMembersDb } = useTeamMembers();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
   const { events: dbEvents } = useEvents();
+  const { clients: allClients } = useClients();
 
   // Map DB projects + deliverables to LiveClient format for existing view components
   const liveClients: LiveClient[] = useMemo(() => {
@@ -116,29 +118,20 @@ export default function LiveClientsPage() {
           }
           return Array.from(byId.values());
         })(),
-        // Events belonging to this client — so EventTrackingView / CardView can
-        // show all shoot days (Mehendi, Haldi, Sangeet, etc.) under one client.
+        // Events belonging to this client — so EventTrackingView / ClientManagementView
+        // can render ONE ROW PER EVENT (Mehendi, Haldi, Sangeet, …) with all tracking data.
         events: ((): any[] => {
           if (!p.client_id) return [];
+          const byMap = assignmentsByEvent();
           return (dbEvents as any[])
             .filter((e) => e.client_id === p.client_id)
             .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
             .map((e) => ({
-              id: e.id,
-              name: e.name,
-              event_type: e.event_type,
-              event_date: e.event_date,
-              start_time: e.start_time,
-              end_time: e.end_time,
-              venue: e.venue,
-              status: e.status,
-              assignedTeam: ((byMap: any) => {
-                const ids = byMap[e.id] || [];
-                return ids
-                  .map((mid: string) => teamMembersDb.find((m: any) => m.id === mid))
-                  .filter(Boolean)
-                  .map((m: any) => ({ id: m.id, name: m.full_name, role: m.role }));
-              })(assignmentsByEvent()),
+              ...e, // spread ALL event fields so views can show card_number, raw_data_size, etc.
+              assignedTeam: (byMap[e.id] || [])
+                .map((mid: string) => teamMembersDb.find((m: any) => m.id === mid))
+                .filter(Boolean)
+                .map((m: any) => ({ id: m.id, name: m.full_name, role: m.role })),
             }));
         })() as any,
         deliverables: mappedDeliverables,
@@ -155,9 +148,38 @@ export default function LiveClientsPage() {
         rawDataSize: (p as any).raw_data_size || "",
         backupNumber: (p as any).backup_number || "",
         deliveryHdd: (p as any).delivery_hdd || "",
+        // Pass through project-level tracking columns AND client-level fields so
+        // Client Management view can show Service Taken, Payment Status, etc.
+        service_taken:          (p as any).service_taken          ?? null,
+        album_sheets:           (p as any).album_sheets           ?? null,
+        data_backup_status:     (p as any).data_backup_status     ?? null,
+        first_delivery_date:    (p as any).first_delivery_date    ?? null,
+        payment_status:         (p as any).payment_status         ?? null,
+        delivery_status:        (p as any).delivery_status        ?? null,
+        follow_up_call:         (p as any).follow_up_call         ?? null,
+        video_progress:         (p as any).video_progress         ?? null,
+        album_design_status:    (p as any).album_design_status    ?? null,
+        album_print_status:     (p as any).album_print_status     ?? null,
+        final_delivery_date:    (p as any).final_delivery_date    ?? null,
+        final_delivery_status:  (p as any).final_delivery_status  ?? null,
+        final_payment_status:   (p as any).final_payment_status   ?? null,
+        data_filtration_status: (p as any).data_filtration_status ?? null,
+        // Client-level columns looked up via full clients list
+        ...((): any => {
+          const fullClient = (allClients as any[]).find((cc) => cc.id === p.client_id);
+          return fullClient ? {
+            email:          fullClient.email ?? null,
+            date_of_birth:  fullClient.date_of_birth ?? null,
+            address:        fullClient.address ?? null,
+            source:         fullClient.source ?? null,
+            social_media:   fullClient.social_media ?? null,
+            good_will_call: fullClient.good_will_call ?? null,
+            review_text:    fullClient.review_text ?? null,
+          } : {};
+        })(),
       } as LiveClient;
     });
-  }, [projects, deliverables]);
+  }, [projects, deliverables, dbEvents, teamMembersDb, assignmentsByEvent, allClients]);
 
   const filtered = useMemo(() => {
     return liveClients.filter((c) => {
