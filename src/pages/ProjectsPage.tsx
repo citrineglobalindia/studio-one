@@ -28,6 +28,7 @@ import {
 import { useProjects, type Project } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
+import { useEvents } from "@/hooks/useEvents";
 import { useOrg } from "@/contexts/OrgContext";
 import { useClients } from "@/hooks/useClients";
 
@@ -62,15 +63,29 @@ const ProjectsPage = () => {
   const { projects, isLoading, addProject, deleteProject } = useProjects();
   const { members: teamMembers } = useTeamMembers();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
+  const { events: allEvents } = useEvents();
 
-  // For each project, merge the legacy assigned_team (names) with event_team_assignments
-  // (real team_members) so the crew count reflects both sources.
+  // For each project, merge the legacy assigned_team (names) with
+  // event_team_assignments for BOTH this project's id AND every event that
+  // belongs to the same client — so team assigned via the Events page for a
+  // Mehendi event counts toward the client's Wedding project crew.
   const projectCrewCount = (project: any): number => {
-    const namesSet = new Set<string>(project.assigned_team || []);
-    const assignedIds = assignmentsByEvent()[project.id] || [];
-    for (const id of assignedIds) {
-      const m = teamMembers.find((t: any) => t.id === id);
-      namesSet.add(m ? m.full_name : id);
+    const namesSet = new Set<string>();
+    (project.assigned_team || []).forEach((n: string) => n && namesSet.add(n));
+
+    const eventIds: string[] = [project.id];
+    if (project.client_id) {
+      for (const e of allEvents as any[]) {
+        if (e.client_id === project.client_id) eventIds.push(e.id);
+      }
+    }
+
+    const byEvent = assignmentsByEvent();
+    for (const eid of eventIds) {
+      for (const mid of byEvent[eid] || []) {
+        const m = teamMembers.find((t: any) => t.id === mid);
+        namesSet.add(m ? m.full_name : mid);
+      }
     }
     return namesSet.size;
   };
