@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
+import { useEvents } from "@/hooks/useEvents";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -27,6 +28,7 @@ const ProjectDetailPage = () => {
   const { projects, isLoading } = useProjects();
   const { members: teamMembers } = useTeamMembers();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
+  const { events: allEvents } = useEvents();
 
   if (isLoading) {
     return (
@@ -58,9 +60,10 @@ const ProjectDetailPage = () => {
   const paidPct = totalAmount > 0 ? Math.round((amountPaid / totalAmount) * 100) : 0;
   const balance = Math.max(0, totalAmount - amountPaid);
 
-  // Aggregate assigned team from TWO sources:
+  // Aggregate assigned team from THREE sources:
   //   (1) project.assigned_team — stores NAMES (legacy)
-  //   (2) event_team_assignments for this project's id — stores real team_member ids
+  //   (2) event_team_assignments for this project's id
+  //   (3) event_team_assignments for every event belonging to the same client
   const assignedTeam = (() => {
     const byId = new Map<string, any>();
 
@@ -69,16 +72,23 @@ const ProjectDetailPage = () => {
       if (!name) continue;
       const match = teamMembers.find((m: any) => m.full_name === name);
       const id = match ? match.id : `name:${name}`;
-      if (!byId.has(id)) {
-        byId.set(id, match ?? { id, full_name: name, role: "Crew" });
+      if (!byId.has(id)) byId.set(id, match ?? { id, full_name: name, role: "Crew" });
+    }
+
+    // Collect every event id tied to this project's client
+    const eventIds: string[] = [project.id];
+    if (project.client_id) {
+      for (const e of allEvents as any[]) {
+        if (e.client_id === project.client_id) eventIds.push(e.id);
       }
     }
 
-    // Source 2: event_team_assignments for this project's id
-    const memberIds = assignmentsByEvent()[project.id] || [];
-    for (const mid of memberIds) {
-      const m = teamMembers.find((x: any) => x.id === mid);
-      if (m && !byId.has(m.id)) byId.set(m.id, m);
+    const byEvent = assignmentsByEvent();
+    for (const eid of eventIds) {
+      for (const mid of byEvent[eid] || []) {
+        const m = teamMembers.find((x: any) => x.id === mid);
+        if (m && !byId.has(m.id)) byId.set(m.id, m);
+      }
     }
 
     return Array.from(byId.values());
