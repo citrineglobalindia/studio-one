@@ -129,6 +129,25 @@ export default function EventsPage() {
     return [...base, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [dbProjects, dbClients, assignments, extraEvents, teamMembers]);
 
+  // Members who are already booked on the selected event's date for a DIFFERENT
+  // event — they get hidden from the Assign Team list to prevent double-booking.
+  // Members already assigned to THIS event stay visible so the admin can uncheck them.
+  const availableTeamMembers = useMemo(() => {
+    if (!selectedEvent) return teamMembers;
+    const currentAssigned = new Set(assignments[selectedEvent.id] || []);
+    const busyIds = new Set<string>();
+    for (const [otherEventId, memberIds] of Object.entries(assignments)) {
+      if (otherEventId === selectedEvent.id) continue;
+      const other = allEvents.find((e) => e.id === otherEventId);
+      if (other && other.date === selectedEvent.date) {
+        memberIds.forEach((id) => busyIds.add(id));
+      }
+    }
+    return teamMembers.filter((m) => currentAssigned.has(m.id) || !busyIds.has(m.id));
+  }, [teamMembers, selectedEvent, assignments, allEvents]);
+
+  const busyTeamCount = selectedEvent ? teamMembers.length - availableTeamMembers.length : 0;
+
   const filteredEvents = useMemo(() => {
     return allEvents.filter(event => {
       const matchSearch = event.name.toLowerCase().includes(search.toLowerCase()) || event.clientName.toLowerCase().includes(search.toLowerCase()) || event.venue.toLowerCase().includes(search.toLowerCase());
@@ -386,8 +405,21 @@ export default function EventsPage() {
                 </CardContent>
               </Card>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">Select Team Members</p>
-                {teamMembers.map(member => {
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-foreground">Select Team Members</p>
+                  {busyTeamCount > 0 && (
+                    <span className="text-[10px] text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                      {busyTeamCount} busy on this date — hidden
+                    </span>
+                  )}
+                </div>
+                {availableTeamMembers.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+                    {teamMembers.length === 0
+                      ? "No team members yet. Add them in the Team page first."
+                      : "Everyone is already booked on this date."}
+                  </div>
+                ) : availableTeamMembers.map(member => {
                   const isAssigned = (assignments[selectedEvent.id] || []).includes(member.id);
                   return (
                     <div key={member.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isAssigned ? "border-primary/30 bg-primary/5" : "border-border/50 hover:bg-muted/50"}`} onClick={() => toggleMember(selectedEvent.id, member.id)}>
