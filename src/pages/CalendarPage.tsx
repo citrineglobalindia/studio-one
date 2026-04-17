@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { sampleProjects, sampleTeamMembers } from "@/data/wedding-types";
 import { useClients } from "@/hooks/useClients";
+import { useEvents } from "@/hooks/useEvents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -95,6 +96,7 @@ type ViewMode = "month" | "week" | "day";
 const CalendarPage = () => {
   const navigate = useNavigate();
   const { clients: dbClients } = useClients();
+  const { events: dbEvents } = useEvents();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -155,8 +157,33 @@ const CalendarPage = () => {
         category: getCategory(c.event_type || "Wedding"),
       }));
 
-    return [...projectEvents, ...clientEvents];
-  }, [dbClients]);
+    // Events created via the Events page (events table) — now flow into the calendar
+    const savedEvents: CalendarEvent[] = dbEvents.map((e: any) => {
+      const client = dbClients.find((c) => c.id === e.client_id);
+      const clientLabel = client
+        ? (client.partner_name ? `${client.name} & ${client.partner_name}` : client.name)
+        : "Studio Event";
+      const mappedStatus =
+        e.status === "completed" ? "completed" :
+        e.status === "cancelled" ? "upcoming" :
+        e.status === "in-progress" ? "in-progress" :
+        "upcoming";
+      return {
+        id: `event-${e.id}`,
+        projectId: "",
+        clientLabel,
+        subEventName: e.name,
+        date: e.event_date,
+        location: e.venue || "",
+        status: mappedStatus as any,
+        teamCount: 0,
+        team: [],
+        category: getCategory(e.event_type || "Wedding"),
+      };
+    });
+
+    return [...projectEvents, ...clientEvents, ...savedEvents];
+  }, [dbClients, dbEvents]);
 
   const allEvents = useMemo(() => [...baseEvents, ...customEvents], [baseEvents, customEvents]);
 
