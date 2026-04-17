@@ -19,6 +19,7 @@ import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { useLeads } from "@/hooks/useLeads";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useEvents } from "@/hooks/useEvents";
 import { PhotographerDashboard } from "@/components/dashboards/PhotographerDashboard";
 import { VideographerDashboard } from "@/components/dashboards/VideographerDashboard";
 import { EditorDashboard } from "@/components/dashboards/EditorDashboard";
@@ -104,6 +105,7 @@ const Index = () => {
   const { organization } = useOrg();
   const { clients: dbClients } = useClients();
   const { projects: dbProjects } = useProjects();
+  const { events: dbEvents } = useEvents();
   const { leads: dbLeads } = useLeads();
   const { invoices: dbInvoices } = useInvoices();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -129,14 +131,29 @@ const Index = () => {
     dbProjects.forEach((p) => {
       if (p.event_date) dates.push(new Date(p.event_date));
     });
+    dbEvents.forEach((e: any) => {
+      if (e.event_date) dates.push(new Date(e.event_date));
+    });
     return dates;
-  }, [dbClients, dbProjects]);
+  }, [dbClients, dbProjects, dbEvents]);
 
   const selectedDateEvents = useMemo(() => {
     if (!selectedDate) return [];
     const sel = selectedDate.toISOString().slice(0, 10);
-    return dbProjects.filter((p) => p.event_date === sel);
-  }, [selectedDate, dbProjects]);
+    const fromProjects = dbProjects.filter((p) => p.event_date === sel);
+    const fromEvents = dbEvents
+      .filter((e: any) => e.event_date === sel)
+      .map((e: any) => ({
+        id: e.id,
+        project_name: e.name,
+        event_type: e.event_type,
+        event_date: e.event_date,
+        venue: e.venue,
+        status: e.status,
+        client_id: e.client_id,
+      }));
+    return [...fromProjects, ...fromEvents];
+  }, [selectedDate, dbProjects, dbEvents]);
 
   // Role-specific dashboards
   if (currentRole === "photographer") return <PhotographerDashboard />;
