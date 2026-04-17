@@ -800,8 +800,11 @@ export type Database = {
       }
       organizations: {
         Row: {
+          address: string | null
           city: string | null
           created_at: string
+          email: string | null
+          gst_number: string | null
           id: string
           instagram: string | null
           logo_url: string | null
@@ -816,8 +819,11 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          address?: string | null
           city?: string | null
           created_at?: string
+          email?: string | null
+          gst_number?: string | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
@@ -832,8 +838,11 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          address?: string | null
           city?: string | null
           created_at?: string
+          email?: string | null
+          gst_number?: string | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
@@ -851,28 +860,37 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          email: string | null
           id: string
+          phone: string | null
           role: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
           id?: string
+          phone?: string | null
           role?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
           id?: string
+          phone?: string | null
           role?: string | null
           updated_at?: string
           user_id?: string
@@ -1072,6 +1090,41 @@ export type Database = {
             foreignKeyName: "studio_module_restrictions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_role_module_access: {
+        Row: {
+          allowed_modules: string[]
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_modules?: string[]
+          created_at?: string
+          id?: string
+          organization_id: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_modules?: string[]
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_role_module_access_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
