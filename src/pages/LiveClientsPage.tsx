@@ -118,21 +118,54 @@ export default function LiveClientsPage() {
           }
           return Array.from(byId.values());
         })(),
-        // Events belonging to this client — so EventTrackingView / ClientManagementView
-        // can render ONE ROW PER EVENT (Mehendi, Haldi, Sangeet, …) with all tracking data.
+        // Events belonging to this client — ONE ROW PER EVENT.
+        // Combines:
+        //   (a) the project itself, if it has an event_date (legacy "project = event")
+        //   (b) every row in the events table belonging to this client
         events: ((): any[] => {
-          if (!p.client_id) return [];
           const byMap = assignmentsByEvent();
-          return (dbEvents as any[])
+          const resolveTeam = (id: string) =>
+            (byMap[id] || [])
+              .map((mid: string) => teamMembersDb.find((m: any) => m.id === mid))
+              .filter(Boolean)
+              .map((m: any) => ({ id: m.id, name: m.full_name, role: m.role }));
+
+          const projectAsEvent =
+            p.event_date
+              ? [{
+                  // project-derived "event" row — uses project columns for tracking data
+                  id:                  p.id,
+                  name:                p.project_name,
+                  event_type:          p.event_type,
+                  event_date:          p.event_date,
+                  start_time:          null,
+                  end_time:            null,
+                  venue:               p.venue,
+                  status:              p.status === "completed" || p.status === "delivered" ? "completed" : p.status === "in_progress" ? "in-progress" : "upcoming",
+                  actual_services:     (p as any).service_taken        ?? null,
+                  quotation_services_status: null,
+                  card_number:         (p as any).card_number          ?? null,
+                  raw_data_size:       (p as any).raw_data_size        ?? null,
+                  data_copy_status:    (p as any).data_backup_status   ?? null,
+                  backup_status:       (p as any).data_backup_status   ?? null,
+                  delivery_hdd_status: null,
+                  photo_filter_grade:  null,
+                  video_editing_status:(p as any).video_progress       ?? null,
+                  album_design_status: (p as any).album_design_status  ?? null,
+                  delivery_status:     (p as any).delivery_status      ?? null,
+                  assigned_date:       null,
+                  assignedTeam:        resolveTeam(p.id),
+                  __source:            "project",
+                }]
+              : [];
+
+          const fromEvents = !p.client_id ? [] : (dbEvents as any[])
             .filter((e) => e.client_id === p.client_id)
-            .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-            .map((e) => ({
-              ...e, // spread ALL event fields so views can show card_number, raw_data_size, etc.
-              assignedTeam: (byMap[e.id] || [])
-                .map((mid: string) => teamMembersDb.find((m: any) => m.id === mid))
-                .filter(Boolean)
-                .map((m: any) => ({ id: m.id, name: m.full_name, role: m.role })),
-            }));
+            .map((e) => ({ ...e, assignedTeam: resolveTeam(e.id), __source: "event" }));
+
+          return [...projectAsEvent, ...fromEvents].sort(
+            (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+          );
         })() as any,
         deliverables: mappedDeliverables,
         financials: {
