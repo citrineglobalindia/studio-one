@@ -24,8 +24,8 @@ export interface DbLeadReminder {
 }
 
 export function useLeadReminders(leadId?: string) {
-  const { currentOrg } = useOrg();
-  const orgId = currentOrg?.id;
+  const { organization } = useOrg();
+  const orgId = organization?.id;
   const qc = useQueryClient();
 
   const query = useQuery({
