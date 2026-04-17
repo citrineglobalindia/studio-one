@@ -15,7 +15,7 @@ import {
   BarChart3, Megaphone, Bot, Heart, Settings, Bell, FolderKanban,
   Receipt, FileText, CalendarDays, ListTodo, UsersRound,
   MessageSquare, Zap, BrainCircuit, ClipboardList, UserCheck,
-  Clock, Palmtree, Plus, SlidersHorizontal, MoreVertical,
+  Clock, Palmtree, Plus, SlidersHorizontal, MoreVertical, Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -83,7 +83,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
 type ViewMode = "cards" | "matrix";
 
 export default function AccessControlPage() {
-  const { roleAccess, setRoleAccess } = useRole();
+  const { roleAccess, saveRoleAccess, roleLoading, organizationId } = useRole();
   const [selectedRole, setSelectedRole] = useState<AppRole>("vendor");
   const [localAccess, setLocalAccess] = useState(roleAccess);
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,6 +91,16 @@ export default function AccessControlPage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [hasChanges, setHasChanges] = useState(false);
   const [advancedEditRole, setAdvancedEditRole] = useState<AppRole | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Re-sync local state when DB-loaded roleAccess arrives (async fetch in RoleContext)
+  React.useEffect(() => {
+    if (!roleLoading) {
+      setLocalAccess(roleAccess);
+      setHasChanges(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleAccess, roleLoading]);
 
   const nonAdminRoles = ALL_ROLES.filter((r) => r.value !== "admin");
   const groups = [...new Set(ALL_MODULES.map((m) => m.group))];
@@ -200,10 +210,21 @@ export default function AccessControlPage() {
     setHasChanges(true);
   };
 
-  const handleSave = () => {
-    setRoleAccess(localAccess);
-    setHasChanges(false);
-    toast.success(`Access permissions saved for ${ALL_ROLES.find((r) => r.value === selectedRole)?.label}`);
+  const handleSave = async () => {
+    if (!organizationId) {
+      toast.error("No studio loaded — cannot save.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveRoleAccess(localAccess);
+      setHasChanges(false);
+      toast.success("Access permissions saved for all roles");
+    } catch (e) {
+      toast.error(`Failed to save: ${(e as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleCollapse = (group: string) => {
@@ -265,8 +286,9 @@ export default function AccessControlPage() {
           <AnimatePresence>
             {hasChanges && (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
-                <Button onClick={handleSave} className="gap-2 shadow-lg shadow-primary/20">
-                  <Save className="h-4 w-4" /> Save Changes
+                <Button onClick={handleSave} disabled={saving} className="gap-2 shadow-lg shadow-primary/20">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </motion.div>
             )}
