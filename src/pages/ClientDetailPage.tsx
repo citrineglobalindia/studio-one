@@ -18,6 +18,7 @@ import { useClients } from "@/hooks/useClients";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useProjects } from "@/hooks/useProjects";
 import { useEvents } from "@/hooks/useEvents";
+import { SlidersHorizontal } from "lucide-react";
 import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,8 +86,8 @@ export default function ClientDetailPage() {
   const { organization } = useOrg();
   const { clients, isLoading, updateClient, deleteClient } = useClients();
   const { invoices } = useInvoices();
-  const { projects } = useProjects();
-  const { events: dbEvents } = useEvents();
+  const { projects, updateProject } = useProjects();
+  const { events: dbEvents, updateEvent } = useEvents();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
   const { members: dbTeamMembers } = useTeamMembers();
 
@@ -524,14 +525,15 @@ export default function ClientDetailPage() {
         <Tabs defaultValue="overview">
           <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-1 h-auto p-0 px-3 overflow-x-auto">
             {[
-              { value: "overview",  icon: Users,         label: "Overview" },
-              { value: "projects",  icon: Briefcase,     label: "Projects",  count: clientProjects.length },
-              { value: "invoices",  icon: Receipt,       label: "Invoices",  count: clientInvoices.length },
-              { value: "events",    icon: CalendarDays,  label: "Events",    count: clientEvents.length },
-              { value: "process",   icon: ClipboardList, label: "Process",   count: processSteps.length },
-              { value: "contracts", icon: FileText,      label: "Contracts" },
-              { value: "team",      icon: UsersRound,    label: "Team",      count: teamMembers.length },
-              { value: "feedback",  icon: Video,         label: "Feedback" },
+              { value: "overview",  icon: Users,              label: "Overview" },
+              { value: "manage",    icon: SlidersHorizontal,  label: "Manage" },
+              { value: "projects",  icon: Briefcase,          label: "Projects",  count: clientProjects.length },
+              { value: "invoices",  icon: Receipt,            label: "Invoices",  count: clientInvoices.length },
+              { value: "events",    icon: CalendarDays,       label: "Events",    count: clientEvents.length },
+              { value: "process",   icon: ClipboardList,      label: "Process",   count: processSteps.length },
+              { value: "contracts", icon: FileText,           label: "Contracts" },
+              { value: "team",      icon: UsersRound,         label: "Team",      count: teamMembers.length },
+              { value: "feedback",  icon: Video,              label: "Feedback" },
             ].map((t) => (
               <TabsTrigger
                 key={t.value}
@@ -548,6 +550,51 @@ export default function ClientDetailPage() {
           </TabsList>
 
           <div className="p-5">
+            {/* ───── MANAGE (admin-editable grid for all Live Clients view fields) ───── */}
+            <TabsContent value="manage" className="mt-0 space-y-6">
+              {/* Projects section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-primary" /> Projects ({clientProjects.length})
+                  </h3>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/projects")}>
+                    <Plus className="h-3.5 w-3.5" /> New Project
+                  </Button>
+                </div>
+                {clientProjects.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    No projects for this client yet.
+                  </div>
+                ) : clientProjects.map((p: any) => (
+                  <ProjectManageRow key={p.id} project={p} onSave={(patch) => updateProject.mutate({ id: p.id, ...(patch as any) })} />
+                ))}
+              </div>
+
+              {/* Events section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-primary" /> Events ({dbEvents.filter((e: any) => e.client_id === id).length})
+                  </h3>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/events")}>
+                    <Plus className="h-3.5 w-3.5" /> New Event
+                  </Button>
+                </div>
+                {(() => {
+                  const rows = dbEvents.filter((e: any) => e.client_id === id);
+                  if (rows.length === 0) return (
+                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      No events for this client yet.
+                    </div>
+                  );
+                  return rows.map((e: any) => (
+                    <EventManageRow key={e.id} event={e} onSave={(patch) => updateEvent.mutate({ id: e.id, ...(patch as any) })} />
+                  ));
+                })()}
+              </div>
+            </TabsContent>
+
             {/* ───── OVERVIEW ───── */}
             <TabsContent value="overview" className="mt-0 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -865,6 +912,210 @@ function EmptyState({ icon, text, subtext, actionLabel, onAction }: {
         <Button variant="outline" size="sm" className="mt-3 gap-2 rounded-full" onClick={onAction}>
           <Plus className="h-3.5 w-3.5" /> {actionLabel}
         </Button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Inline-editable rows for the Manage tab
+// ─────────────────────────────────────────────────────────────────────
+
+const PROJECT_STATUS_OPTIONS = ["planning", "booked", "in_progress", "editing", "delivered", "completed"];
+const EVENT_STATUS_OPTIONS   = ["upcoming", "in-progress", "completed", "cancelled"];
+
+function ProjectManageRow({ project, onSave }: { project: any; onSave: (patch: any) => void }) {
+  const [open, setOpen] = useState(true);
+  const [form, setForm] = useState({
+    project_name:   project.project_name   ?? "",
+    event_type:     project.event_type     ?? "",
+    event_date:     project.event_date     ?? "",
+    delivery_date:  project.delivery_date  ?? "",
+    venue:          project.venue          ?? "",
+    status:         project.status         ?? "planning",
+    total_amount:   String(project.total_amount ?? ""),
+    amount_paid:    String(project.amount_paid  ?? ""),
+    card_number:    project.card_number    ?? "",
+    raw_data_size:  project.raw_data_size  ?? "",
+    backup_number:  project.backup_number  ?? "",
+    delivery_hdd:   project.delivery_hdd   ?? "",
+    notes:          project.notes          ?? "",
+  });
+  const dirty = JSON.stringify(form) !== JSON.stringify({
+    project_name:   project.project_name   ?? "",
+    event_type:     project.event_type     ?? "",
+    event_date:     project.event_date     ?? "",
+    delivery_date:  project.delivery_date  ?? "",
+    venue:          project.venue          ?? "",
+    status:         project.status         ?? "planning",
+    total_amount:   String(project.total_amount ?? ""),
+    amount_paid:    String(project.amount_paid  ?? ""),
+    card_number:    project.card_number    ?? "",
+    raw_data_size:  project.raw_data_size  ?? "",
+    backup_number:  project.backup_number  ?? "",
+    delivery_hdd:   project.delivery_hdd   ?? "",
+    notes:          project.notes          ?? "",
+  });
+
+  const handleSave = () => {
+    onSave({
+      project_name:  form.project_name,
+      event_type:    form.event_type || null,
+      event_date:    form.event_date || null,
+      delivery_date: form.delivery_date || null,
+      venue:         form.venue || null,
+      status:        form.status,
+      total_amount:  form.total_amount ? Number(form.total_amount) : 0,
+      amount_paid:   form.amount_paid  ? Number(form.amount_paid)  : 0,
+      card_number:   form.card_number || null,
+      raw_data_size: form.raw_data_size || null,
+      backup_number: form.backup_number || null,
+      delivery_hdd:  form.delivery_hdd || null,
+      notes:         form.notes || null,
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card mb-3 overflow-hidden">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-3">
+          <Briefcase className="h-4 w-4 text-muted-foreground" />
+          <div className="text-left">
+            <p className="text-sm font-semibold text-foreground">{project.project_name}</p>
+            <p className="text-[10px] text-muted-foreground capitalize">{project.status} · ₹{((project.amount_paid || 0) / 1000).toFixed(0)}K / ₹{((project.total_amount || 0) / 1000).toFixed(0)}K</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {dirty && <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-500/30">Unsaved</Badge>}
+          <span className="text-muted-foreground text-xs">{open ? "Hide" : "Edit"}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-border p-4 space-y-3 bg-muted/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Project Name</Label><Input value={form.project_name} onChange={(e) => setForm({ ...form, project_name: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Type</Label><Input value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} placeholder="Wedding" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Date</Label><Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery Date</Label><Input type="date" value={form.delivery_date} onChange={(e) => setForm({ ...form, delivery_date: e.target.value })} /></div>
+            <div className="space-y-1 sm:col-span-2"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Venue</Label><Input value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} /></div>
+
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                {PROJECT_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Total Amount (₹)</Label><Input type="number" value={form.total_amount} onChange={(e) => setForm({ ...form, total_amount: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Amount Paid (₹)</Label><Input type="number" value={form.amount_paid} onChange={(e) => setForm({ ...form, amount_paid: e.target.value })} /></div>
+          </div>
+
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest pt-2">Production Tracking</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Card Number</Label><Input value={form.card_number} onChange={(e) => setForm({ ...form, card_number: e.target.value })} placeholder="SD-01" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Raw Data Size</Label><Input value={form.raw_data_size} onChange={(e) => setForm({ ...form, raw_data_size: e.target.value })} placeholder="e.g. 1.2 TB" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Backup Number</Label><Input value={form.backup_number} onChange={(e) => setForm({ ...form, backup_number: e.target.value })} placeholder="B-01" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Delivery HDD</Label><Input value={form.delivery_hdd} onChange={(e) => setForm({ ...form, delivery_hdd: e.target.value })} placeholder="HDD-05" /></div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Notes</Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Close</Button>
+            <Button size="sm" onClick={handleSave} disabled={!dirty}>
+              <Save className="h-3.5 w-3.5 mr-1" /> Save
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventManageRow({ event, onSave }: { event: any; onSave: (patch: any) => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    name:        event.name        ?? "",
+    event_type:  event.event_type  ?? "",
+    event_date:  event.event_date  ?? "",
+    start_time:  event.start_time  ? String(event.start_time).slice(0, 5) : "",
+    end_time:    event.end_time    ? String(event.end_time).slice(0, 5)   : "",
+    venue:       event.venue       ?? "",
+    status:      event.status      ?? "upcoming",
+    notes:       event.notes       ?? "",
+  });
+  const dirty = JSON.stringify(form) !== JSON.stringify({
+    name:        event.name        ?? "",
+    event_type:  event.event_type  ?? "",
+    event_date:  event.event_date  ?? "",
+    start_time:  event.start_time  ? String(event.start_time).slice(0, 5) : "",
+    end_time:    event.end_time    ? String(event.end_time).slice(0, 5)   : "",
+    venue:       event.venue       ?? "",
+    status:      event.status      ?? "upcoming",
+    notes:       event.notes       ?? "",
+  });
+
+  const handleSave = () => {
+    onSave({
+      name:       form.name,
+      event_type: form.event_type || null,
+      event_date: form.event_date,
+      start_time: form.start_time ? `${form.start_time}:00` : null,
+      end_time:   form.end_time   ? `${form.end_time}:00`   : null,
+      venue:      form.venue || null,
+      status:     form.status,
+      notes:      form.notes || null,
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card mb-3 overflow-hidden">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <div className="text-left">
+            <p className="text-sm font-semibold text-foreground">{event.name}</p>
+            <p className="text-[10px] text-muted-foreground capitalize">{fmtDate(event.event_date)} · {event.status}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {dirty && <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-500/30">Unsaved</Badge>}
+          <span className="text-muted-foreground text-xs">{open ? "Hide" : "Edit"}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-border p-4 space-y-3 bg-muted/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1 sm:col-span-2"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Event Type</Label><Input value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} placeholder="mehendi / haldi / …" /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                {EVENT_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date</Label><Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Venue</Label><Input value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Start Time</Label><Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></div>
+            <div className="space-y-1"><Label className="text-[10px] uppercase tracking-widest text-muted-foreground">End Time</Label><Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Notes</Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Close</Button>
+            <Button size="sm" onClick={handleSave} disabled={!dirty}>
+              <Save className="h-3.5 w-3.5 mr-1" /> Save
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
