@@ -67,12 +67,15 @@ interface RoleContextType {
   setCurrentRole: (role: AppRole) => void;
   roleAccess: Record<AppRole, AppModule[]>;
   setRoleAccess: React.Dispatch<React.SetStateAction<Record<AppRole, AppModule[]>>>;
+  /** Persists the access map to Supabase. Returns on success, throws on failure. */
+  saveRoleAccess: (next: Record<AppRole, AppModule[]>) => Promise<void>;
   hasAccess: (module: AppModule) => boolean;
   getAccessibleModules: () => AppModule[];
   isAdmin: boolean;
   roleLoading: boolean;
   studioRestrictedModules: string[];
   studioDisabledRoles: string[];
+  organizationId: string | null;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -84,12 +87,15 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [roleLoading, setRoleLoading] = useState(true);
   const [studioRestrictedModules, setStudioRestrictedModules] = useState<string[]>([]);
   const [studioDisabledRoles, setStudioDisabledRoles] = useState<string[]>([]);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setCurrentRoleState("admin");
       setStudioRestrictedModules([]);
       setStudioDisabledRoles([]);
+      setRoleAccess(DEFAULT_ACCESS);
+      setOrganizationId(null);
       setRoleLoading(false);
       return;
     }
@@ -102,6 +108,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         ? localStorage.getItem("sa_impersonate_org")
         : null;
 
+      // Current user's saved role
       const { data: profileData } = await supabase
         .from("profiles")
         .select("role")
@@ -116,16 +123,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        // Resolve which organization we should load rules for
         let targetOrgId: string | null = null;
 
         if (impersonatedOrgId) {
           const { data: isSuperAdmin } = await supabase.rpc("is_super_admin", {
             _user_id: user.id,
           });
-
-          if (isSuperAdmin) {
-            targetOrgId = impersonatedOrgId;
-          }
+          if (isSuperAdmin) targetOrgId = impersonatedOrgId;
         }
 
         if (!targetOrgId) {
@@ -135,12 +140,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
             .eq("user_id", user.id)
             .limit(1)
             .maybeSingle();
-
           targetOrgId = membership?.organization_id ?? null;
         }
 
+        setOrganizationId(targetOrgId);
+
         if (targetOrgId) {
-          const [moduleRestrictionsRes, roleRestrictionsRes] = await Promise.all([
+          const [moduleRestrictionsRes, roleRestrictionsRes, accessRes] = await Promise.all([
             supabase
               .from("studio_module_restrictions")
               .select("restricted_modules")
@@ -151,12 +157,25 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
               .select("disabled_roles")
               .eq("organization_id", targetOrgId)
               .maybeSingle(),
+            // Per-role module access map for this studio
+            supabase
+              .from("studio_role_module_access")
+              .select("role, allowed_modules")
+              .eq("organization_id", targetOrgId),
           ]);
 
           const disabledRoles = roleRestrictionsRes.data?.disabled_roles || [];
-
           setStudioRestrictedModules(moduleRestrictionsRes.data?.restricted_modules || []);
           setStudioDisabledRoles(disabledRoles);
+
+          // Build roleAccess map: start from defaults, override with DB rows
+          const loadedAccess: Record<AppRole, AppModule[]> = { ...DEFAULT_ACCESS };
+          for (const row of accessRes.data || []) {
+            if (row?.role) {
+              loadedAccess[row.role as AppRole] = ((row.allowed_modules as string[]) || []) as AppModule[];
+            }
+          }
+          setRoleAccess(loadedAccess);
 
           if (nextRole !== "admin" && disabledRoles.includes(nextRole)) {
             nextRole = "admin";
@@ -164,10 +183,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         } else {
           setStudioRestrictedModules([]);
           setStudioDisabledRoles([]);
+          setRoleAccess(DEFAULT_ACCESS);
         }
       } catch {
         setStudioRestrictedModules([]);
         setStudioDisabledRoles([]);
+        setRoleAccess(DEFAULT_ACCESS);
       }
 
       setCurrentRoleState(nextRole);
@@ -183,6 +204,33 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
     setCurrentRoleState(role);
   }, [studioDisabledRoles]);
+
+  // Persist to Supabase. Writes one row per non-admin role (admin always has full access).
+  const saveRoleAccess = useCallback(
+    async (next: Record<AppRole, AppModule[]>) => {
+      if (!organizationId) {
+        throw new Error("No organization loaded — cannot save access rules.");
+      }
+
+      const rows = ALL_ROLES
+        .filter((r) => r.value !== "admin")
+        .map((r) => ({
+          organization_id: organizationId,
+          role: r.value,
+          allowed_modules: next[r.value] ?? [],
+        }));
+
+      const { error } = await supabase
+        .from("studio_role_module_access")
+        .upsert(rows, { onConflict: "organization_id,role" });
+
+      if (error) throw error;
+
+      // Only mutate local state after DB write succeeded
+      setRoleAccess(next);
+    },
+    [organizationId]
+  );
 
   const hasAccess = useCallback(
     (module: AppModule) => {
@@ -213,12 +261,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         setCurrentRole,
         roleAccess,
         setRoleAccess,
+        saveRoleAccess,
         hasAccess,
         getAccessibleModules,
         isAdmin: currentRole === "admin",
         roleLoading,
         studioRestrictedModules,
         studioDisabledRoles,
+        organizationId,
       }}
     >
       {children}
