@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import LeadReminderDialog from "@/components/leads/LeadReminderDialog";
 
 const stages: LeadStage[] = ["new", "contacted", "proposal-sent", "converted", "lost"];
 const teamMembers = ["Raj Patel", "Vikram Singh", "Neha Sharma", "Amit Verma"];
