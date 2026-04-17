@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +26,7 @@ const ProjectDetailPage = () => {
   const navigate = useNavigate();
   const { projects, isLoading } = useProjects();
   const { members: teamMembers } = useTeamMembers();
+  const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
 
   if (isLoading) {
     return (
@@ -56,9 +58,31 @@ const ProjectDetailPage = () => {
   const paidPct = totalAmount > 0 ? Math.round((amountPaid / totalAmount) * 100) : 0;
   const balance = Math.max(0, totalAmount - amountPaid);
 
-  const assignedTeam = (project.assigned_team || [])
-    .map((tid) => teamMembers.find((m) => m.id === tid))
-    .filter(Boolean);
+  // Aggregate assigned team from TWO sources:
+  //   (1) project.assigned_team — stores NAMES (legacy)
+  //   (2) event_team_assignments for this project's id — stores real team_member ids
+  const assignedTeam = (() => {
+    const byId = new Map<string, any>();
+
+    // Source 1: names stored on the project
+    for (const name of project.assigned_team || []) {
+      if (!name) continue;
+      const match = teamMembers.find((m: any) => m.full_name === name);
+      const id = match ? match.id : `name:${name}`;
+      if (!byId.has(id)) {
+        byId.set(id, match ?? { id, full_name: name, role: "Crew" });
+      }
+    }
+
+    // Source 2: event_team_assignments for this project's id
+    const memberIds = assignmentsByEvent()[project.id] || [];
+    for (const mid of memberIds) {
+      const m = teamMembers.find((x: any) => x.id === mid);
+      if (m && !byId.has(m.id)) byId.set(m.id, m);
+    }
+
+    return Array.from(byId.values());
+  })();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
