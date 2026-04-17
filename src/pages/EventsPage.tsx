@@ -105,7 +105,7 @@ export default function EventsPage() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({ clientId: "", name: "", type: "wedding" as ClientEvent["type"], date: "", venue: "", notes: "" });
+  const [newEvent, setNewEvent] = useState({ clientId: "", name: "", type: "wedding" as ClientEvent["type"], date: "", startTime: "", endTime: "", venue: "", notes: "" });
   const [extraEvents, setExtraEvents] = useState<EventWithClient[]>([]);
 
   const allEvents: EventWithClient[] = useMemo(() => {
@@ -216,8 +216,8 @@ export default function EventsPage() {
         name: newEvent.name,
         event_type: newEvent.type,
         event_date: newEvent.date,
-        start_time: null,
-        end_time: null,
+        start_time: newEvent.startTime ? `${newEvent.startTime}:00` : null,
+        end_time:   newEvent.endTime   ? `${newEvent.endTime}:00`   : null,
         venue: newEvent.venue,
         notes: newEvent.notes || null,
         status: "upcoming",
@@ -225,7 +225,7 @@ export default function EventsPage() {
       {
         onSuccess: () => {
           setAddEventOpen(false);
-          setNewEvent({ clientId: "", name: "", type: "wedding", date: "", venue: "", notes: "" });
+          setNewEvent({ clientId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
         },
       }
     );
@@ -502,6 +502,10 @@ export default function EventsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs font-medium">Date *</Label><Input type="date" value={newEvent.date} onChange={(e) => setNewEvent(p => ({ ...p, date: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label className="text-xs font-medium">Venue *</Label><Input placeholder="Venue name" value={newEvent.venue} onChange={(e) => setNewEvent(p => ({ ...p, venue: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label className="text-xs font-medium">Start Time</Label><Input type="time" value={newEvent.startTime} onChange={(e) => setNewEvent(p => ({ ...p, startTime: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label className="text-xs font-medium">End Time</Label><Input type="time" value={newEvent.endTime} onChange={(e) => setNewEvent(p => ({ ...p, endTime: e.target.value }))} /></div>
             </div>
             <div className="space-y-1.5"><Label className="text-xs font-medium">Notes</Label><Textarea placeholder="Special requirements..." value={newEvent.notes} onChange={(e) => setNewEvent(p => ({ ...p, notes: e.target.value }))} rows={2} /></div>
             <Button className="w-full" onClick={handleAddEvent}><Plus className="h-4 w-4 mr-1" /> Add Event</Button>
