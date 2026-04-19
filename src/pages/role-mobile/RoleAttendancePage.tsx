@@ -78,10 +78,6 @@ const statusColors: Record<Exclude<DayStatus, null>, { bg: string; text: string;
 
 export default function RoleAttendancePage() {
   const { currentRole } = useRole();
-
-  // Vendors don't get attendance
-  if (currentRole === "vendor") return <Navigate to="/m" replace />;
-
   const [activeTab, setActiveTab] = useState<Tab>("Calendar");
   const [currentMonth, setCurrentMonth] = useState(new Date(Y, today.getMonth(), 1));
   const [checkedIn, setCheckedIn] = useState(false);
