@@ -465,6 +465,92 @@ export type Database = {
           },
         ]
       }
+      event_team_assignments: {
+        Row: {
+          assigned_at: string
+          created_at: string
+          event_id: string
+          id: string
+          organization_id: string
+          team_member_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          created_at?: string
+          event_id: string
+          id?: string
+          organization_id: string
+          team_member_id: string
+        }
+        Update: {
+          assigned_at?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          organization_id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_team_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          end_time: string | null
+          event_date: string
+          event_type: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          project_id: string | null
+          start_time: string | null
+          status: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          end_time?: string | null
+          event_date: string
+          event_type?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          project_id?: string | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          end_time?: string | null
+          event_date?: string
+          event_type?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          project_id?: string | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
