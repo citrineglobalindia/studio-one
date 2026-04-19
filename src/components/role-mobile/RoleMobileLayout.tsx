@@ -31,10 +31,10 @@ export function RoleMobileLayout({ children }: Props) {
   const roleLabel = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
 
   return (
-    <div className="min-h-screen w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-full flex-col overflow-hidden bg-background md:min-h-[calc(100vh-3rem)] md:max-h-[920px] md:w-[420px] md:rounded-[2.5rem] md:border md:border-border/60 md:shadow-2xl">
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between md:rounded-t-[2.5rem]">
+    <div className="fixed inset-0 w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6 overflow-hidden">
+      <div className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden bg-background md:h-[calc(100vh-3rem)] md:max-h-[920px] md:w-[420px] md:rounded-[2.5rem] md:border md:border-border/60 md:shadow-2xl">
+        {/* Header — fixed */}
+        <header className="flex-shrink-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between md:rounded-t-[2.5rem]">
           <button
             onClick={() => navigate("/m")}
             className="flex items-center gap-2.5"
@@ -67,8 +67,8 @@ export function RoleMobileLayout({ children }: Props) {
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-auto pb-24">
+        {/* Content — only scrollable area */}
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
@@ -76,6 +76,7 @@ export function RoleMobileLayout({ children }: Props) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="pb-4"
             >
               {children ?? <Outlet />}
             </motion.div>
@@ -86,7 +87,7 @@ export function RoleMobileLayout({ children }: Props) {
         <button
           onClick={() => navigate("/m/chat")}
           aria-label="Team chat"
-          className="absolute right-4 bottom-24 z-40 h-13 w-13 h-[52px] w-[52px] rounded-2xl bg-primary text-primary-foreground shadow-xl flex items-center justify-center active:scale-95 transition-transform"
+          className="absolute right-4 bottom-[84px] z-40 h-[52px] w-[52px] rounded-2xl bg-primary text-primary-foreground shadow-xl flex items-center justify-center active:scale-95 transition-transform"
         >
           <MessageCircle className="h-5 w-5" />
           <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground flex items-center justify-center">
@@ -94,8 +95,8 @@ export function RoleMobileLayout({ children }: Props) {
           </span>
         </button>
 
-        {/* Bottom Nav */}
-        <nav className="absolute bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/50 h-[68px] flex items-center justify-around px-2 md:rounded-b-[2.5rem]">
+        {/* Bottom Nav — fixed */}
+        <nav className="flex-shrink-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/50 h-[68px] flex items-center justify-around px-2 md:rounded-b-[2.5rem]">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.path);
             const Icon = item.icon;
