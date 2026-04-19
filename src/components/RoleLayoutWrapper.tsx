@@ -57,8 +57,8 @@ export function RoleLayoutWrapper() {
   }
 
   return (
-    <PWALayout>
+    <RoleMobileLayout>
       <Outlet />
-    </PWALayout>
+    </RoleMobileLayout>
   );
 }
