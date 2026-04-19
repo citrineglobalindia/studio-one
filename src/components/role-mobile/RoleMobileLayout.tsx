@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Home, Briefcase, Calendar, Wallet, Settings as Cog, MessageCircle } from "lucide-react";
-import { useRole } from "@/contexts/RoleContext";
+import { useRole, ALL_ROLES } from "@/contexts/RoleContext";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
 
@@ -28,7 +28,8 @@ export function RoleMobileLayout({ children }: Props) {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const roleLabel = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
+  const roleLabel = ALL_ROLES.find((r) => r.value === currentRole)?.label
+    ?? (currentRole.charAt(0).toUpperCase() + currentRole.slice(1));
 
   return (
     <div className="fixed inset-0 w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6 overflow-hidden">
