@@ -31,10 +31,10 @@ export function RoleMobileLayout({ children }: Props) {
   const roleLabel = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
 
   return (
-    <div className="min-h-screen w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-full flex-col overflow-hidden bg-background md:min-h-[calc(100vh-3rem)] md:max-h-[920px] md:w-[420px] md:rounded-[2.5rem] md:border md:border-border/60 md:shadow-2xl">
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between md:rounded-t-[2.5rem]">
+    <div className="fixed inset-0 w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6 overflow-hidden">
+      <div className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden bg-background md:h-[calc(100vh-3rem)] md:max-h-[920px] md:w-[420px] md:rounded-[2.5rem] md:border md:border-border/60 md:shadow-2xl">
+        {/* Header — fixed */}
+        <header className="flex-shrink-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between md:rounded-t-[2.5rem]">
           <button
             onClick={() => navigate("/m")}
             className="flex items-center gap-2.5"
