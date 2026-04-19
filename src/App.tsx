@@ -62,6 +62,7 @@ import RoleChatPage from "./pages/role-mobile/RoleChatPage";
 import RoleProfilePage from "./pages/role-mobile/RoleProfilePage";
 import RoleSettingsPage from "./pages/role-mobile/RoleSettingsPage";
 import RoleExpensePage from "./pages/role-mobile/RoleExpensePage";
+import RoleNotificationsPage from "./pages/role-mobile/RoleNotificationsPage";
 import AboutAppPage from "./pages/role-mobile/AboutAppPage";
 import AppearancePage from "./pages/role-mobile/AppearancePage";
 import FeedbackPage from "./pages/role-mobile/FeedbackPage";
@@ -146,7 +147,7 @@ function ProtectedRoutes() {
         <Route path="attendance" element={<RoleAttendancePage />} />
         <Route path="chat" element={<RoleChatPage />} />
         <Route path="profile" element={<RoleProfilePage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="notifications" element={<RoleNotificationsPage />} />
         <Route path="settings" element={<RoleSettingsPage />} />
         <Route path="settings/about" element={<AboutAppPage />} />
         <Route path="settings/appearance" element={<AppearancePage />} />
