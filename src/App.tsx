@@ -136,6 +136,22 @@ function ProtectedRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/process-planner" element={<ProcessPlannerPage />} />
       </Route>
+      <Route path="/m" element={<RoleMobileLayout />}>
+        <Route index element={<RoleDashboardPage />} />
+        <Route path="projects" element={<RoleProjectsPage />} />
+        <Route path="calendar" element={<RoleCalendarPage />} />
+        <Route path="transactions" element={<RoleTransactionsPage />} />
+        <Route path="attendance" element={<RoleAttendancePage />} />
+        <Route path="chat" element={<RoleChatPage />} />
+        <Route path="profile" element={<RoleProfilePage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="settings" element={<RoleSettingsPage />} />
+        <Route path="settings/about" element={<AboutAppPage />} />
+        <Route path="settings/appearance" element={<AppearancePage />} />
+        <Route path="settings/feedback" element={<FeedbackPage />} />
+        <Route path="settings/help" element={<HelpPage />} />
+        <Route path="settings/privacy" element={<PrivacyPolicyMobilePage />} />
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
