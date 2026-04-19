@@ -119,6 +119,9 @@ export default function RoleAttendancePage() {
     toast.success("Leave application submitted");
   };
 
+  // Vendors don't get attendance
+  if (currentRole === "vendor") return <Navigate to="/m" replace />;
+
   return (
     <div className="px-4 pt-4 pb-6">
       {/* Check-in/out Card */}
