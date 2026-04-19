@@ -105,9 +105,10 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
   }, [currentTabIndex, allNavPaths, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background overflow-hidden">
+    <div className="min-h-screen w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-full flex-col overflow-hidden bg-background md:min-h-[calc(100vh-3rem)] md:max-h-[900px] md:w-[420px] md:rounded-[2.5rem] md:border md:border-border/60 md:shadow-2xl">
       {/* Top Header - Role-themed */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between safe-area-top">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 px-4 h-14 flex items-center justify-between safe-area-top md:rounded-t-[2.5rem]">
         <div className="flex items-center gap-2.5">
           <motion.div
             whileTap={{ scale: 0.9 }}
@@ -353,6 +354,7 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <FloatingAIButton />
+      </div>
     </div>
   );
 }
