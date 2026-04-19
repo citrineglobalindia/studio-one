@@ -57,8 +57,8 @@ export default function RoleExpensePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentRole } = useRole();
-  const { data: events = [] } = useEvents();
-  const { data: clients = [] } = useClients();
+  const { events } = useEvents();
+  const { clients } = useClients();
 
   const [tab, setTab] = useState<"history" | "new">("history");
   const [statusFilter, setStatusFilter] = useState<"all" | ApprovalStatus>("all");
