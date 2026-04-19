@@ -56,9 +56,6 @@ export function RoleLayoutWrapper() {
     );
   }
 
-  return (
-    <RoleMobileLayout>
-      <Outlet />
-    </RoleMobileLayout>
-  );
+  // Non-admin roles use the mobile shell exclusively
+  return <Navigate to="/m" replace />;
 }
