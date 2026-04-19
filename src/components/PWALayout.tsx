@@ -354,6 +354,7 @@ export function PWALayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <FloatingAIButton />
+      </div>
     </div>
   );
 }
