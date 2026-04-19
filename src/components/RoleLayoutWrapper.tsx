@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useRole, type AppModule } from "@/contexts/RoleContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { PWALayout } from "@/components/PWALayout";
+import { RoleMobileLayout } from "@/components/role-mobile/RoleMobileLayout";
 
 const routeModuleMap: Array<{ prefix: string; module: AppModule }> = [
   { prefix: "/access-control", module: "settings" },
