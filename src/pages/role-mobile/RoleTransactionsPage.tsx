@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Search, ChevronDown, IndianRupee, TrendingUp, TrendingDown, Calendar, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search, ChevronDown, IndianRupee, TrendingUp, TrendingDown, Calendar, Wallet, Plus, Receipt } from "lucide-react";
 
 type Status = "All" | "Paid" | "Pending" | "Failed";
 const TXNS = [
@@ -19,6 +20,7 @@ const SC: Record<string, string> = {
 };
 
 export default function RoleTransactionsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Status>("All");
   const [open, setOpen] = useState(false);
@@ -66,6 +68,21 @@ export default function RoleTransactionsPage() {
             </p>
             <p className="text-[11px] opacity-80 mt-1">{TXNS.filter((t) => t.status === "Paid").length} settled · {TXNS.filter((t) => t.status === "Pending").length} pending</p>
           </div>
+          <button
+            onClick={() => navigate("/m/expenses")}
+            className="mt-3 w-full bg-white text-primary rounded-2xl p-3.5 flex items-center justify-between font-bold active:scale-[0.98] transition-transform shadow-lg"
+          >
+            <span className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                <Receipt className="h-4 w-4" />
+              </div>
+              <span className="text-left">
+                <span className="block text-[13px] leading-tight">Raise Expense</span>
+                <span className="block text-[10px] font-medium opacity-70">Event-wise or office</span>
+              </span>
+            </span>
+            <Plus className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
