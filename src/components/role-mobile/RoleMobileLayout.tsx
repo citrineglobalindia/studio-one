@@ -6,13 +6,19 @@ import { useRole, ALL_ROLES } from "@/contexts/RoleContext";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
 
-const NAV_ITEMS = [
-  { icon: Home, label: "Home", path: "/m" },
-  { icon: Briefcase, label: "Projects", path: "/m/projects" },
-  { icon: Calendar, label: "Calendar", path: "/m/calendar" },
-  { icon: Wallet, label: "Money", path: "/m/transactions" },
-  { icon: Cog, label: "Settings", path: "/m/settings" },
-];
+// Roles that work on assigned events (no generic "Projects" list)
+const EVENT_ROLES = new Set(["photographer", "videographer", "editor", "vendor"]);
+
+const buildNavItems = (role: string) => {
+  const isEventRole = EVENT_ROLES.has(role);
+  return [
+    { icon: Home, label: "Home", path: "/m" },
+    { icon: Briefcase, label: isEventRole ? "Events" : "Projects", path: "/m/projects" },
+    { icon: Calendar, label: "Calendar", path: "/m/calendar" },
+    { icon: Wallet, label: "Money", path: "/m/transactions" },
+    { icon: Cog, label: "Settings", path: "/m/settings" },
+  ];
+};
 
 interface Props {
   children?: ReactNode;
@@ -30,6 +36,8 @@ export function RoleMobileLayout({ children }: Props) {
 
   const roleLabel = ALL_ROLES.find((r) => r.value === currentRole)?.label
     ?? (currentRole.charAt(0).toUpperCase() + currentRole.slice(1));
+
+  const NAV_ITEMS = buildNavItems(currentRole);
 
   return (
     <div className="fixed inset-0 w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6 overflow-hidden">
