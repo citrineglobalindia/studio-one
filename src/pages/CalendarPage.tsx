@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useClients } from "@/hooks/useClients";
 import { useEvents } from "@/hooks/useEvents";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +87,20 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   completed: { label: "Completed", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" },
 };
 
+// Shared: true iff two "HH:MM" ranges overlap. Missing times → all-day → conflicts.
+function timesOverlap(
+  aStart: string | null | undefined, aEnd: string | null | undefined,
+  bStart: string | null | undefined, bEnd: string | null | undefined,
+): boolean {
+  if (!aStart || !aEnd || !bStart || !bEnd) return true;
+  const toMin = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const aS = toMin(aStart), aE = toMin(aEnd), bS = toMin(bStart), bE = toMin(bEnd);
+  return aS < bE && bS < aE;
+}
+
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -99,6 +114,7 @@ const CalendarPage = () => {
   const [searchParams] = useSearchParams();
   const { clients: dbClients } = useClients();
   const { events: dbEvents, addEvent } = useEvents();
+  const { byEvent: dbAssignmentsByEvent, setAssignments: persistAssignments } = useEventTeamAssignments();
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers } = useTeamMembers();
   const today = new Date();
@@ -140,16 +156,49 @@ const CalendarPage = () => {
 
   // Schedule Event state
   const [scheduleSheet, setScheduleSheet] = useState(false);
-  const [newEvent, setNewEvent] = useState({
+  const [newEvent, setNewEvent] = useState<{
+    projectId: string;
+    eventName: string;
+    customName: string;
+    date: string;
+    time: string;
+    endTime: string;
+    location: string;
+    notes: string;
+    selectedTeam: string[];
+  }>({
     projectId: "",
     eventName: "",
     customName: "",
     date: "",
     time: "09:00",
+    endTime: "17:00",
     location: "",
     notes: "",
     selectedTeam: [] as string[],
   });
+
+  // Compute busy team members for the selected date + time window.
+  // A member is busy if they are assigned to another DB event on the same
+  // date whose [start, end] range overlaps the one in the form.
+  const busyMemberDetails = useMemo(() => {
+    const map = new Map<string, { eventName: string; when: string }>();
+    if (!newEvent.date) return map;
+    const assignmentsByEvent = dbAssignmentsByEvent();
+    for (const ev of dbEvents) {
+      if (ev.event_date !== newEvent.date) continue;
+      const memberIds = assignmentsByEvent[ev.id] || [];
+      if (memberIds.length === 0) continue;
+      const otherStart = ev.start_time ? ev.start_time.slice(0, 5) : null;
+      const otherEnd = ev.end_time ? ev.end_time.slice(0, 5) : null;
+      if (!timesOverlap(newEvent.time, newEvent.endTime, otherStart, otherEnd)) continue;
+      const when = otherStart && otherEnd ? `${otherStart}–${otherEnd}` : "all day";
+      memberIds.forEach(id => {
+        if (!map.has(id)) map.set(id, { eventName: ev.name, when });
+      });
+    }
+    return map;
+  }, [newEvent.date, newEvent.time, newEvent.endTime, dbEvents, dbAssignmentsByEvent]);
 
   const baseEvents: CalendarEvent[] = useMemo(() => {
     // Add DB client event dates
@@ -331,18 +380,29 @@ const CalendarPage = () => {
     if (!newEvent.location) { toast.error("Please enter a location"); return; }
 
     try {
-      await addEvent.mutateAsync({
+      const created = await addEvent.mutateAsync({
         name: eventName,
         event_type: getCategory(eventName) || "Wedding",
         event_date: newEvent.date,
         start_time: newEvent.time ? `${newEvent.time}:00` : null,
-        end_time: null,
+        end_time: newEvent.endTime ? `${newEvent.endTime}:00` : null,
         venue: newEvent.location,
         notes: newEvent.notes || null,
         client_id: null,
         project_id: newEvent.projectId || null,
         status: "upcoming",
       });
+
+      // Persist team assignments if any were selected
+      if (created?.id && newEvent.selectedTeam.length > 0) {
+        try {
+          await persistAssignments.mutateAsync({
+            eventId: created.id,
+            memberIds: newEvent.selectedTeam,
+          });
+        } catch { /* hook toasts errors */ }
+      }
+
       setScheduleSheet(false);
 
       // Reset the form so it's clean for the next schedule
@@ -352,6 +412,7 @@ const CalendarPage = () => {
         customName: "",
         date: "",
         time: "09:00",
+        endTime: "17:00",
         location: "",
         notes: "",
         selectedTeam: [],
@@ -934,16 +995,21 @@ const CalendarPage = () => {
             </div>
 
             {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium text-foreground">Date *</label>
                 <Input className="mt-1" type="date" value={newEvent.date}
                   onChange={e => setNewEvent(p => ({ ...p, date: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Time</label>
+                <label className="text-sm font-medium text-foreground">Start</label>
                 <Input className="mt-1" type="time" value={newEvent.time}
                   onChange={e => setNewEvent(p => ({ ...p, time: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">End</label>
+                <Input className="mt-1" type="time" value={newEvent.endTime}
+                  onChange={e => setNewEvent(p => ({ ...p, endTime: e.target.value }))} />
               </div>
             </div>
 
@@ -966,11 +1032,21 @@ const CalendarPage = () => {
                 {newEvent.selectedTeam.length} member{newEvent.selectedTeam.length !== 1 ? "s" : ""} selected
               </p>
 
-              {/* Group by role */}
+              {busyMemberDetails.size > 0 && (
+                <p className="text-[10px] text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1 mb-2">
+                  {busyMemberDetails.size} member{busyMemberDetails.size === 1 ? " is" : "s are"} busy at an overlapping event — hidden
+                </p>
+              )}
+
+              {/* Group by role, hiding members busy at an overlapping event */}
               {(() => {
-                const rolesPresent = Array.from(new Set((dbTeamMembers as any[]).map(m => m.role).filter(Boolean)));
+                // Filter out busy members unless they are already selected
+                const availableMembers = (dbTeamMembers as any[]).filter(
+                  (m: any) => newEvent.selectedTeam.includes(m.id) || !busyMemberDetails.has(m.id)
+                );
+                const rolesPresent = Array.from(new Set(availableMembers.map(m => m.role).filter(Boolean)));
                 return rolesPresent.map(role => {
-                const members = (dbTeamMembers as any[]).filter(m => m.role === role);
+                const members = availableMembers.filter(m => m.role === role);
                 if (members.length === 0) return null;
                 return (
                   <div key={role} className="mb-3">

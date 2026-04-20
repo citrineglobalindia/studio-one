@@ -26,10 +26,28 @@ interface ClientEvent {
   id: string;
   name: string;
   date: string;
+  startTime?: string | null;   // "HH:MM" or null (all-day)
+  endTime?: string | null;
   venue: string;
   type: string;
   status: "upcoming" | "completed" | "in-progress";
   notes?: string;
+}
+
+/** Returns true when two time ranges overlap on the same day.
+ *  - If either event has no start or end time, treat it as all-day → always conflicts.
+ *  - Otherwise two ranges [aStart, aEnd) and [bStart, bEnd) overlap iff aStart < bEnd AND bStart < aEnd. */
+function timesOverlap(
+  aStart: string | null | undefined, aEnd: string | null | undefined,
+  bStart: string | null | undefined, bEnd: string | null | undefined,
+): boolean {
+  if (!aStart || !aEnd || !bStart || !bEnd) return true;
+  const toMin = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const aS = toMin(aStart), aE = toMin(aEnd), bS = toMin(bStart), bE = toMin(bEnd);
+  return aS < bE && bS < aE;
 }
 
 interface EventWithClient extends ClientEvent {
@@ -175,6 +193,8 @@ export default function EventsPage() {
         id: e.id,
         name: e.name,
         date: e.event_date,
+        startTime: e.start_time ? e.start_time.slice(0, 5) : null,
+        endTime: e.end_time ? e.end_time.slice(0, 5) : null,
         venue: e.venue || "TBD",
         type: (e.event_type || "wedding").toLowerCase(),
         status: computedStatus,
@@ -188,22 +208,32 @@ export default function EventsPage() {
     return [...fromDb, ...extraEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [dbClients, dbEvents, assignments, extraEvents, teamMembers]);
 
-  // Members who are already booked on the selected event's date for a DIFFERENT
-  // event — they get hidden from the Assign Team list to prevent double-booking.
+  // Members already booked on an OVERLAPPING event (same date + overlapping time range)
+  // are hidden from the Assign Team list so the same person can't be double-booked.
+  // Two events on the same day at different times → same member is still available.
   // Members already assigned to THIS event stay visible so the admin can uncheck them.
-  const availableTeamMembers = useMemo(() => {
-    if (!selectedEvent) return teamMembers;
-    const currentAssigned = new Set(assignments[selectedEvent.id] || []);
-    const busyIds = new Set<string>();
+  const busyDetails = useMemo(() => {
+    // Map<team_member_id, { conflictingEventName, conflictingEventTime }>
+    const map = new Map<string, { eventName: string; when: string }>();
+    if (!selectedEvent) return map;
     for (const [otherEventId, memberIds] of Object.entries(assignments)) {
       if (otherEventId === selectedEvent.id) continue;
       const other = allEvents.find((e) => e.id === otherEventId);
-      if (other && other.date === selectedEvent.date) {
-        memberIds.forEach((id) => busyIds.add(id));
-      }
+      if (!other || other.date !== selectedEvent.date) continue;
+      if (!timesOverlap(selectedEvent.startTime, selectedEvent.endTime, other.startTime, other.endTime)) continue;
+      const when = other.startTime && other.endTime ? `${other.startTime}–${other.endTime}` : "all day";
+      memberIds.forEach((id) => {
+        if (!map.has(id)) map.set(id, { eventName: other.name, when });
+      });
     }
-    return teamMembers.filter((m) => currentAssigned.has(m.id) || !busyIds.has(m.id));
-  }, [teamMembers, selectedEvent, assignments, allEvents]);
+    return map;
+  }, [selectedEvent, assignments, allEvents]);
+
+  const availableTeamMembers = useMemo(() => {
+    if (!selectedEvent) return teamMembers;
+    const currentAssigned = new Set(assignments[selectedEvent.id] || []);
+    return teamMembers.filter((m) => currentAssigned.has(m.id) || !busyDetails.has(m.id));
+  }, [teamMembers, selectedEvent, assignments, busyDetails]);
 
   const busyTeamCount = selectedEvent ? teamMembers.length - availableTeamMembers.length : 0;
 
@@ -550,8 +580,13 @@ export default function EventsPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-foreground">Select Team Members</p>
                   {busyTeamCount > 0 && (
-                    <span className="text-[10px] text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                      {busyTeamCount} busy on this date — hidden
+                    <span
+                      className="text-[10px] text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30"
+                      title={Array.from(busyDetails.entries())
+                        .map(([id, d]) => `${teamMembers.find(t => t.id === id)?.name || id} → ${d.eventName} (${d.when})`)
+                        .join("\n")}
+                    >
+                      {busyTeamCount} busy at overlapping time — hidden
                     </span>
                   )}
                 </div>
