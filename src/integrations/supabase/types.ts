@@ -1071,7 +1071,10 @@ export type Database = {
       leaves: {
         Row: {
           applied_on: string
+          approval_notes: string | null
+          approved_at: string | null
           approved_by: string | null
+          approved_by_user_id: string | null
           created_at: string
           days: number
           employee_id: string
@@ -1087,7 +1090,10 @@ export type Database = {
         }
         Insert: {
           applied_on?: string
+          approval_notes?: string | null
+          approved_at?: string | null
           approved_by?: string | null
+          approved_by_user_id?: string | null
           created_at?: string
           days?: number
           employee_id: string
@@ -1103,7 +1109,10 @@ export type Database = {
         }
         Update: {
           applied_on?: string
+          approval_notes?: string | null
+          approved_at?: string | null
           approved_by?: string | null
+          approved_by_user_id?: string | null
           created_at?: string
           days?: number
           employee_id?: string

@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, CheckCircle2, XCircle, Clock, CalendarOff, Loader2 } from "lucide-react";
+import { Search, Plus, CheckCircle2, XCircle, Clock, CalendarOff, Loader2, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useLeaves } from "@/hooks/useLeaves";
+import { format } from "date-fns";
+import { useLeaves, LeaveDB } from "@/hooks/useLeaves";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useOrg } from "@/contexts/OrgContext";
 
@@ -22,12 +23,14 @@ const statusColor: Record<string, string> = {
 
 const HRLeaves = () => {
   const { organization } = useOrg();
-  const { leaves, isLoading, addLeave, updateLeave } = useLeaves();
+  const { leaves, isLoading, addLeave, decideLeave } = useLeaves();
   const { employees } = useEmployees();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showApply, setShowApply] = useState(false);
   const [form, setForm] = useState({ employeeId: "", type: "Casual Leave", from: "", to: "", reason: "" });
+  const [decisionTarget, setDecisionTarget] = useState<{ leave: LeaveDB; decision: "Approved" | "Rejected" } | null>(null);
+  const [decisionNotes, setDecisionNotes] = useState("");
 
   const filtered = leaves.filter((l) => {
     if (search && !l.employee_name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -35,8 +38,32 @@ const HRLeaves = () => {
     return true;
   });
 
-  const handleAction = (id: string, action: "Approved" | "Rejected") => {
-    updateLeave.mutate({ id, status: action });
+  const pending = leaves.filter(l => l.status === "Pending");
+
+  const openDecision = (leave: LeaveDB, decision: "Approved" | "Rejected") => {
+    setDecisionTarget({ leave, decision });
+    setDecisionNotes("");
+  };
+
+  const confirmDecision = async () => {
+    if (!decisionTarget) return;
+    if (decisionTarget.decision === "Rejected" && !decisionNotes.trim()) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
+    await decideLeave.mutateAsync({
+      id: decisionTarget.leave.id,
+      decision: decisionTarget.decision,
+      notes: decisionNotes.trim() || undefined,
+    });
+    setDecisionTarget(null);
+  };
+
+  const bulkApprove = async () => {
+    if (pending.length === 0) return;
+    for (const l of pending) {
+      await decideLeave.mutateAsync({ id: l.id, decision: "Approved" });
+    }
   };
 
   const handleApply = () => {
@@ -56,7 +83,7 @@ const HRLeaves = () => {
       status: "Pending",
       applied_on: new Date().toISOString().split("T")[0],
       approved_by: null,
-    }, {
+    } as any, {
       onSuccess: () => {
         setShowApply(false);
         setForm({ employeeId: "", type: "Casual Leave", from: "", to: "", reason: "" });
@@ -66,18 +93,25 @@ const HRLeaves = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-foreground text-xl font-semibold">Leave Management</h1>
           <p className="text-muted-foreground text-sm">Manage employee leave requests</p>
         </div>
-        <Button size="sm" onClick={() => setShowApply(true)}><Plus className="h-4 w-4 mr-1" /> Apply Leave</Button>
+        <div className="flex gap-2">
+          {pending.length > 0 && (
+            <Button size="sm" variant="outline" onClick={bulkApprove} disabled={decideLeave.isPending} className="gap-1">
+              <CheckCheck className="h-4 w-4" /> Approve all ({pending.length})
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setShowApply(true)}><Plus className="h-4 w-4 mr-1" /> Apply Leave</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Requests", value: leaves.length, icon: CalendarOff, color: "bg-primary/10 text-primary" },
-          { label: "Pending", value: leaves.filter(l => l.status === "Pending").length, icon: Clock, color: "bg-amber-500/10 text-amber-600" },
+          { label: "Pending", value: pending.length, icon: Clock, color: "bg-amber-500/10 text-amber-600" },
           { label: "Approved", value: leaves.filter(l => l.status === "Approved").length, icon: CheckCircle2, color: "bg-green-500/10 text-green-600" },
           { label: "Rejected", value: leaves.filter(l => l.status === "Rejected").length, icon: XCircle, color: "bg-red-500/10 text-red-600" },
         ].map((s) => (
@@ -123,6 +157,7 @@ const HRLeaves = () => {
                   <TableHead>Days</TableHead>
                   <TableHead>Reason</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Decision</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -131,20 +166,30 @@ const HRLeaves = () => {
                   <TableRow key={l.id}>
                     <TableCell>
                       <p className="text-sm font-medium text-foreground">{l.employee_name}</p>
-                      <p className="text-xs text-muted-foreground">{l.applied_on}</p>
+                      <p className="text-xs text-muted-foreground">Applied {l.applied_on}</p>
                     </TableCell>
                     <TableCell className="text-sm">{l.leave_type}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{l.from_date} to {l.to_date}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(l.from_date), "d MMM")} – {format(new Date(l.to_date), "d MMM yyyy")}
+                    </TableCell>
                     <TableCell className="text-sm font-medium">{l.days}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">{l.reason || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className={statusColor[l.status]}>{l.status}</Badge></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {l.approved_at ? (
+                        <>
+                          <div>{format(new Date(l.approved_at), "d MMM, HH:mm")}</div>
+                          {l.approval_notes && <div className="text-xs italic max-w-[160px] truncate" title={l.approval_notes}>"{l.approval_notes}"</div>}
+                        </>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell>
                       {l.status === "Pending" && (
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="text-green-600 h-8 px-2" onClick={() => handleAction(l.id, "Approved")}>
+                          <Button size="sm" variant="ghost" className="text-green-600 h-8 px-2" onClick={() => openDecision(l, "Approved")}>
                             <CheckCircle2 className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-red-600 h-8 px-2" onClick={() => handleAction(l.id, "Rejected")}>
+                          <Button size="sm" variant="ghost" className="text-red-600 h-8 px-2" onClick={() => openDecision(l, "Rejected")}>
                             <XCircle className="h-4 w-4" />
                           </Button>
                         </div>
@@ -153,7 +198,7 @@ const HRLeaves = () => {
                   </TableRow>
                 ))}
                 {filtered.length === 0 && !isLoading && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">No leave requests found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No leave requests found</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -192,6 +237,46 @@ const HRLeaves = () => {
             <div><Label>Reason</Label><Textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={handleApply} disabled={addLeave.isPending}>Submit</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!decisionTarget} onOpenChange={(o) => !o && setDecisionTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {decisionTarget?.decision === "Approved" ? "Approve leave" : "Reject leave"}
+            </DialogTitle>
+            <DialogDescription>
+              {decisionTarget && (
+                <>
+                  {decisionTarget.leave.employee_name} · {decisionTarget.leave.leave_type} ·{" "}
+                  {format(new Date(decisionTarget.leave.from_date), "d MMM")} to{" "}
+                  {format(new Date(decisionTarget.leave.to_date), "d MMM yyyy")} ({decisionTarget.leave.days} days)
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label>
+              {decisionTarget?.decision === "Rejected" ? "Reason for rejection *" : "Notes (optional)"}
+            </Label>
+            <Textarea
+              value={decisionNotes}
+              onChange={(e) => setDecisionNotes(e.target.value)}
+              placeholder={decisionTarget?.decision === "Rejected" ? "Please explain why…" : "Optional notes for the employee"}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDecisionTarget(null)}>Cancel</Button>
+            <Button
+              onClick={confirmDecision}
+              disabled={decideLeave.isPending}
+              variant={decisionTarget?.decision === "Rejected" ? "destructive" : "default"}
+            >
+              {decideLeave.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : decisionTarget?.decision === "Approved" ? "Approve" : "Reject"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

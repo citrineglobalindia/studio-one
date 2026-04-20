@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface LeaveDB {
@@ -16,12 +17,16 @@ export interface LeaveDB {
   status: string;
   applied_on: string;
   approved_by: string | null;
+  approved_by_user_id: string | null;
+  approval_notes: string | null;
+  approved_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export function useLeaves() {
   const { organization } = useOrg();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const orgId = organization?.id;
 
@@ -41,7 +46,7 @@ export function useLeaves() {
   });
 
   const addLeave = useMutation({
-    mutationFn: async (leave: Omit<LeaveDB, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (leave: Omit<LeaveDB, "id" | "created_at" | "updated_at" | "approved_by_user_id" | "approval_notes" | "approved_at">) => {
       const { data, error } = await supabase.from("leaves").insert(leave).select().single();
       if (error) throw error;
       return data;
@@ -66,6 +71,29 @@ export function useLeaves() {
     onError: (e) => toast.error(e.message),
   });
 
+  const decideLeave = useMutation({
+    mutationFn: async ({ id, decision, notes }: { id: string; decision: "Approved" | "Rejected"; notes?: string }) => {
+      const { data, error } = await supabase
+        .from("leaves")
+        .update({
+          status: decision,
+          approved_by_user_id: user?.id ?? null,
+          approval_notes: notes ?? null,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["leaves", orgId] });
+      toast.success(`Leave ${vars.decision.toLowerCase()}`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const deleteLeave = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("leaves").delete().eq("id", id);
@@ -77,5 +105,12 @@ export function useLeaves() {
     onError: (e) => toast.error(e.message),
   });
 
-  return { leaves: query.data || [], isLoading: query.isLoading, addLeave, updateLeave, deleteLeave };
+  return {
+    leaves: query.data || [],
+    isLoading: query.isLoading,
+    addLeave,
+    updateLeave,
+    decideLeave,
+    deleteLeave,
+  };
 }
