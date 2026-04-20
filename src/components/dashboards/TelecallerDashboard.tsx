@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { sampleLeads } from "@/data/lead-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
-  PhoneCall, UserPlus, Users, MessageSquare, ChevronRight, Target,
-  TrendingUp, Clock, CheckCircle2, AlertTriangle
+  PhoneCall, UserPlus, ChevronRight, Clock, CheckCircle2, AlertTriangle, Loader2
 } from "lucide-react";
+import { useLeads } from "@/hooks/useLeads";
+import { format, isToday, isPast, startOfDay } from "date-fns";
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const cardVariants = {
@@ -14,22 +14,40 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 220, damping: 22 } },
 };
 
-const stageColors: Record<string, string> = {
+const statusColors: Record<string, string> = {
   new: "text-blue-400 bg-blue-500/20 border-blue-500/30",
   contacted: "text-amber-400 bg-amber-500/20 border-amber-500/30",
-  "proposal-sent": "text-purple-400 bg-purple-500/20 border-purple-500/30",
+  qualified: "text-purple-400 bg-purple-500/20 border-purple-500/30",
+  proposal: "text-purple-400 bg-purple-500/20 border-purple-500/30",
   converted: "text-emerald-400 bg-emerald-500/20 border-emerald-500/30",
   lost: "text-red-400 bg-red-500/20 border-red-500/30",
 };
 
 export function TelecallerDashboard() {
   const navigate = useNavigate();
+  const { leads = [], isLoading } = useLeads();
 
-  const newLeads = sampleLeads.filter((l) => l.stage === "new");
-  const contacted = sampleLeads.filter((l) => l.stage === "contacted");
-  const converted = sampleLeads.filter((l) => l.stage === "converted");
-  const todayFollowUps = sampleLeads.filter((l) => l.followUp && new Date(l.followUp) <= new Date("2026-04-01"));
-  const totalPipelineValue = sampleLeads.reduce((s, l) => s + (l.budget || 0), 0);
+  const today = startOfDay(new Date());
+
+  const newLeads = leads.filter((l) => l.status === "new");
+  const contacted = leads.filter((l) => l.status === "contacted" || l.status === "qualified");
+  const converted = leads.filter((l) => l.status === "converted");
+  const todayFollowUps = leads.filter((l) => {
+    if (!l.follow_up_date) return false;
+    const d = new Date(l.follow_up_date);
+    return isToday(d) || (isPast(d) && l.status !== "converted" && l.status !== "lost");
+  });
+  const totalPipelineValue = leads
+    .filter(l => l.status !== "lost")
+    .reduce((s, l) => s + (l.budget || 0), 0);
+
+  const priorityFollowUps = leads
+    .filter((l) => l.status !== "converted" && l.status !== "lost")
+    .sort((a, b) => {
+      if (!a.follow_up_date) return 1;
+      if (!b.follow_up_date) return -1;
+      return new Date(a.follow_up_date).getTime() - new Date(b.follow_up_date).getTime();
+    });
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl mx-auto space-y-5">
@@ -43,7 +61,7 @@ export function TelecallerDashboard() {
           <h1 className="text-2xl font-display font-bold text-foreground">Sales Hub 📞</h1>
           <p className="text-sm text-muted-foreground mt-1">
             <span className="text-blue-400 font-medium">{newLeads.length} new leads</span> ·{" "}
-            <span className="text-amber-400 font-medium">{todayFollowUps.length} follow-ups today</span>
+            <span className="text-amber-400 font-medium">{todayFollowUps.length} follow-ups due</span>
           </p>
         </div>
       </motion.div>
@@ -63,7 +81,6 @@ export function TelecallerDashboard() {
         ))}
       </div>
 
-      {/* Follow-up Queue */}
       <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-amber-500 via-red-500 to-primary" />
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -75,47 +92,58 @@ export function TelecallerDashboard() {
           </Button>
         </div>
         <div className="divide-y divide-border">
-          {sampleLeads
-            .filter((l) => l.stage !== "converted" && l.stage !== "lost")
-            .sort((a, b) => {
-              if (!a.followUp) return 1;
-              if (!b.followUp) return -1;
-              return new Date(a.followUp).getTime() - new Date(b.followUp).getTime();
+          {isLoading ? (
+            <div className="py-10 flex items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : priorityFollowUps.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">No active leads</div>
+          ) : (
+            priorityFollowUps.slice(0, 8).map((lead) => {
+              const overdue = lead.follow_up_date && isPast(new Date(lead.follow_up_date)) && !isToday(new Date(lead.follow_up_date));
+              return (
+                <div
+                  key={lead.id}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
+                  onClick={() => navigate("/leads")}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {lead.phone || lead.email || "No contact"}
+                      {lead.event_type && ` · ${lead.event_type}`}
+                      {lead.budget ? ` · ₹${(lead.budget / 1000).toFixed(0)}K` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {lead.follow_up_date && (
+                      <span className={`text-[10px] ${overdue ? "text-red-400 font-medium" : "text-muted-foreground"}`}>
+                        {format(new Date(lead.follow_up_date), "d MMM")}
+                      </span>
+                    )}
+                    <Badge variant="outline" className={`text-[10px] ${statusColors[lead.status] || statusColors.new}`}>
+                      {lead.status}
+                    </Badge>
+                  </div>
+                </div>
+              );
             })
-            .slice(0, 8)
-            .map((lead) => (
-              <div key={lead.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
-                onClick={() => navigate("/leads")}>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{lead.name}</p>
-                  <p className="text-xs text-muted-foreground">{lead.phone} · {lead.eventType} · ₹{((lead.budget || 0) / 1000).toFixed(0)}K</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {lead.followUp && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {new Date(lead.followUp).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </span>
-                  )}
-                  <Badge variant="outline" className={`text-[10px] ${stageColors[lead.stage]}`}>
-                    {lead.stage}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+          )}
         </div>
       </motion.div>
 
-      {/* Pipeline Value */}
       <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Pipeline Value</p>
-            <p className="text-3xl font-display font-bold text-foreground mt-1">₹{(totalPipelineValue / 100000).toFixed(1)}L</p>
+            <p className="text-3xl font-display font-bold text-foreground mt-1">
+              ₹{(totalPipelineValue / 100000).toFixed(1)}L
+            </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Conversion Rate</p>
             <p className="text-3xl font-display font-bold text-emerald-500 mt-1">
-              {sampleLeads.length > 0 ? Math.round((converted.length / sampleLeads.length) * 100) : 0}%
+              {leads.length > 0 ? Math.round((converted.length / leads.length) * 100) : 0}%
             </p>
           </div>
         </div>
