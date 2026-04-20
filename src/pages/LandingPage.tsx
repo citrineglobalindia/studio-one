@@ -142,7 +142,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Log in</Button>
-            <Button size="sm" onClick={() => navigate("/auth?mode=signup")} className="gap-1 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
+            <Button size="sm" onClick={() => document.getElementById("enquiry")?.scrollIntoView({ behavior: "smooth" })} className="gap-1 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
               Enquire Now <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -182,7 +182,7 @@ export default function LandingPage() {
                 initial="hidden" animate="visible" variants={fadeUp} custom={3}
                 className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
               >
-                <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
+                <Button size="lg" onClick={() => document.getElementById("enquiry")?.scrollIntoView({ behavior: "smooth" })} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
                   Enquire Now <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button size="lg" variant="outline" className="text-base px-8 h-12 gap-2 text-white" style={{ borderColor: "rgba(168,85,247,0.3)", background: "rgba(168,85,247,0.08)" }}>
@@ -380,7 +380,7 @@ export default function LandingPage() {
                         background: plan.popular ? "linear-gradient(135deg, #a855f7, #3b82f6)" : "rgba(168,85,247,0.15)",
                         borderColor: plan.popular ? "transparent" : "rgba(168,85,247,0.3)",
                       }}
-                      onClick={() => navigate("/auth?mode=signup")}
+                      onClick={() => document.getElementById("enquiry")?.scrollIntoView({ behavior: "smooth" })}
                     >
                       Enquire Now <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
@@ -533,7 +533,7 @@ export default function LandingPage() {
           <p className="max-w-lg mx-auto mb-8" style={{ color: "rgba(226,232,240,0.5)" }}>
             Join 500+ studios already using StudioAi. Get in touch with us to learn more.
           </p>
-          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
+          <Button size="lg" onClick={() => document.getElementById("enquiry")?.scrollIntoView({ behavior: "smooth" })} className="text-base px-8 h-12 gap-2 text-white border-0" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)" }}>
             Enquire Now <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
