@@ -37,6 +37,8 @@ export function RoleMobileLayout({ children }: Props) {
   const roleLabel = ALL_ROLES.find((r) => r.value === currentRole)?.label
     ?? (currentRole.charAt(0).toUpperCase() + currentRole.slice(1));
 
+  const NAV_ITEMS = buildNavItems(currentRole);
+
   return (
     <div className="fixed inset-0 w-full bg-muted/30 md:flex md:items-center md:justify-center md:py-6 overflow-hidden">
       <div className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden bg-background md:h-[calc(100vh-3rem)] md:max-h-[920px] md:w-[420px] md:rounded-[2.5rem] md:border md:border-border/60 md:shadow-2xl">
