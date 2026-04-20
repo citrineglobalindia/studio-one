@@ -1244,6 +1244,54 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          allow_self_signup: boolean
+          auto_confirm_emails: boolean
+          default_trial_days: number
+          enable_notifications: boolean
+          enforce_module_restrictions: boolean
+          id: number
+          maintenance_mode: boolean
+          max_studios_per_owner: number
+          platform_name: string
+          require_email_verification: boolean
+          support_email: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_self_signup?: boolean
+          auto_confirm_emails?: boolean
+          default_trial_days?: number
+          enable_notifications?: boolean
+          enforce_module_restrictions?: boolean
+          id?: number
+          maintenance_mode?: boolean
+          max_studios_per_owner?: number
+          platform_name?: string
+          require_email_verification?: boolean
+          support_email?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_self_signup?: boolean
+          auto_confirm_emails?: boolean
+          default_trial_days?: number
+          enable_notifications?: boolean
+          enforce_module_restrictions?: boolean
+          id?: number
+          maintenance_mode?: boolean
+          max_studios_per_owner?: number
+          platform_name?: string
+          require_email_verification?: boolean
+          support_email?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
