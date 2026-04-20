@@ -16,8 +16,9 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
 ];
 
 export type AppModule =
-  | "dashboard" | "leads" | "clients" | "quotations"
-  | "projects" | "calendar" | "tasks" | "team"
+  | "dashboard" | "leads" | "call-logs" | "clients" | "quotations"
+  | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
+  | "team" | "vendor-orders"
   | "invoices" | "contracts"
   | "communications" | "marketing" | "analytics" | "automation"
   | "ai-assistant" | "ai-selection"
@@ -27,14 +28,21 @@ export type AppModule =
 export const ALL_MODULES: { value: AppModule; label: string; group: string }[] = [
   { value: "dashboard", label: "Dashboard", group: "Sales CRM" },
   { value: "leads", label: "Leads", group: "Sales CRM" },
+  { value: "call-logs", label: "Call Logs", group: "Sales CRM" },
   { value: "clients", label: "Clients", group: "Sales CRM" },
   { value: "quotations", label: "Quotations", group: "Sales CRM" },
+  { value: "live-clients", label: "Live Clients", group: "Operations" },
   { value: "projects", label: "Projects", group: "Operations" },
+  { value: "events", label: "Events", group: "Operations" },
+  { value: "albums", label: "Albums", group: "Operations" },
   { value: "calendar", label: "Calendar", group: "Operations" },
   { value: "tasks", label: "Tasks", group: "Operations" },
+  { value: "process-planner", label: "Process Planner", group: "Operations" },
   { value: "team", label: "Team", group: "Operations" },
+  { value: "vendor-orders", label: "Vendor Orders", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
+  { value: "accounts-page", label: "Accounts", group: "Finance" },
   { value: "communications", label: "Communications", group: "Growth" },
   { value: "marketing", label: "Marketing", group: "Growth" },
   { value: "analytics", label: "Analytics", group: "Growth" },
@@ -46,18 +54,17 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "hr-attendance", label: "Attendance", group: "HR Module" },
   { value: "hr-leaves", label: "Leaves", group: "HR Module" },
   { value: "notifications", label: "Notifications", group: "System" },
-  { value: "accounts-page", label: "Accounts", group: "System" },
   { value: "profile", label: "Profile", group: "System" },
   { value: "settings", label: "Settings", group: "System" },
 ];
 
 const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   admin: ALL_MODULES.map((m) => m.value),
-  vendor: ["dashboard", "projects", "calendar", "tasks", "communications", "notifications", "profile"],
-  editor: ["dashboard", "projects", "tasks", "communications", "notifications", "profile"],
-  telecaller: ["dashboard", "leads", "clients", "communications", "calendar", "notifications", "profile"],
-  videographer: ["dashboard", "projects", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
-  photographer: ["dashboard", "projects", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
+  vendor: ["dashboard", "projects", "vendor-orders", "calendar", "tasks", "communications", "notifications", "profile"],
+  editor: ["dashboard", "projects", "tasks", "albums", "communications", "notifications", "profile"],
+  telecaller: ["dashboard", "leads", "call-logs", "clients", "communications", "calendar", "notifications", "profile"],
+  videographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
+  photographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
   hr: ["dashboard", "hr-dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
   accounts: ["dashboard", "invoices", "contracts", "accounts-page", "analytics", "notifications", "profile"],
 };

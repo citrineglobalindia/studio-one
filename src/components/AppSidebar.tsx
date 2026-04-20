@@ -52,20 +52,20 @@ type SidebarItem = { title: string; url: string; icon: typeof LayoutDashboard; m
 const salesItems: SidebarItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
   { title: "Leads", url: "/leads", icon: UserPlus, module: "leads" },
-  { title: "Call Logs", url: "/call-logs", icon: Phone, module: "leads" },
+  { title: "Call Logs", url: "/call-logs", icon: Phone, module: "call-logs" },
   { title: "Clients", url: "/clients", icon: Users, module: "clients" },
 ];
 
 const operationsItems: SidebarItem[] = [
-  { title: "Live Clients", url: "/live-clients", icon: Activity, module: "projects" },
+  { title: "Live Clients", url: "/live-clients", icon: Activity, module: "live-clients" },
   { title: "Projects", url: "/projects", icon: FolderKanban, module: "projects" },
-  { title: "Events", url: "/events", icon: CalendarCheck, module: "calendar" },
-  { title: "Albums", url: "/albums", icon: BookImage, module: "projects" },
+  { title: "Events", url: "/events", icon: CalendarCheck, module: "events" },
+  { title: "Albums", url: "/albums", icon: BookImage, module: "albums" },
   { title: "Calendar", url: "/calendar", icon: CalendarDays, module: "calendar" },
   { title: "Tasks", url: "/tasks", icon: Zap, module: "tasks" },
-  { title: "Process Planner", url: "/process-planner", icon: ClipboardList, module: "projects" },
+  { title: "Process Planner", url: "/process-planner", icon: ClipboardList, module: "process-planner" },
   { title: "Team", url: "/team", icon: UsersRound, module: "team" },
-  { title: "Vendor Orders", url: "/vendor-orders", icon: Package, module: "team" },
+  { title: "Vendor Orders", url: "/vendor-orders", icon: Package, module: "vendor-orders" },
 ];
 
 const financeItems: SidebarItem[] = [
