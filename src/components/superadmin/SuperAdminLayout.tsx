@@ -18,12 +18,14 @@ import {
   FileText,
   Blocks,
   Database,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/super-admin" },
   { label: "Studios", icon: Building2, path: "/super-admin/studios" },
+  { label: "Enquiries", icon: Inbox, path: "/super-admin/enquiries" },
   { label: "Module Control", icon: Blocks, path: "/super-admin/modules" },
   { label: "Subscriptions", icon: CreditCard, path: "/super-admin/subscriptions" },
   { label: "All Users", icon: Users, path: "/super-admin/users" },

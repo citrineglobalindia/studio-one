@@ -256,55 +256,97 @@ export type Database = {
       }
       clients: {
         Row: {
+          address: string | null
           budget: number | null
           city: string | null
           created_at: string
+          date_of_birth: string | null
           delivery_date: string | null
           email: string | null
+          engagement_date: string | null
           event_date: string | null
           event_type: string | null
+          event_types: string[]
+          feedback_video_url: string | null
+          good_will_call: string | null
           id: string
+          marriage_date: string | null
           name: string
           notes: string | null
           organization_id: string
+          partner_date_of_birth: string | null
+          partner_email: string | null
           partner_name: string | null
+          partner_phone: string | null
           phone: string | null
+          photo_url: string | null
+          review_rating: number | null
+          review_text: string | null
+          social_media: string | null
           source: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
           budget?: number | null
           city?: string | null
           created_at?: string
+          date_of_birth?: string | null
           delivery_date?: string | null
           email?: string | null
+          engagement_date?: string | null
           event_date?: string | null
           event_type?: string | null
+          event_types?: string[]
+          feedback_video_url?: string | null
+          good_will_call?: string | null
           id?: string
+          marriage_date?: string | null
           name: string
           notes?: string | null
           organization_id: string
+          partner_date_of_birth?: string | null
+          partner_email?: string | null
           partner_name?: string | null
+          partner_phone?: string | null
           phone?: string | null
+          photo_url?: string | null
+          review_rating?: number | null
+          review_text?: string | null
+          social_media?: string | null
           source?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
           budget?: number | null
           city?: string | null
           created_at?: string
+          date_of_birth?: string | null
           delivery_date?: string | null
           email?: string | null
+          engagement_date?: string | null
           event_date?: string | null
           event_type?: string | null
+          event_types?: string[]
+          feedback_video_url?: string | null
+          good_will_call?: string | null
           id?: string
+          marriage_date?: string | null
           name?: string
           notes?: string | null
           organization_id?: string
+          partner_date_of_birth?: string | null
+          partner_email?: string | null
           partner_name?: string | null
+          partner_phone?: string | null
           phone?: string | null
+          photo_url?: string | null
+          review_rating?: number | null
+          review_text?: string | null
+          social_media?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -465,91 +507,45 @@ export type Database = {
           },
         ]
       }
-      event_activity: {
+      enquiries: {
         Row: {
-          activity_type: string
-          actor_name: string | null
           created_at: string
-          event_id: string
+          email: string
           id: string
-          note: string | null
-          organization_id: string
-          photo_url: string | null
-          status: string | null
-          team_member_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          activity_type: string
-          actor_name?: string | null
-          created_at?: string
-          event_id: string
-          id?: string
-          note?: string | null
-          organization_id: string
-          photo_url?: string | null
-          status?: string | null
-          team_member_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          activity_type?: string
-          actor_name?: string | null
-          created_at?: string
-          event_id?: string
-          id?: string
-          note?: string | null
-          organization_id?: string
-          photo_url?: string | null
-          status?: string | null
-          team_member_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      event_check_ins: {
-        Row: {
-          arrival_photo_url: string | null
-          arrival_time: string | null
-          created_at: string
-          event_id: string
-          id: string
-          organization_id: string
+          message: string
+          name: string
+          notes: string | null
+          phone: string | null
           status: string
-          team_member_id: string
           updated_at: string
-          user_id: string | null
         }
         Insert: {
-          arrival_photo_url?: string | null
-          arrival_time?: string | null
           created_at?: string
-          event_id: string
+          email: string
           id?: string
-          organization_id: string
+          message: string
+          name: string
+          notes?: string | null
+          phone?: string | null
           status?: string
-          team_member_id: string
           updated_at?: string
-          user_id?: string | null
         }
         Update: {
-          arrival_photo_url?: string | null
-          arrival_time?: string | null
           created_at?: string
-          event_id?: string
+          email?: string
           id?: string
-          organization_id?: string
+          message?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
           status?: string
-          team_member_id?: string
           updated_at?: string
-          user_id?: string | null
         }
         Relationships: []
       }
       event_team_assignments: {
         Row: {
           assigned_at: string
-          created_at: string
           event_id: string
           id: string
           organization_id: string
@@ -557,7 +553,6 @@ export type Database = {
         }
         Insert: {
           assigned_at?: string
-          created_at?: string
           event_id: string
           id?: string
           organization_id: string
@@ -565,7 +560,6 @@ export type Database = {
         }
         Update: {
           assigned_at?: string
-          created_at?: string
           event_id?: string
           id?: string
           organization_id?: string
@@ -573,18 +567,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "event_team_assignments_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "event_team_assignments_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "events"
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_team_assignments_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
       }
       events: {
         Row: {
+          actual_services: string | null
+          album_design_status: string | null
+          assigned_date: string | null
+          backup_status: string | null
+          card_number: string | null
           client_id: string | null
           created_at: string
+          data_copy_status: string | null
+          delivery_hdd_status: string | null
+          delivery_status: string | null
           end_time: string | null
           event_date: string
           event_type: string | null
@@ -592,15 +601,29 @@ export type Database = {
           name: string
           notes: string | null
           organization_id: string
+          photo_filter_grade: string | null
+          photo_filter_grade_status: string | null
           project_id: string | null
+          quotation_services: string | null
+          quotation_services_status: string | null
+          raw_data_size: string | null
           start_time: string | null
           status: string
           updated_at: string
           venue: string | null
+          video_editing_status: string | null
         }
         Insert: {
+          actual_services?: string | null
+          album_design_status?: string | null
+          assigned_date?: string | null
+          backup_status?: string | null
+          card_number?: string | null
           client_id?: string | null
           created_at?: string
+          data_copy_status?: string | null
+          delivery_hdd_status?: string | null
+          delivery_status?: string | null
           end_time?: string | null
           event_date: string
           event_type?: string | null
@@ -608,15 +631,29 @@ export type Database = {
           name: string
           notes?: string | null
           organization_id: string
+          photo_filter_grade?: string | null
+          photo_filter_grade_status?: string | null
           project_id?: string | null
+          quotation_services?: string | null
+          quotation_services_status?: string | null
+          raw_data_size?: string | null
           start_time?: string | null
           status?: string
           updated_at?: string
           venue?: string | null
+          video_editing_status?: string | null
         }
         Update: {
+          actual_services?: string | null
+          album_design_status?: string | null
+          assigned_date?: string | null
+          backup_status?: string | null
+          card_number?: string | null
           client_id?: string | null
           created_at?: string
+          data_copy_status?: string | null
+          delivery_hdd_status?: string | null
+          delivery_status?: string | null
           end_time?: string | null
           event_date?: string
           event_type?: string | null
@@ -624,13 +661,41 @@ export type Database = {
           name?: string
           notes?: string | null
           organization_id?: string
+          photo_filter_grade?: string | null
+          photo_filter_grade_status?: string | null
           project_id?: string | null
+          quotation_services?: string | null
+          quotation_services_status?: string | null
+          raw_data_size?: string | null
           start_time?: string | null
           status?: string
           updated_at?: string
           venue?: string | null
+          video_editing_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
@@ -1093,11 +1158,9 @@ export type Database = {
       }
       profiles: {
         Row: {
-          address: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
-          email: string | null
           id: string
           phone: string | null
           role: string | null
@@ -1105,11 +1168,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          address?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
-          email?: string | null
           id?: string
           phone?: string | null
           role?: string | null
@@ -1117,11 +1178,9 @@ export type Database = {
           user_id: string
         }
         Update: {
-          address?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
-          email?: string | null
           id?: string
           phone?: string | null
           role?: string | null
@@ -1132,64 +1191,109 @@ export type Database = {
       }
       projects: {
         Row: {
+          album_design_status: string | null
+          album_print_status: string | null
+          album_sheets: number | null
           amount_paid: number | null
           assigned_team: string[] | null
           backup_number: string | null
           card_number: string | null
           client_id: string | null
           created_at: string
+          data_backup_status: string | null
+          data_filtration_status: string | null
+          delivery_date: string | null
           delivery_hdd: string | null
+          delivery_status: string | null
           event_date: string | null
           event_type: string | null
+          final_delivery_date: string | null
+          final_delivery_status: string | null
+          final_payment_status: string | null
+          first_delivery_date: string | null
+          follow_up_call: string | null
           id: string
           notes: string | null
           organization_id: string
+          payment_status: string | null
           project_name: string
           raw_data_size: string | null
+          service_taken: string | null
           status: string
           total_amount: number | null
           updated_at: string
           venue: string | null
+          video_progress: string | null
         }
         Insert: {
+          album_design_status?: string | null
+          album_print_status?: string | null
+          album_sheets?: number | null
           amount_paid?: number | null
           assigned_team?: string[] | null
           backup_number?: string | null
           card_number?: string | null
           client_id?: string | null
           created_at?: string
+          data_backup_status?: string | null
+          data_filtration_status?: string | null
+          delivery_date?: string | null
           delivery_hdd?: string | null
+          delivery_status?: string | null
           event_date?: string | null
           event_type?: string | null
+          final_delivery_date?: string | null
+          final_delivery_status?: string | null
+          final_payment_status?: string | null
+          first_delivery_date?: string | null
+          follow_up_call?: string | null
           id?: string
           notes?: string | null
           organization_id: string
+          payment_status?: string | null
           project_name: string
           raw_data_size?: string | null
+          service_taken?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
           venue?: string | null
+          video_progress?: string | null
         }
         Update: {
+          album_design_status?: string | null
+          album_print_status?: string | null
+          album_sheets?: number | null
           amount_paid?: number | null
           assigned_team?: string[] | null
           backup_number?: string | null
           card_number?: string | null
           client_id?: string | null
           created_at?: string
+          data_backup_status?: string | null
+          data_filtration_status?: string | null
+          delivery_date?: string | null
           delivery_hdd?: string | null
+          delivery_status?: string | null
           event_date?: string | null
           event_type?: string | null
+          final_delivery_date?: string | null
+          final_delivery_status?: string | null
+          final_payment_status?: string | null
+          first_delivery_date?: string | null
+          follow_up_call?: string | null
           id?: string
           notes?: string | null
           organization_id?: string
+          payment_status?: string | null
           project_name?: string
           raw_data_size?: string | null
+          service_taken?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
           venue?: string | null
+          video_progress?: string | null
         }
         Relationships: [
           {
@@ -1331,24 +1435,18 @@ export type Database = {
       studio_role_module_access: {
         Row: {
           allowed_modules: string[]
-          created_at: string
-          id: string
           organization_id: string
           role: string
           updated_at: string
         }
         Insert: {
           allowed_modules?: string[]
-          created_at?: string
-          id?: string
           organization_id: string
           role: string
           updated_at?: string
         }
         Update: {
           allowed_modules?: string[]
-          created_at?: string
-          id?: string
           organization_id?: string
           role?: string
           updated_at?: string

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Camera, Users, Calendar, BarChart3, FileText, Zap, Shield, Globe,
   ArrowRight, Check, Star, Play, ChevronRight, Sparkles, Layers,
@@ -99,7 +100,17 @@ export default function LandingPage() {
       return;
     }
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1000));
+    const { error } = await supabase.from("enquiries").insert({
+      name: enquiry.name,
+      email: enquiry.email,
+      phone: enquiry.phone || null,
+      message: enquiry.message,
+    });
+    if (error) {
+      toast.error("Something went wrong. Please try again.");
+      setSubmitting(false);
+      return;
+    }
     toast.success("Thank you! We'll get back to you shortly.");
     setEnquiry({ name: "", email: "", phone: "", message: "" });
     setSubmitting(false);

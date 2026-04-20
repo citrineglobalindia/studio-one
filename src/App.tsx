@@ -80,6 +80,7 @@ import SAReports from "./pages/superadmin/SAReports";
 import SANotifications from "./pages/superadmin/SANotifications";
 import SASettings from "./pages/superadmin/SASettings";
 import SASystemControl from "./pages/superadmin/SASystemControl";
+import SAEnquiries from "./pages/superadmin/SAEnquiries";
 import SAPlaceholder from "./pages/superadmin/SAPlaceholder";
 
 const queryClient = new QueryClient();
@@ -187,6 +188,7 @@ const App = () => (
                   <Route path="/super-admin" element={<SuperAdminPage />}>
                     <Route index element={<SADashboard />} />
                     <Route path="studios" element={<SAStudios />} />
+                    <Route path="enquiries" element={<SAEnquiries />} />
                     <Route path="modules" element={<SAModules />} />
                     <Route path="subscriptions" element={<SASubscriptions />} />
                     <Route path="users" element={<SAUsers />} />
