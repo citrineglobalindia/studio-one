@@ -1,11 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { sampleProjects } from "@/data/wedding-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import {
-  Video, CalendarDays, MapPin, CheckCircle2, ChevronRight, Film, Upload
-} from "lucide-react";
+import { Video, CalendarDays, MapPin, CheckCircle2, ChevronRight, Film, Upload, Loader2 } from "lucide-react";
+import { useMyAssignedEvents } from "@/hooks/useMyAssignedEvents";
+import { useDeliverables } from "@/hooks/useDeliverables";
 
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const cardVariants = {
@@ -15,18 +14,20 @@ const cardVariants = {
 
 export function VideographerDashboard() {
   const navigate = useNavigate();
+  const { events, isLoading } = useMyAssignedEvents();
+  const { data: allDeliverables = [] } = useDeliverables();
 
-  const myProjects = sampleProjects.filter((p) =>
-    p.team.some((t) => t.role === "videographer") && (p.status === "in-progress" || p.status === "booked")
-  );
-  const myUpcomingShoots = myProjects.flatMap((p) =>
-    p.subEvents.filter((se) => se.status === "upcoming")
-      .map((se) => ({ ...se, projectClient: `${p.clientName} & ${p.partnerName}`, projectId: p.id }))
-  ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const now = new Date();
+  const upcomingEvents = events
+    .filter(e => new Date(e.event_date) >= new Date(now.toDateString()))
+    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
 
-  const myFootage = myProjects.flatMap((p) => p.footage.filter((f) => f.handedOverByRole === "videographer"));
-  const pendingHandover = myFootage.filter((f) => f.editStatus === "pending").length;
-  const delivered = myFootage.filter((f) => f.editStatus === "approved" || f.editStatus === "delivered").length;
+  const videoDeliverables = allDeliverables.filter(d => {
+    const t = (d.deliverable_type || "").toLowerCase();
+    return t.includes("video") || t.includes("film") || t.includes("reel");
+  });
+  const delivered = videoDeliverables.filter(d => d.status === "delivered" || d.status === "approved").length;
+  const pending = videoDeliverables.filter(d => d.status === "pending" || d.status === "in_progress").length;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl mx-auto space-y-5">
@@ -39,16 +40,16 @@ export function VideographerDashboard() {
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Welcome Back 🎬</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="text-purple-400 font-medium">{myUpcomingShoots.length} upcoming shoots</span> ·{" "}
-            <span className="text-amber-400 font-medium">{pendingHandover} footage pending</span>
+            <span className="text-purple-400 font-medium">{upcomingEvents.length} upcoming shoots</span> ·{" "}
+            <span className="text-amber-400 font-medium">{pending} footage pending</span>
           </p>
         </div>
       </motion.div>
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Active Projects", value: myProjects.length, icon: Film, color: "text-purple-500", bg: "from-purple-500/15 to-purple-500/5" },
-          { label: "Upcoming Shoots", value: myUpcomingShoots.length, icon: CalendarDays, color: "text-blue-500", bg: "from-blue-500/15 to-blue-500/5" },
+          { label: "Upcoming Shoots", value: upcomingEvents.length, icon: CalendarDays, color: "text-blue-500", bg: "from-blue-500/15 to-blue-500/5" },
+          { label: "Pending Footage", value: pending, icon: Film, color: "text-amber-500", bg: "from-amber-500/15 to-amber-500/5" },
           { label: "Footage Delivered", value: delivered, icon: CheckCircle2, color: "text-emerald-500", bg: "from-emerald-500/15 to-emerald-500/5" },
         ].map((s) => (
           <motion.div key={s.label} variants={cardVariants} className={`bg-gradient-to-b ${s.bg} rounded-2xl border border-border p-4`}>
@@ -65,31 +66,44 @@ export function VideographerDashboard() {
           <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-purple-500" /> My Shoots
           </h2>
-          <Button variant="ghost" size="sm" className="text-xs text-primary gap-1" onClick={() => navigate("/calendar")}>
+          <Button variant="ghost" size="sm" className="text-xs text-primary gap-1" onClick={() => navigate("/m/calendar")}>
             Calendar <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
         <div className="divide-y divide-border">
-          {myUpcomingShoots.slice(0, 6).map((shoot) => (
-            <div key={shoot.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
-              onClick={() => navigate(`/projects/${shoot.projectId}/event-day?event=${shoot.id}`)}>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">{shoot.name}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">{shoot.projectClient} · <MapPin className="h-3 w-3" />{shoot.location}</p>
-              </div>
-              <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/30">
-                {new Date(shoot.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-              </Badge>
+          {isLoading ? (
+            <div className="py-10 flex items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ))}
-          {myUpcomingShoots.length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No shoots assigned</div>}
+          ) : upcomingEvents.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">No shoots assigned</div>
+          ) : (
+            upcomingEvents.slice(0, 6).map((evt) => (
+              <div
+                key={evt.id}
+                className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
+                onClick={() => navigate(`/m/projects/${evt.project_id}/event-day?event=${evt.id}`)}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{evt.name}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
+                    {evt.client_name ? `${evt.client_name}${evt.partner_name ? ` & ${evt.partner_name}` : ""} · ` : ""}
+                    {evt.venue && <><MapPin className="h-3 w-3" />{evt.venue}</>}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/30">
+                  {new Date(evt.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                </Badge>
+              </div>
+            ))
+          )}
         </div>
       </motion.div>
 
       <motion.div variants={cardVariants} className="grid grid-cols-2 gap-3">
         {[
-          { label: "Check-in at Venue", icon: Upload, path: "/projects", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          { label: "View Tasks", icon: Film, path: "/tasks", color: "text-purple-500", bg: "bg-purple-500/10" },
+          { label: "My Projects", icon: Upload, path: "/m/projects", color: "text-emerald-500", bg: "bg-emerald-500/10" },
+          { label: "View Calendar", icon: Film, path: "/m/calendar", color: "text-purple-500", bg: "bg-purple-500/10" },
         ].map((a) => (
           <Button key={a.label} variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate(a.path)}>
             <div className={`h-10 w-10 rounded-xl ${a.bg} flex items-center justify-center`}><a.icon className={`h-5 w-5 ${a.color}`} /></div>
