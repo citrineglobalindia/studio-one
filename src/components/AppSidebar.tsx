@@ -26,6 +26,7 @@ import {
   CalendarOff,
   LogOut,
   Phone,
+  Package,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -64,6 +65,7 @@ const operationsItems: SidebarItem[] = [
   { title: "Tasks", url: "/tasks", icon: Zap, module: "tasks" },
   { title: "Process Planner", url: "/process-planner", icon: ClipboardList, module: "projects" },
   { title: "Team", url: "/team", icon: UsersRound, module: "team" },
+  { title: "Vendor Orders", url: "/vendor-orders", icon: Package, module: "team" },
 ];
 
 const financeItems: SidebarItem[] = [

@@ -1751,6 +1751,104 @@ export type Database = {
           },
         ]
       }
+      vendor_orders: {
+        Row: {
+          amount_paid: number | null
+          client_id: string | null
+          created_at: string
+          delivery_date: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          item_type: string
+          notes: string | null
+          order_number: string | null
+          organization_id: string
+          payment_status: string
+          project_id: string | null
+          quantity: number | null
+          status: string
+          total_amount: number | null
+          tracking_info: string | null
+          unit_price: number | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          client_id?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          item_type: string
+          notes?: string | null
+          order_number?: string | null
+          organization_id: string
+          payment_status?: string
+          project_id?: string | null
+          quantity?: number | null
+          status?: string
+          total_amount?: number | null
+          tracking_info?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          client_id?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          item_type?: string
+          notes?: string | null
+          order_number?: string | null
+          organization_id?: string
+          payment_status?: string
+          project_id?: string | null
+          quantity?: number | null
+          status?: string
+          total_amount?: number | null
+          tracking_info?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
