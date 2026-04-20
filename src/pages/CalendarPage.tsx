@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
-import { sampleProjects, sampleTeamMembers } from "@/data/wedding-types";
 import { useClients } from "@/hooks/useClients";
 import { useEvents } from "@/hooks/useEvents";
+import { useProjects } from "@/hooks/useProjects";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -96,7 +97,9 @@ type ViewMode = "month" | "week" | "day";
 const CalendarPage = () => {
   const navigate = useNavigate();
   const { clients: dbClients } = useClients();
-  const { events: dbEvents } = useEvents();
+  const { events: dbEvents, addEvent } = useEvents();
+  const { projects: dbProjects } = useProjects();
+  const { members: dbTeamMembers } = useTeamMembers();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -113,7 +116,6 @@ const CalendarPage = () => {
 
   // Schedule Event state
   const [scheduleSheet, setScheduleSheet] = useState(false);
-  const [customEvents, setCustomEvents] = useState<CalendarEvent[]>([]);
   const [newEvent, setNewEvent] = useState({
     projectId: "",
     eventName: "",
@@ -170,7 +172,7 @@ const CalendarPage = () => {
     return [...clientEvents, ...savedEvents];
   }, [dbClients, dbEvents]);
 
-  const allEvents = useMemo(() => [...baseEvents, ...customEvents], [baseEvents, customEvents]);
+  const allEvents = useMemo(() => baseEvents, [baseEvents]);
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter((ev) => {
@@ -298,47 +300,51 @@ const CalendarPage = () => {
     }));
   };
 
-  const handleScheduleEvent = () => {
+  const handleScheduleEvent = async () => {
     const eventName = newEvent.eventName === "custom" ? newEvent.customName : newEvent.eventName;
     if (!eventName) { toast.error("Please select or enter an event name"); return; }
     if (!newEvent.date) { toast.error("Please select a date"); return; }
     if (!newEvent.location) { toast.error("Please enter a location"); return; }
 
-    const project = sampleProjects.find(p => p.id === newEvent.projectId);
-    const clientLabel = project
-      ? `${project.clientName} & ${project.partnerName}`
-      : "Studio Event";
+    try {
+      await addEvent.mutateAsync({
+        name: eventName,
+        event_type: getCategory(eventName) || "Wedding",
+        event_date: newEvent.date,
+        start_time: newEvent.time ? `${newEvent.time}:00` : null,
+        end_time: null,
+        venue: newEvent.location,
+        notes: newEvent.notes || null,
+        client_id: null,
+        project_id: newEvent.projectId || null,
+        status: "upcoming",
+      });
+      setScheduleSheet(false);
 
-    const selectedMembers = sampleTeamMembers.filter(m => newEvent.selectedTeam.includes(m.id));
+      // Reset the form so it's clean for the next schedule
+      setNewEvent({
+        projectId: "",
+        eventName: "",
+        customName: "",
+        date: "",
+        time: "09:00",
+        location: "",
+        notes: "",
+        selectedTeam: [],
+      });
 
-    const event: CalendarEvent = {
-      id: `custom-${Date.now()}`,
-      projectId: newEvent.projectId || "",
-      clientLabel,
-      subEventName: eventName,
-      date: newEvent.date,
-      time: newEvent.time,
-      location: newEvent.location,
-      status: "upcoming",
-      teamCount: selectedMembers.length,
-      team: selectedMembers.map(m => ({ name: m.name, role: m.role })),
-      category: getCategory(eventName),
-      notes: newEvent.notes,
-    };
-
-    setCustomEvents(prev => [...prev, event]);
-    setScheduleSheet(false);
-    toast.success(`"${eventName}" scheduled on ${new Date(newEvent.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`);
-
-    // Navigate to the event date
-    const d = new Date(newEvent.date);
-    setCurrentMonth(d.getMonth());
-    setCurrentYear(d.getFullYear());
-    setSelectedDate(newEvent.date);
+      // Navigate to the event date
+      const d = new Date(newEvent.date);
+      setCurrentMonth(d.getMonth());
+      setCurrentYear(d.getFullYear());
+      setSelectedDate(newEvent.date);
+    } catch {
+      // useEvents hook already toasts on error
+    }
   };
 
   // Selected project info for the form
-  const selectedProject = sampleProjects.find(p => p.id === newEvent.projectId);
+  const selectedProject = dbProjects.find((p: any) => p.id === newEvent.projectId);
 
   return (
     <div className="max-w-full mx-auto space-y-4">
@@ -850,9 +856,9 @@ const CalendarPage = () => {
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select project (optional)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No project (standalone)</SelectItem>
-                  {sampleProjects.map(p => (
+                  {(dbProjects as any[]).map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.clientName} & {p.partnerName} — {p.city}
+                      {p.project_name || p.name || p.id.slice(0, 8)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -937,14 +943,16 @@ const CalendarPage = () => {
               </p>
 
               {/* Group by role */}
-              {(["photographer", "videographer", "editor", "drone-operator", "assistant"] as const).map(role => {
-                const members = sampleTeamMembers.filter(m => m.role === role);
+              {(() => {
+                const rolesPresent = Array.from(new Set((dbTeamMembers as any[]).map(m => m.role).filter(Boolean)));
+                return rolesPresent.map(role => {
+                const members = (dbTeamMembers as any[]).filter(m => m.role === role);
                 if (members.length === 0) return null;
                 return (
                   <div key={role} className="mb-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">{role.replace("-", " ")}s</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">{String(role).replace("_", " ").replace("-", " ")}s</p>
                     <div className="space-y-1">
-                      {members.map(m => {
+                      {members.map((m: any) => {
                         const isSelected = newEvent.selectedTeam.includes(m.id);
                         return (
                           <div key={m.id}
@@ -961,12 +969,12 @@ const CalendarPage = () => {
                             </div>
                             <Avatar className="h-7 w-7">
                               <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                                {m.name.split(" ").map(n => n[0]).join("")}
+                                {(m.full_name || "").split(" ").map((n: string) => n[0]).join("")}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-foreground">{m.name}</p>
-                              <p className="text-[10px] text-muted-foreground capitalize">{m.type}</p>
+                              <p className="text-sm font-medium text-foreground">{m.full_name}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">{String(m.role || "").replace("_", " ")}</p>
                             </div>
                           </div>
                         );
@@ -974,7 +982,8 @@ const CalendarPage = () => {
                     </div>
                   </div>
                 );
-              })}
+                });
+              })()}
             </div>
 
             <Separator />

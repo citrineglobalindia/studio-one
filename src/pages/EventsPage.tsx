@@ -18,6 +18,7 @@ import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useEvents } from "@/hooks/useEvents";
+import { useEventTeamAssignments } from "@/hooks/useEventTeamAssignments";
 import { cn } from "@/lib/utils";
 
 interface ClientEvent {
@@ -83,6 +84,7 @@ export default function EventsPage() {
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
   const { events: dbEvents, addEvent, updateEvent, deleteEvent } = useEvents();
+  const { byEvent: assignmentsByEvent, setAssignments: persistAssignments, isLoading: assignmentsLoading } = useEventTeamAssignments();
 
   // Derive the UI-shaped team list from real Supabase rows
   const teamMembers: TeamMember[] = useMemo(
@@ -102,7 +104,14 @@ export default function EventsPage() {
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
   const [assignSheetOpen, setAssignSheetOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventWithClient | null>(null);
-  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
+  // Draft assignments held locally while the user picks members in the sheet.
+  // Persisted to DB on "Save Assignment" via useEventTeamAssignments.
+  const [draftAssignments, setDraftAssignments] = useState<Record<string, string[]>>({});
+  const assignments = useMemo(() => {
+    const fromDb = assignmentsByEvent();
+    // Overlay any in-flight draft edits so UI feels immediate
+    return { ...fromDb, ...draftAssignments };
+  }, [assignmentsByEvent, draftAssignments]);
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -214,14 +223,48 @@ export default function EventsPage() {
 
   const openAssignSheet = (event: EventWithClient) => { setSelectedEvent(event); setAssignSheetOpen(true); };
   const toggleMember = (eventId: string, memberId: string) => {
-    setAssignments(prev => { const current = prev[eventId] || []; const updated = current.includes(memberId) ? current.filter(id => id !== memberId) : [...current, memberId]; return { ...prev, [eventId]: updated }; });
+    setDraftAssignments(prev => {
+      const current = prev[eventId] ?? assignments[eventId] ?? [];
+      const updated = current.includes(memberId) ? current.filter(id => id !== memberId) : [...current, memberId];
+      return { ...prev, [eventId]: updated };
+    });
   };
-  const saveAssignment = () => { if (selectedEvent) { toast.success(`${assignments[selectedEvent.id]?.length || 0} members assigned to ${selectedEvent.name}`); } setAssignSheetOpen(false); };
+
+  const saveAssignment = async () => {
+    if (!selectedEvent) { setAssignSheetOpen(false); return; }
+    const memberIds = draftAssignments[selectedEvent.id] ?? assignments[selectedEvent.id] ?? [];
+    try {
+      await persistAssignments.mutateAsync({ eventId: selectedEvent.id, memberIds });
+      setDraftAssignments(prev => {
+        const { [selectedEvent.id]: _drop, ...rest } = prev;
+        return rest;
+      });
+      setAssignSheetOpen(false);
+    } catch {
+      // hook already toasts errors
+    }
+  };
+
   const toggleSelectEvent = (id: string) => setSelectedEvents(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
-  const handleBulkAssign = () => {
-    selectedEvents.forEach(id => { if (!assignments[id] || assignments[id].length === 0) setAssignments(prev => ({ ...prev, [id]: ["t1", "t2"] })); });
-    toast.success(`Assigned default team to ${selectedEvents.length} events`);
+  const handleBulkAssign = async () => {
+    // Assign the first two available team members to each selected event that has no team yet
+    const defaultIds = teamMembers.slice(0, 2).map(t => t.id);
+    if (defaultIds.length === 0) {
+      toast.error("Add team members first, then try again.");
+      return;
+    }
+    let count = 0;
+    for (const eventId of selectedEvents) {
+      const existing = assignments[eventId] ?? [];
+      if (existing.length === 0) {
+        try {
+          await persistAssignments.mutateAsync({ eventId, memberIds: defaultIds });
+          count++;
+        } catch { /* hook toasts errors */ }
+      }
+    }
+    if (count > 0) toast.success(`Assigned default team to ${count} event${count === 1 ? "" : "s"}`);
     setSelectedEvents([]);
   };
 
