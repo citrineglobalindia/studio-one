@@ -141,6 +141,7 @@ function ProtectedRoutes() {
       <Route path="/m" element={<RoleMobileLayout />}>
         <Route index element={<RoleDashboardPage />} />
         <Route path="projects" element={<RoleProjectsPage />} />
+        <Route path="projects/:projectId/event-day" element={<EventDayPage />} />
         <Route path="calendar" element={<RoleCalendarPage />} />
         <Route path="transactions" element={<RoleTransactionsPage />} />
         <Route path="expenses" element={<RoleExpensePage />} />

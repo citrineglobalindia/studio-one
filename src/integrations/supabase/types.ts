@@ -465,6 +465,87 @@ export type Database = {
           },
         ]
       }
+      event_activity: {
+        Row: {
+          activity_type: string
+          actor_name: string | null
+          created_at: string
+          event_id: string
+          id: string
+          note: string | null
+          organization_id: string
+          photo_url: string | null
+          status: string | null
+          team_member_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          actor_name?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          note?: string | null
+          organization_id: string
+          photo_url?: string | null
+          status?: string | null
+          team_member_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          actor_name?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+          photo_url?: string | null
+          status?: string | null
+          team_member_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      event_check_ins: {
+        Row: {
+          arrival_photo_url: string | null
+          arrival_time: string | null
+          created_at: string
+          event_id: string
+          id: string
+          organization_id: string
+          status: string
+          team_member_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          arrival_photo_url?: string | null
+          arrival_time?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          organization_id: string
+          status?: string
+          team_member_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          arrival_photo_url?: string | null
+          arrival_time?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          organization_id?: string
+          status?: string
+          team_member_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_team_assignments: {
         Row: {
           assigned_at: string
