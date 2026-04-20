@@ -44,7 +44,7 @@ export function useEvents() {
 
   const addEvent = useMutation({
     mutationFn: async (input: NewEventInput) => {
-      if (!orgId) throw new Error("No studio loaded");
+      if (!orgId) throw new Error("No studio loaded — please log out and log in again");
       const { data, error } = await supabase
         .from("events")
         .insert({ ...input, organization_id: orgId })
@@ -57,7 +57,14 @@ export function useEvents() {
       qc.invalidateQueries({ queryKey: ["events", orgId] });
       toast.success("Event added");
     },
-    onError: (e) => toast.error((e as Error).message || "Failed to add event"),
+    onError: (e) => {
+      const msg = (e as Error).message || "Failed to add event";
+      if (msg.toLowerCase().includes("row-level security") || msg.toLowerCase().includes("violates")) {
+        toast.error("Your session is out of sync. Log out and log back in.");
+      } else {
+        toast.error(msg);
+      }
+    },
   });
 
   const updateEvent = useMutation({

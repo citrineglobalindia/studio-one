@@ -43,6 +43,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Wipe any cross-user state so the next login starts clean
+    try {
+      localStorage.removeItem("sa_impersonate_org");
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith("sb-") || key.startsWith("supabase.auth"))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch { /* ignore */ }
+    // Force a clean reload so React Query caches + contexts reset
+    window.location.replace("/auth");
   };
 
   return (

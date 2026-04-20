@@ -68,22 +68,39 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Nuke any stale session + impersonation state from a previous account
+      // so OrgContext/RoleContext reload cleanly for the new user.
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch { /* ignore */ }
+      try {
+        localStorage.removeItem("sa_impersonate_org");
+        // Clear any supabase-auth-* entries that may be lingering
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith("sb-") || key.startsWith("supabase.auth"))) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch { /* ignore */ }
+
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      
+
       // Check if user is a super admin
       const { data: saData } = await supabase
         .from("super_admins")
         .select("id")
         .eq("user_id", data.user.id)
         .maybeSingle();
-      
+
       if (saData) {
         toast.success("Welcome back, Super Admin!");
-        navigate("/super-admin", { replace: true });
+        // Hard reload to ensure all React contexts re-initialize with the new session
+        window.location.replace("/super-admin");
       } else {
         toast.success("Welcome back!");
-        navigate("/", { replace: true });
+        window.location.replace("/");
       }
     } catch (error: any) {
       toast.error(error.message);
