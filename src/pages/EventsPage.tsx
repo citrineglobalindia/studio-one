@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import { CalendarDays, MapPin, Users, Clock, Filter, Search, UserPlus, X, Check, Plus, Download, LayoutGrid, List, ChevronRight, MoreVertical, Trash2, Eye, SlidersHorizontal, Pencil, Ban } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,6 +81,7 @@ const AnimatedNumber = ({ value, delay = 0 }: { value: number; delay?: number })
 };
 
 export default function EventsPage() {
+  const navigate = useNavigate();
   const { clients: dbClients } = useClients();
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers, isLoading: teamLoading } = useTeamMembers();
@@ -289,13 +291,23 @@ export default function EventsPage() {
     const afterSave = () => {
       setAddEventOpen(false);
       setEditingEventId(null);
+      const eventDate = newEvent.date;
       setNewEvent({ clientId: "", projectId: "", name: "", type: "wedding", date: "", startTime: "", endTime: "", venue: "", notes: "" });
+      // Offer a one-click jump to the Calendar on this event's date
+      if (!editingEventId) {
+        toast.success("Event added", {
+          action: {
+            label: "View in calendar",
+            onClick: () => navigate(`/calendar?date=${eventDate}`),
+          },
+        });
+      }
     };
 
     if (editingEventId) {
       updateEvent.mutate({ id: editingEventId, ...payload }, { onSuccess: afterSave });
     } else {
-      addEvent.mutate({ ...payload, project_id: null, status: "upcoming" }, { onSuccess: afterSave });
+      addEvent.mutate({ ...payload, project_id: newEvent.projectId || null, status: "upcoming" }, { onSuccess: afterSave });
     }
   };
 

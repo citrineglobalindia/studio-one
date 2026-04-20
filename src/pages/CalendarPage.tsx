@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useClients } from "@/hooks/useClients";
 import { useEvents } from "@/hooks/useEvents";
 import { useProjects } from "@/hooks/useProjects";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, MapPin, Users, Camera,
@@ -96,14 +96,38 @@ type ViewMode = "month" | "week" | "day";
 
 const CalendarPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { clients: dbClients } = useClients();
   const { events: dbEvents, addEvent } = useEvents();
   const { projects: dbProjects } = useProjects();
   const { members: dbTeamMembers } = useTeamMembers();
   const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // Initial month/year/selectedDate honors a ?date=YYYY-MM-DD query param
+  // so the Events page can deep-link to a specific event's day.
+  const initialDate = (() => {
+    const q = searchParams.get("date");
+    if (q) {
+      const d = new Date(q + "T00:00:00");
+      if (!isNaN(d.getTime())) return d;
+    }
+    return today;
+  })();
+  const [currentMonth, setCurrentMonth] = useState(initialDate.getMonth());
+  const [currentYear, setCurrentYear] = useState(initialDate.getFullYear());
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    searchParams.get("date") || null
+  );
+
+  // If the query param changes after mount, update the view
+  useEffect(() => {
+    const q = searchParams.get("date");
+    if (!q) return;
+    const d = new Date(q + "T00:00:00");
+    if (isNaN(d.getTime())) return;
+    setCurrentMonth(d.getMonth());
+    setCurrentYear(d.getFullYear());
+    setSelectedDate(q);
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
