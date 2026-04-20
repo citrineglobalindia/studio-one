@@ -440,6 +440,106 @@ export type Database = {
           },
         ]
       }
+      contracts: {
+        Row: {
+          body: string | null
+          clauses: Json | null
+          client_id: string | null
+          client_name: string
+          contract_amount: number | null
+          contract_number: string | null
+          created_at: string
+          created_by: string | null
+          event_date: string | null
+          event_type: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          project_id: string | null
+          sent_at: string | null
+          signed_at: string | null
+          signed_by_name: string | null
+          status: string
+          terms: string | null
+          title: string
+          updated_at: string
+          valid_until: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          body?: string | null
+          clauses?: Json | null
+          client_id?: string | null
+          client_name: string
+          contract_amount?: number | null
+          contract_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          project_id?: string | null
+          sent_at?: string | null
+          signed_at?: string | null
+          signed_by_name?: string | null
+          status?: string
+          terms?: string | null
+          title: string
+          updated_at?: string
+          valid_until?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          body?: string | null
+          clauses?: Json | null
+          client_id?: string | null
+          client_name?: string
+          contract_amount?: number | null
+          contract_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          project_id?: string | null
+          sent_at?: string | null
+          signed_at?: string | null
+          signed_by_name?: string | null
+          status?: string
+          terms?: string | null
+          title?: string
+          updated_at?: string
+          valid_until?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deliverables: {
         Row: {
           assigned_to: string | null
@@ -1745,6 +1845,91 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          assignee_name: string | null
+          assignee_role: string | null
+          category: string | null
+          comments: Json | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          organization_id: string
+          priority: string
+          progress: number | null
+          project_id: string | null
+          status: string
+          subtasks: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          assignee_role?: string | null
+          category?: string | null
+          comments?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          organization_id: string
+          priority?: string
+          progress?: number | null
+          project_id?: string | null
+          status?: string
+          subtasks?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          assignee_role?: string | null
+          category?: string | null
+          comments?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          organization_id?: string
+          priority?: string
+          progress?: number | null
+          project_id?: string | null
+          status?: string
+          subtasks?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {

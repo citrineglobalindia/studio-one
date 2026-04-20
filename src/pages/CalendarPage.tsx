@@ -126,21 +126,6 @@ const CalendarPage = () => {
   });
 
   const baseEvents: CalendarEvent[] = useMemo(() => {
-    const projectEvents = sampleProjects.flatMap((project) =>
-      project.subEvents.map((se) => ({
-        id: se.id,
-        projectId: project.id,
-        clientLabel: `${project.clientName} & ${project.partnerName}`,
-        subEventName: se.name,
-        date: se.date,
-        location: se.location,
-        status: se.status,
-        teamCount: se.assignedTeam.length,
-        team: se.assignedTeam.map((t) => ({ name: t.name, role: t.role })),
-        category: getCategory(se.name),
-      }))
-    );
-
     // Add DB client event dates
     const clientEvents: CalendarEvent[] = dbClients
       .filter((c) => c.event_date)
@@ -182,7 +167,7 @@ const CalendarPage = () => {
       };
     });
 
-    return [...projectEvents, ...clientEvents, ...savedEvents];
+    return [...clientEvents, ...savedEvents];
   }, [dbClients, dbEvents]);
 
   const allEvents = useMemo(() => [...baseEvents, ...customEvents], [baseEvents, customEvents]);
