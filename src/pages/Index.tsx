@@ -27,6 +27,7 @@ import { TelecallerDashboard } from "@/components/dashboards/TelecallerDashboard
 import { VendorDashboard } from "@/components/dashboards/VendorDashboard";
 import { HRDashboardRole } from "@/components/dashboards/HRDashboardRole";
 import { AccountsDashboard } from "@/components/dashboards/AccountsDashboard";
+import { LiveOpsCard } from "@/components/dashboards/LiveOpsCard";
 
 const today = new Date();
 
@@ -301,6 +302,11 @@ const Index = () => {
           );
         })}
       </div>
+
+      {/* ═══ Live Operations (realtime crew + deliverable + expense feed) ═══ */}
+      <motion.div variants={cardVariants}>
+        <LiveOpsCard limit={10} />
+      </motion.div>
 
       {/* ═══ Main Content Grid ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
