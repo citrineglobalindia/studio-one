@@ -197,6 +197,85 @@ export type Database = {
         }
         Relationships: []
       }
+      call_logs: {
+        Row: {
+          called_at: string
+          caller_id: string | null
+          client_id: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          id: string
+          lead_id: string | null
+          next_action: string | null
+          next_action_date: string | null
+          notes: string | null
+          organization_id: string
+          outcome: string
+          updated_at: string
+        }
+        Insert: {
+          called_at?: string
+          caller_id?: string | null
+          client_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          id?: string
+          lead_id?: string | null
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          organization_id: string
+          outcome?: string
+          updated_at?: string
+        }
+        Update: {
+          called_at?: string
+          caller_id?: string | null
+          client_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          id?: string
+          lead_id?: string | null
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          organization_id?: string
+          outcome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_process_steps: {
         Row: {
           client_id: string

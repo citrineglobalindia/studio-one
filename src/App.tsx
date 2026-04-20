@@ -20,6 +20,7 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import LeadsPage from "./pages/LeadsPage";
+import CallLogsPage from "./pages/CallLogsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
@@ -106,6 +107,7 @@ function ProtectedRoutes() {
       <Route element={<RoleLayoutWrapper />}>
         <Route path="/" element={<Index />} />
         <Route path="/leads" element={<LeadsPage />} />
+        <Route path="/call-logs" element={<CallLogsPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/quotations" element={<QuotationsPage />} />
