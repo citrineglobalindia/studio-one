@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import { useInvoices, type InvoiceRow } from "@/hooks/useInvoices";
+import { DocumentBuilder } from "@/components/documents/DocumentBuilder";
+import type { DocumentLineItem } from "@/components/documents/DocumentTemplate";
+import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { useOrg } from "@/contexts/OrgContext";
@@ -44,6 +47,7 @@ const InvoicesPage = () => {
   const [recordPaymentOpen, setRecordPaymentOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceRow | null>(null);
   const [viewInvoice, setViewInvoice] = useState<InvoiceRow | null>(null);
+  const [pdfInvoice, setPdfInvoice] = useState<InvoiceRow | null>(null);
 
   // Create form
   const [newClient, setNewClient] = useState("");
@@ -442,8 +446,8 @@ const InvoicesPage = () => {
                     <IndianRupee className="h-3.5 w-3.5 mr-1" /> Record Payment
                   </Button>
                 )}
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => toast.success("Invoice PDF downloaded")}>
-                  <Download className="h-3.5 w-3.5 mr-1" /> Download
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setPdfInvoice(viewInvoice); setViewInvoice(null); }}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> PDF
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => toast.success("Copied invoice link")}>
                   <Copy className="h-3.5 w-3.5" />
@@ -453,6 +457,39 @@ const InvoicesPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {pdfInvoice && (
+        <DocumentBuilder
+          open={!!pdfInvoice}
+          onOpenChange={(o) => !o && setPdfInvoice(null)}
+          initialData={{
+            kind: "invoice",
+            documentNumber: pdfInvoice.invoice_number,
+            title: pdfInvoice.project_name || `Invoice for ${pdfInvoice.client_name}`,
+            issueDate: pdfInvoice.created_at,
+            dueDate: pdfInvoice.due_date,
+            status: pdfInvoice.status,
+            clientName: pdfInvoice.client_name,
+            lineItems: (Array.isArray(pdfInvoice.items) ? pdfInvoice.items : []).map((it: any): DocumentLineItem => ({
+              name: it.name || it.description || "Item",
+              qty: Number(it.qty ?? it.quantity ?? 1),
+              unit_price: Number(it.price ?? it.unit_price ?? 0),
+              amount: it.amount ? Number(it.amount) : undefined,
+            })),
+            taxPercent: pdfInvoice.tax_percent,
+            discountValue: pdfInvoice.discount_value,
+            discountType: (pdfInvoice.discount_type as any) || null,
+            totalAmount: Number(pdfInvoice.total_amount || 0),
+            amountPaid: Number(pdfInvoice.amount_paid || 0),
+            notes: pdfInvoice.notes,
+            terms: pdfInvoice.payment_terms,
+            coverImageUrl: (pdfInvoice as any).cover_image_url || null,
+          }}
+          onPersistCover={async (url) => {
+            await supabase.from("invoices").update({ cover_image_url: url }).eq("id", pdfInvoice.id);
+          }}
+        />
+      )}
     </div>
   );
 };

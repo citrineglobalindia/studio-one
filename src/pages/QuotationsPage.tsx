@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuotations } from "@/hooks/useQuotations";
+import { DocumentBuilder } from "@/components/documents/DocumentBuilder";
+import type { DocumentLineItem } from "@/components/documents/DocumentTemplate";
+import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { useLeads } from "@/hooks/useLeads";
 import { useOrg } from "@/contexts/OrgContext";
@@ -151,6 +154,7 @@ export default function QuotationsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedPkg, setSelectedPkg] = useState<StudioPackage | null>(null);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
+  const [pdfQuotation, setPdfQuotation] = useState<any | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -700,6 +704,9 @@ export default function QuotationsPage() {
 
                 {/* Actions */}
                 <div className="space-y-2">
+                  <Button variant="outline" className="w-full rounded-xl gap-2" onClick={() => { setPdfQuotation(q); setSelectedQuotation(null); }}>
+                    <FileText className="h-4 w-4" /> Generate PDF
+                  </Button>
                   {q.status === "draft" && (
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1 rounded-xl gap-2" onClick={() => handleStatusChange(q.id, "sent")}>
@@ -1090,6 +1097,40 @@ export default function QuotationsPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {pdfQuotation && (
+        <DocumentBuilder
+          open={!!pdfQuotation}
+          onOpenChange={(o) => !o && setPdfQuotation(null)}
+          initialData={{
+            kind: "quotation",
+            documentNumber: pdfQuotation.quotationNumber || pdfQuotation.quotation_number || pdfQuotation.id?.slice(0, 8) || "Q",
+            title: pdfQuotation.title || `Quotation for ${pdfQuotation.client}`,
+            issueDate: pdfQuotation.createdAt || pdfQuotation.created_at || new Date().toISOString(),
+            validUntil: pdfQuotation.validUntil || pdfQuotation.valid_until,
+            status: pdfQuotation.status,
+            clientName: pdfQuotation.client || pdfQuotation.client_name,
+            clientPhone: pdfQuotation.clientPhone || null,
+            lineItems: (pdfQuotation.items || []).map((it: any): DocumentLineItem => ({
+              name: it.name || it.description || "Item",
+              qty: Number(it.qty ?? it.quantity ?? 1),
+              unit_price: Number(it.price ?? it.unit_price ?? it.amount ?? 0),
+              amount: it.amount ? Number(it.amount) : undefined,
+            })),
+            discountValue: pdfQuotation.discount || pdfQuotation.discount_value || null,
+            discountType: "flat",
+            totalAmount: Number(pdfQuotation.finalAmount || pdfQuotation.total_amount || pdfQuotation.totalAmount || 0),
+            notes: pdfQuotation.notes,
+            terms: pdfQuotation.customTerms || pdfQuotation.terms,
+            coverImageUrl: pdfQuotation.cover_image_url || null,
+          }}
+          onPersistCover={async (url) => {
+            if (pdfQuotation.id) {
+              await supabase.from("quotations").update({ cover_image_url: url } as any).eq("id", pdfQuotation.id);
+            }
+          }}
+        />
+      )}
     </motion.div>
   );
 }

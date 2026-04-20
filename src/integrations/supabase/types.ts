@@ -448,6 +448,7 @@ export type Database = {
           client_name: string
           contract_amount: number | null
           contract_number: string | null
+          cover_image_url: string | null
           created_at: string
           created_by: string | null
           event_date: string | null
@@ -473,6 +474,7 @@ export type Database = {
           client_name: string
           contract_amount?: number | null
           contract_number?: string | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           event_date?: string | null
@@ -498,6 +500,7 @@ export type Database = {
           client_name?: string
           contract_amount?: number | null
           contract_number?: string | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           event_date?: string | null
@@ -941,6 +944,7 @@ export type Database = {
           amount_paid: number
           client_id: string | null
           client_name: string
+          cover_image_url: string | null
           created_at: string
           discount_type: string | null
           discount_value: number | null
@@ -963,6 +967,7 @@ export type Database = {
           amount_paid?: number
           client_id?: string | null
           client_name: string
+          cover_image_url?: string | null
           created_at?: string
           discount_type?: string | null
           discount_value?: number | null
@@ -985,6 +990,7 @@ export type Database = {
           amount_paid?: number
           client_id?: string | null
           client_name?: string
+          cover_image_url?: string | null
           created_at?: string
           discount_type?: string | null
           discount_value?: number | null
@@ -1552,6 +1558,7 @@ export type Database = {
         Row: {
           client_id: string | null
           client_name: string
+          cover_image_url: string | null
           created_at: string
           discount_type: string | null
           discount_value: number | null
@@ -1573,6 +1580,7 @@ export type Database = {
         Insert: {
           client_id?: string | null
           client_name: string
+          cover_image_url?: string | null
           created_at?: string
           discount_type?: string | null
           discount_value?: number | null
@@ -1594,6 +1602,7 @@ export type Database = {
         Update: {
           client_id?: string | null
           client_name?: string
+          cover_image_url?: string | null
           created_at?: string
           discount_type?: string | null
           discount_value?: number | null

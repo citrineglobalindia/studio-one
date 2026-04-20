@@ -19,8 +19,10 @@ import {
   FileText, Plus, Search, Loader2, Trash2, Calendar, IndianRupee, Send, CheckCircle2,
 } from "lucide-react";
 import { format } from "date-fns";
-import { useContracts, ContractStatus } from "@/hooks/useContracts";
+import { useContracts, ContractStatus, ContractRow } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
+import { DocumentBuilder } from "@/components/documents/DocumentBuilder";
+import { supabase } from "@/integrations/supabase/client";
 
 const STATUS_LABELS: Record<ContractStatus, string> = {
   draft: "Draft",
@@ -46,6 +48,7 @@ export default function ContractsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pdfContract, setPdfContract] = useState<ContractRow | null>(null);
   const [form, setForm] = useState({
     title: "",
     client_id: "",
@@ -203,6 +206,9 @@ export default function ContractsPage() {
                       {c.body && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{c.body}</p>}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Button size="sm" variant="outline" onClick={() => setPdfContract(c)} className="h-7 gap-1">
+                        <FileText className="h-3 w-3" /> PDF
+                      </Button>
                       {c.status === "draft" && (
                         <Button size="sm" variant="outline" onClick={() => markSent(c.id)} className="h-7 gap-1">
                           <Send className="h-3 w-3" /> Send
@@ -296,6 +302,32 @@ export default function ContractsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pdfContract && (
+        <DocumentBuilder
+          open={!!pdfContract}
+          onOpenChange={(o) => !o && setPdfContract(null)}
+          initialData={{
+            kind: "contract",
+            documentNumber: pdfContract.contract_number || pdfContract.id.slice(0, 8),
+            title: pdfContract.title,
+            issueDate: pdfContract.created_at,
+            validUntil: pdfContract.valid_until,
+            status: pdfContract.status,
+            clientName: pdfContract.client_name,
+            eventType: pdfContract.event_type,
+            eventDate: pdfContract.event_date,
+            totalAmount: Number(pdfContract.contract_amount || 0),
+            body: pdfContract.body,
+            terms: pdfContract.terms,
+            notes: pdfContract.notes,
+            coverImageUrl: (pdfContract as any).cover_image_url || null,
+          }}
+          onPersistCover={async (url) => {
+            await supabase.from("contracts").update({ cover_image_url: url }).eq("id", pdfContract.id);
+          }}
+        />
+      )}
     </div>
   );
 }
