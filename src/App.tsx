@@ -11,7 +11,13 @@ import { RoleLayoutWrapper } from "@/components/RoleLayoutWrapper";
 import NotFound from "./pages/NotFound.tsx";
 import Index from "./pages/Index.tsx";
 import AuthPage from "./pages/AuthPage";
-import LandingPage from "./pages/LandingPage";
+import LandingLayout from "./pages/landing/LandingLayout";
+import LandingHome from "./pages/landing/Home";
+import LandingFeatures from "./pages/landing/Features";
+import LandingPricing from "./pages/landing/Pricing";
+import LandingTestimonials from "./pages/landing/Testimonials";
+import LandingAbout from "./pages/landing/About";
+import LandingContact from "./pages/landing/Contact";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
 
@@ -184,7 +190,14 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <Routes>
-                  <Route path="/landing" element={<LandingPage />} />
+                  <Route path="/landing" element={<LandingLayout />}>
+                    <Route index element={<LandingHome />} />
+                    <Route path="features" element={<LandingFeatures />} />
+                    <Route path="pricing" element={<LandingPricing />} />
+                    <Route path="testimonials" element={<LandingTestimonials />} />
+                    <Route path="about" element={<LandingAbout />} />
+                    <Route path="contact" element={<LandingContact />} />
+                  </Route>
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/auth" element={<AuthRoute />} />
