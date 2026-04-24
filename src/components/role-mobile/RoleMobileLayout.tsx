@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Home, Briefcase, Calendar, Wallet, Settings as Cog, MessageCircle } from "lucide-react";
+import { Bell, Home, Briefcase, Calendar, Wallet, Settings as Cog, MessageCircle, Film } from "lucide-react";
 import { useRole, ALL_ROLES } from "@/contexts/RoleContext";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,14 @@ const EVENT_ROLES = new Set(["photographer", "videographer", "editor", "vendor"]
 
 const buildNavItems = (role: string) => {
   const isEventRole = EVENT_ROLES.has(role);
+  const isEditor = role === "editor";
   return [
     { icon: Home, label: "Home", path: "/m" },
     { icon: Briefcase, label: isEventRole ? "Events" : "Projects", path: "/m/projects" },
-    { icon: Calendar, label: "Calendar", path: "/m/calendar" },
+    // Editor's primary workspace is deliverables — promote it into the bottom nav
+    isEditor
+      ? { icon: Film, label: "Edits", path: "/m/deliverables" }
+      : { icon: Calendar, label: "Calendar", path: "/m/calendar" },
     { icon: Wallet, label: "Money", path: "/m/transactions" },
     { icon: Cog, label: "Settings", path: "/m/settings" },
   ];

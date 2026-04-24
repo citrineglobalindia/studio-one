@@ -546,14 +546,17 @@ export type Database = {
       deliverables: {
         Row: {
           assigned_to: string | null
+          client_id: string | null
           created_at: string
           deliverable_type: string
           delivered_date: string | null
           due_date: string | null
+          event_id: string | null
           id: string
           notes: string | null
           organization_id: string
           priority: string | null
+          progress: number | null
           project_id: string
           status: string
           title: string | null
@@ -561,14 +564,17 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          client_id?: string | null
           created_at?: string
           deliverable_type?: string
           delivered_date?: string | null
           due_date?: string | null
+          event_id?: string | null
           id?: string
           notes?: string | null
           organization_id: string
           priority?: string | null
+          progress?: number | null
           project_id: string
           status?: string
           title?: string | null
@@ -576,20 +582,37 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          client_id?: string | null
           created_at?: string
           deliverable_type?: string
           delivered_date?: string | null
           due_date?: string | null
+          event_id?: string | null
           id?: string
           notes?: string | null
           organization_id?: string
           priority?: string | null
+          progress?: number | null
           project_id?: string
           status?: string
           title?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deliverables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deliverables_organization_id_fkey"
             columns: ["organization_id"]

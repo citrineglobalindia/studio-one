@@ -64,6 +64,7 @@ import { RoleMobileLayout } from "@/components/role-mobile/RoleMobileLayout";
 import RoleDashboardPage from "./pages/role-mobile/RoleDashboardPage";
 import RoleProjectsPage from "./pages/role-mobile/RoleProjectsPage";
 import RoleCalendarPage from "./pages/role-mobile/RoleCalendarPage";
+import RoleDeliverablesPage from "./pages/role-mobile/RoleDeliverablesPage";
 import RoleTransactionsPage from "./pages/role-mobile/RoleTransactionsPage";
 import RoleAttendancePage from "./pages/role-mobile/RoleAttendancePage";
 import RoleChatPage from "./pages/role-mobile/RoleChatPage";
@@ -153,6 +154,7 @@ function ProtectedRoutes() {
         <Route index element={<RoleDashboardPage />} />
         <Route path="projects" element={<RoleProjectsPage />} />
         <Route path="projects/:projectId/event-day" element={<EventDayPage />} />
+        <Route path="deliverables" element={<RoleDeliverablesPage />} />
         <Route path="calendar" element={<RoleCalendarPage />} />
         <Route path="transactions" element={<RoleTransactionsPage />} />
         <Route path="expenses" element={<RoleExpensePage />} />
