@@ -64,8 +64,7 @@ const operationsItems: SidebarItem[] = [
   { title: "Calendar", url: "/calendar", icon: CalendarDays, module: "calendar" },
   { title: "Tasks", url: "/tasks", icon: Zap, module: "tasks" },
   { title: "Process Planner", url: "/process-planner", icon: ClipboardList, module: "process-planner" },
-  { title: "Team", url: "/team", icon: UsersRound, module: "team" },
-  { title: "Members", url: "/members", icon: Shield, module: "members" },
+  { title: "Users", url: "/team", icon: UsersRound, module: "team" },
   { title: "Vendor Orders", url: "/vendor-orders", icon: Package, module: "vendor-orders" },
 ];
 

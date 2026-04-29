@@ -19,7 +19,7 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
 export type AppModule =
   | "dashboard" | "leads" | "call-logs" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
-  | "team" | "vendor-orders" | "members"
+  | "team" | "vendor-orders"
   | "invoices" | "contracts" | "payment-requests"
   | "communications" | "marketing" | "analytics" | "automation"
   | "ai-assistant" | "ai-selection"
@@ -39,8 +39,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "calendar", label: "Calendar", group: "Operations" },
   { value: "tasks", label: "Tasks", group: "Operations" },
   { value: "process-planner", label: "Process Planner", group: "Operations" },
-  { value: "team", label: "Team", group: "Operations" },
-  { value: "members", label: "Studio Members", group: "Operations" },
+  { value: "team", label: "Users", group: "Operations" },
   { value: "vendor-orders", label: "Vendor Orders", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
@@ -67,7 +66,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   manager: [
     "dashboard", "leads", "call-logs", "clients", "quotations",
     "live-clients", "projects", "events", "albums", "calendar", "tasks", "process-planner",
-    "team", "members", "vendor-orders",
+    "team", "vendor-orders",
     "invoices", "contracts", "payment-requests",
     "communications", "marketing", "analytics",
     "notifications", "profile",

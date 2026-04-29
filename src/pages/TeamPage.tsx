@@ -1,384 +1,1028 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import {
+  Users, UserPlus, Mail, Phone, Shield, Smartphone, Monitor, BadgeCheck,
+  MoreVertical, Trash2, Edit3, Loader2, Search, Star, IndianRupee, Zap,
+  Camera, Video, LayoutGrid, List, KeyRound, Send,
+} from "lucide-react";
+
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
+import { useRole, ALL_ROLES, type AppRole } from "@/contexts/RoleContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Camera, Video, Edit3, Users, Phone, Plus, UserPlus, Mail, MapPin, CreditCard,
-  IndianRupee, Heart, ChevronDown, ChevronUp, Search, Filter,
-  LayoutGrid, List, Star, Clock, CheckCircle2, SlidersHorizontal,
-  Zap, Award,
-} from "lucide-react";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
-import { useTeamMembers, type TeamMemberDB } from "@/hooks/useTeamMembers";
-import { useOrg } from "@/contexts/OrgContext";
 
-const roleIcons: Record<string, typeof Camera> = {
-  photographer: Camera, videographer: Video, editor: Edit3, "drone-operator": Camera, drone_operator: Camera, assistant: Users, manager: Users,
-};
-const roleColors: Record<string, string> = {
-  photographer: "bg-blue-500/20 text-blue-400", videographer: "bg-purple-500/20 text-purple-400",
-  editor: "bg-emerald-500/20 text-emerald-400", "drone-operator": "bg-orange-500/20 text-orange-400",
-  drone_operator: "bg-orange-500/20 text-orange-400", assistant: "bg-muted text-muted-foreground",
-  manager: "bg-primary/20 text-primary",
-};
-const allRoles = [
-  { value: "photographer", label: "Photographer" }, { value: "videographer", label: "Videographer" },
-  { value: "editor", label: "Editor" }, { value: "drone_operator", label: "Drone Operator" },
-  { value: "assistant", label: "Assistant" }, { value: "manager", label: "Manager" },
-];
+// ─── Types ────────────────────────────────────────────────────────────────
+type Surface = "web" | "pwa" | "both";
+type UserRole = AppRole | "owner";
 
-const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } } } as const;
-const cardVariants = { hidden: { opacity: 0, y: 20, scale: 0.97 }, visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 220, damping: 22 } } };
+/** Unified user row — joins organization_members + team_members + profiles. */
+interface StudioUser {
+  // org membership (RBAC)
+  member_id: string | null;          // organization_members.id
+  user_id: string | null;            // auth.users.id
+  org_role: UserRole | null;
+  login_surface: Surface;
+  invited_email: string | null;
 
-const AnimatedNumber = ({ value, delay = 0 }: { value: number; delay?: number }) => {
-  const ref = useRef<HTMLSpanElement>(null);
-  const motionVal = useMotionValue(0);
-  const rounded = useTransform(motionVal, (v) => Math.round(v));
-  const isInView = useInView(ref, { once: true });
-  useEffect(() => { if (isInView) { const c = animate(motionVal, value, { duration: 1.2, delay, ease: [0.25, 0.1, 0.25, 1] }); return c.stop; } }, [isInView, motionVal, value, delay]);
-  useEffect(() => { const unsub = rounded.on("change", (v) => { if (ref.current) ref.current.textContent = `${v}`; }); return unsub; }, [rounded]);
-  return <span ref={ref}>0</span>;
-};
-
-const initialForm = {
-  name: "", phone: "", email: "", role: "photographer", daily_rate: "",
-  experience_years: "", specialties: "", notes: "",
-};
-
-function FormSection({ title, icon: Icon, children, defaultOpen = true }: { title: string; icon: typeof Camera; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border border-border/50 rounded-xl overflow-hidden">
-      <button type="button" onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors">
-        <Icon className="h-4 w-4 text-primary" />
-        <span className="text-xs font-semibold text-foreground uppercase tracking-wider flex-1 text-left">{title}</span>
-        {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-      </button>
-      {open && <div className="p-4 space-y-4">{children}</div>}
-    </div>
-  );
+  // team profile (operational)
+  team_member_id: string | null;     // team_members.id
+  full_name: string;
+  role: AppRole;                     // canonical operational role
+  email: string | null;
+  phone: string | null;
+  daily_rate: number;
+  experience_years: number;
+  specialties: string[];
+  rating: number;
+  availability: string;
+  notes: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
 }
 
-const TeamPage = () => {
+interface UserForm {
+  email: string;
+  display_name: string;
+  role: AppRole;
+  login_surface: Surface;
+  send_invite: boolean;
+  phone: string;
+  daily_rate: string;
+  experience_years: string;
+  specialties: string;
+  notes: string;
+}
+
+const blankForm: UserForm = {
+  email: "",
+  display_name: "",
+  role: "photographer",
+  login_surface: "both",
+  send_invite: true,
+  phone: "",
+  daily_rate: "",
+  experience_years: "",
+  specialties: "",
+  notes: "",
+};
+
+const SURFACE_META: Record<Surface, { label: string; short: string; icon: typeof Monitor; color: string }> = {
+  web: { label: "Web only", short: "Web", icon: Monitor, color: "text-sky-500 bg-sky-500/10 border-sky-500/30" },
+  pwa: { label: "Mobile only", short: "Mobile", icon: Smartphone, color: "text-violet-500 bg-violet-500/10 border-violet-500/30" },
+  both: { label: "Web + Mobile", short: "Both", icon: BadgeCheck, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/30" },
+};
+
+const ROLE_BADGE: Record<string, string> = {
+  owner: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  admin: "bg-primary/15 text-primary border-primary/30",
+  manager: "bg-blue-500/15 text-blue-500 border-blue-500/30",
+  hr: "bg-cyan-500/15 text-cyan-500 border-cyan-500/30",
+  accounts: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  photographer: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  videographer: "bg-rose-500/15 text-rose-500 border-rose-500/30",
+  editor: "bg-purple-500/15 text-purple-500 border-purple-500/30",
+  telecaller: "bg-green-500/15 text-green-500 border-green-500/30",
+  vendor: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+};
+
+const ROLE_ICON: Record<string, typeof Camera> = {
+  photographer: Camera,
+  videographer: Video,
+  editor: Edit3,
+};
+
+// ─── Edge function caller ─────────────────────────────────────────────────
+async function callManageMember(token: string, body: Record<string, unknown>) {
+  const url =
+    (import.meta.env.VITE_SUPABASE_URL || "https://tivlznrjwtdtjmmfrczo.supabase.co") +
+    "/functions/v1/manage-member";
+  const anon =
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    "";
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      apikey: anon,
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(json.error || `HTTP ${resp.status}`);
+  return json;
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────
+export default function TeamPage() {
+  const { user } = useAuth();
   const { organization } = useOrg();
-  const { members, isLoading, addMember, deleteMember } = useTeamMembers();
-  const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState(initialForm);
+  const { isAdmin, currentRole } = useRole();
+  const qc = useQueryClient();
+  const orgId = organization?.id;
+
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterSurface, setFilterSurface] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [activeTab, setActiveTab] = useState("all");
-  const [detailMember, setDetailMember] = useState<TeamMemberDB | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<StudioUser | null>(null);
+  const [detail, setDetail] = useState<StudioUser | null>(null);
+  const [form, setForm] = useState<UserForm>(blankForm);
+
+  const canManage = isAdmin || currentRole === "manager";
+
+  const { data: studioUsers = [], isLoading } = useQuery({
+    queryKey: ["studio-users", orgId],
+    enabled: !!orgId,
+    queryFn: async (): Promise<StudioUser[]> => {
+      // Pull both tables in parallel + profiles, then merge by (user_id, team_member_id).
+      const [membersRes, teamRes] = await Promise.all([
+        supabase
+          .from("organization_members")
+          .select("id, user_id, role, login_surface, invited_email")
+          .eq("organization_id", orgId!),
+        supabase
+          .from("team_members")
+          .select("*")
+          .eq("organization_id", orgId!),
+      ]);
+
+      if (membersRes.error) throw membersRes.error;
+      if (teamRes.error) throw teamRes.error;
+
+      const members = membersRes.data || [];
+      const teams = teamRes.data || [];
+
+      const userIds = [...new Set([
+        ...members.map((m) => m.user_id).filter(Boolean),
+        ...teams.map((t) => t.user_id).filter(Boolean),
+      ])];
+
+      const { data: profs } = userIds.length
+        ? await supabase
+            .from("profiles")
+            .select("user_id, display_name, avatar_url")
+            .in("user_id", userIds)
+        : { data: [] as { user_id: string; display_name: string | null; avatar_url: string | null }[] };
+
+      const profMap = new Map((profs || []).map((p) => [p.user_id, p]));
+      const memberMap = new Map(members.filter((m) => m.user_id).map((m) => [m.user_id, m]));
+      const teamByUser = new Map(teams.filter((t) => t.user_id).map((t) => [t.user_id, t]));
+      const usedTeamIds = new Set<string>();
+
+      const rows: StudioUser[] = [];
+
+      // 1) every org member — join with team profile if linked
+      for (const m of members) {
+        if (!m.user_id) continue;
+        const t = teamByUser.get(m.user_id);
+        const p = profMap.get(m.user_id);
+        if (t) usedTeamIds.add(t.id);
+        rows.push({
+          member_id: m.id,
+          user_id: m.user_id,
+          org_role: (m.role as UserRole) ?? null,
+          login_surface: ((m.login_surface as Surface) || "both"),
+          invited_email: m.invited_email ?? null,
+          team_member_id: t?.id ?? null,
+          full_name: t?.full_name || p?.display_name || m.invited_email || "Unknown",
+          role: ((t?.role as AppRole) || (m.role as AppRole) || "vendor"),
+          email: t?.email || m.invited_email || null,
+          phone: t?.phone || null,
+          daily_rate: Number(t?.daily_rate || 0),
+          experience_years: Number(t?.experience_years || 0),
+          specialties: (t?.specialties as string[]) || [],
+          rating: Number(t?.rating || 0),
+          availability: (t?.availability as string) || "available",
+          notes: t?.notes || null,
+          display_name: p?.display_name || null,
+          avatar_url: p?.avatar_url || null,
+        });
+      }
+
+      // 2) team members without auth (contractors) — show with "no login" badge
+      for (const t of teams) {
+        if (t.user_id && memberMap.has(t.user_id)) continue; // already included above
+        if (usedTeamIds.has(t.id)) continue;
+        rows.push({
+          member_id: null,
+          user_id: t.user_id || null,
+          org_role: null,
+          login_surface: "both",
+          invited_email: null,
+          team_member_id: t.id,
+          full_name: t.full_name,
+          role: t.role as AppRole,
+          email: t.email,
+          phone: t.phone,
+          daily_rate: Number(t.daily_rate || 0),
+          experience_years: Number(t.experience_years || 0),
+          specialties: (t.specialties as string[]) || [],
+          rating: Number(t.rating || 0),
+          availability: t.availability || "available",
+          notes: t.notes,
+        });
+      }
+
+      return rows.sort((a, b) => a.full_name.localeCompare(b.full_name));
+    },
+  });
 
   const filtered = useMemo(() => {
-    return members.filter((m) => {
-      const matchSearch = `${m.full_name} ${m.phone || ""} ${m.email || ""}`.toLowerCase().includes(search.toLowerCase());
-      const matchRole = filterRole === "all" || m.role === filterRole;
-      return matchSearch && matchRole;
+    return studioUsers.filter((u) => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || `${u.full_name} ${u.email || ""} ${u.phone || ""} ${u.role}`.toLowerCase().includes(q);
+      const matchRole = filterRole === "all" || u.role === filterRole;
+      const matchSurface = filterSurface === "all" || u.login_surface === filterSurface;
+      return matchSearch && matchRole && matchSurface;
     });
-  }, [members, search, filterRole]);
+  }, [studioUsers, search, filterRole, filterSurface]);
 
-  const totalMembers = members.length;
-  const availableCount = members.filter((m) => m.availability === "available").length;
-  const busyCount = members.filter((m) => m.availability === "busy").length;
+  const totals = useMemo(() => ({
+    total: studioUsers.length,
+    withLogin: studioUsers.filter((u) => !!u.user_id).length,
+    web: studioUsers.filter((u) => u.user_id && u.login_surface === "web").length,
+    pwa: studioUsers.filter((u) => u.user_id && u.login_surface === "pwa").length,
+    both: studioUsers.filter((u) => u.user_id && u.login_surface === "both").length,
+  }), [studioUsers]);
 
-  const availColors: Record<string, string> = { available: "bg-emerald-500", busy: "bg-red-500", partial: "bg-amber-500", unavailable: "bg-muted-foreground" };
-  const availLabels: Record<string, string> = { available: "Available", busy: "Busy", partial: "Partial", unavailable: "Unavailable" };
+  const inviteMut = useMutation({
+    mutationFn: async (payload: UserForm) => {
+      if (!orgId) throw new Error("No studio loaded");
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      return callManageMember(token, {
+        action: "invite",
+        organization_id: orgId,
+        email: payload.email.trim() || undefined,
+        display_name: payload.display_name.trim() || undefined,
+        role: payload.role,
+        login_surface: payload.login_surface,
+        send_invite: payload.send_invite,
+        phone: payload.phone.trim() || null,
+        daily_rate: payload.daily_rate ? Number(payload.daily_rate) : null,
+        experience_years: payload.experience_years ? Number(payload.experience_years) : null,
+        specialties: payload.specialties
+          ? payload.specialties.split(",").map((s) => s.trim()).filter(Boolean)
+          : null,
+        notes: payload.notes.trim() || null,
+      });
+    },
+    onSuccess: (res) => {
+      const msg = res.has_login
+        ? res.was_existing_user
+          ? "Existing user attached to studio."
+          : "User invited — password reset email sent."
+        : "Contractor record added (no login).";
+      toast.success(msg);
+      qc.invalidateQueries({ queryKey: ["studio-users", orgId] });
+      qc.invalidateQueries({ queryKey: ["team_members", orgId] }); // legacy hook
+      setAddOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
-  const updateForm = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const updateMut = useMutation({
+    mutationFn: async (vars: {
+      memberId: string | null;
+      teamMemberId: string | null;
+      role: AppRole;
+      surface: Surface;
+      patch: Partial<UserForm>;
+    }) => {
+      if (!orgId) throw new Error("No studio loaded");
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      return callManageMember(token, {
+        action: "update",
+        organization_id: orgId,
+        member_id: vars.memberId,
+        team_member_id: vars.teamMemberId,
+        role: vars.role,
+        login_surface: vars.surface,
+        display_name: vars.patch.display_name?.trim() || undefined,
+        phone: vars.patch.phone !== undefined ? (vars.patch.phone.trim() || null) : undefined,
+        daily_rate: vars.patch.daily_rate !== undefined
+          ? (vars.patch.daily_rate ? Number(vars.patch.daily_rate) : null)
+          : undefined,
+        experience_years: vars.patch.experience_years !== undefined
+          ? (vars.patch.experience_years ? Number(vars.patch.experience_years) : null)
+          : undefined,
+        specialties: vars.patch.specialties !== undefined
+          ? (vars.patch.specialties.split(",").map((s) => s.trim()).filter(Boolean))
+          : undefined,
+        notes: vars.patch.notes !== undefined ? (vars.patch.notes.trim() || null) : undefined,
+      });
+    },
+    onSuccess: () => {
+      toast.success("User updated");
+      qc.invalidateQueries({ queryKey: ["studio-users", orgId] });
+      qc.invalidateQueries({ queryKey: ["team_members", orgId] });
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
-  const handleAdd = () => {
-    if (!form.name.trim() || !organization?.id) { toast.error("Name is required"); return; }
-    addMember.mutate({
-      organization_id: organization.id,
-      user_id: null,
-      full_name: form.name.trim(),
-      role: form.role,
-      phone: form.phone || null,
-      email: form.email || null,
-      availability: "available",
-      rating: 0,
-      daily_rate: parseInt(form.daily_rate) || 0,
-      specialties: form.specialties ? form.specialties.split(",").map(s => s.trim()) : [],
-      experience_years: parseInt(form.experience_years) || 0,
-      notes: form.notes || null,
-    });
-    setAddOpen(false);
-    setForm(initialForm);
-  };
+  const removeMut = useMutation({
+    mutationFn: async (u: StudioUser) => {
+      if (!orgId) throw new Error("No studio loaded");
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      return callManageMember(token, {
+        action: "remove",
+        organization_id: orgId,
+        member_id: u.member_id,
+        team_member_id: u.team_member_id,
+      });
+    },
+    onSuccess: () => {
+      toast.success("User removed");
+      qc.invalidateQueries({ queryKey: ["studio-users", orgId] });
+      qc.invalidateQueries({ queryKey: ["team_members", orgId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
-  if (isLoading) {
+  // Reset form when add dialog opens
+  useEffect(() => {
+    if (addOpen) setForm(blankForm);
+  }, [addOpen]);
+
+  if (!canManage) {
     return (
-      <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+      <div className="max-w-4xl mx-auto p-6">
+        <Card className="p-8 text-center bg-muted/20">
+          <Shield className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <h2 className="text-lg font-semibold">Admins only</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Only the studio owner, admins and managers can manage users.
+          </p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto space-y-5">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <motion.div variants={cardVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-primary/20">
-            <Users className="h-5 w-5 text-primary" />
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+            <Users className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Team Management</h1>
-            <p className="text-xs text-muted-foreground">{totalMembers} members · {availableCount} available · {busyCount} busy</p>
+            <h1 className="text-2xl font-display font-bold text-foreground">Studio Users</h1>
+            <p className="text-sm text-muted-foreground">
+              Everyone in your studio. Invite by email, pick their role and decide where they sign in.
+            </p>
           </div>
         </div>
-        <Button size="sm" className="gap-2 rounded-xl" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" /> Add Member</Button>
-      </motion.div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-        {allRoles.map(({ value: role, label }, i) => {
-          const Icon = roleIcons[role] || Users;
-          const count = members.filter((m) => m.role === role).length;
-          const colors = roleColors[role] || "bg-muted text-muted-foreground";
-          return (
-            <motion.div key={role} variants={cardVariants}
-              className="bg-gradient-to-b from-card to-muted/20 border border-border rounded-2xl p-4 ring-1 ring-border/50 cursor-pointer hover:border-primary/30 transition-all"
-              onClick={() => setFilterRole(filterRole === role ? "all" : role)}>
-              <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center ring-1 ring-border mb-2.5", colors)}>
-                <Icon className="h-4 w-4" />
-              </div>
-              <p className="text-xl font-display font-extrabold text-foreground leading-tight"><AnimatedNumber value={count} delay={0.2 + i * 0.1} /></p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-semibold mt-0.5">{label}s</p>
-            </motion.div>
-          );
-        })}
+        <Button onClick={() => setAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
+          <UserPlus className="h-4 w-4" /> Add User
+        </Button>
       </div>
 
-      {/* Search + Filters */}
-      <motion.div variants={cardVariants} className="flex items-center gap-2">
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          { label: "Total users", value: totals.total, icon: Users, color: "text-primary bg-primary/10" },
+          { label: "With login", value: totals.withLogin, icon: KeyRound, color: "text-emerald-500 bg-emerald-500/10" },
+          { label: "Web only", value: totals.web, icon: Monitor, color: "text-sky-500 bg-sky-500/10" },
+          { label: "Mobile only", value: totals.pwa, icon: Smartphone, color: "text-violet-500 bg-violet-500/10" },
+          { label: "Both surfaces", value: totals.both, icon: BadgeCheck, color: "text-emerald-500 bg-emerald-500/10" },
+        ].map((k) => (
+          <Card key={k.label} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", k.color)}>
+                <k.icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-foreground leading-none">{k.value}</p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">{k.label}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search team members..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
-        </div>
-        <div className="flex rounded-lg border border-border overflow-hidden shrink-0 hidden sm:flex">
-          <button onClick={() => setViewMode("grid")} className={cn("px-2.5 py-2 text-xs transition-colors", viewMode === "grid" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted")}><LayoutGrid className="h-3.5 w-3.5" /></button>
-          <button onClick={() => setViewMode("list")} className={cn("px-2.5 py-2 text-xs transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted")}><List className="h-3.5 w-3.5" /></button>
+          <Input
+            placeholder="Search by name, email, phone or role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 bg-card"
+          />
         </div>
         <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger className="w-36 h-9 hidden sm:flex"><SelectValue placeholder="All Roles" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All roles" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            {allRoles.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+            <SelectItem value="all">All roles</SelectItem>
+            {ALL_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon" className="sm:hidden h-9 w-9 shrink-0" onClick={() => setFilterOpen(true)}>
-          <SlidersHorizontal className="h-4 w-4" />
-        </Button>
-      </motion.div>
+        <Select value={filterSurface} onValueChange={setFilterSurface}>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All surfaces" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All surfaces</SelectItem>
+            <SelectItem value="web">Web only</SelectItem>
+            <SelectItem value="pwa">Mobile only</SelectItem>
+            <SelectItem value="both">Both</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={cn("px-3 py-2 text-xs", viewMode === "grid" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+          ><LayoutGrid className="h-3.5 w-3.5" /></button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={cn("px-3 py-2 text-xs", viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+          ><List className="h-3.5 w-3.5" /></button>
+        </div>
+      </div>
 
-      {/* Grid / List */}
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map((m) => {
-            const Icon = roleIcons[m.role] || Users;
-            return (
-              <motion.div key={m.id} variants={cardVariants} whileTap={{ scale: 0.98 }}
-                onClick={() => setDetailMember(m)}
-                className="rounded-2xl bg-card border border-border overflow-hidden hover:border-primary/30 transition-all cursor-pointer group">
-                <div className="h-1 bg-gradient-to-r from-blue-500/50 to-blue-500/20" />
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="relative">
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-sm font-bold text-primary">{m.full_name.split(" ").map(n => n[0]).join("")}</span>
-                      </div>
-                      <div className={cn("absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background", availColors[m.availability] || availColors.unavailable)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">{m.full_name}</p>
-                      <span className={cn("inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-medium capitalize mt-1", roleColors[m.role] || "bg-muted text-muted-foreground")}><Icon className="h-2.5 w-2.5" />{m.role.replace(/_/g, " ")}</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border/50">
-                    <div className="text-center">
-                      <p className="text-sm font-bold text-foreground">{m.experience_years || 0}</p>
-                      <p className="text-[9px] text-muted-foreground">Yrs Exp</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-bold text-foreground">₹{((m.daily_rate || 0) / 1000).toFixed(0)}K</p>
-                      <p className="text-[9px] text-muted-foreground">Day Rate</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-0.5">
-                        <Star className="h-3 w-3 text-primary fill-primary" />
-                        <p className="text-sm font-bold text-foreground">{(m.rating || 0).toFixed(1)}</p>
-                      </div>
-                      <p className="text-[9px] text-muted-foreground">Rating</p>
-                    </div>
-                  </div>
-                  {m.phone && <p className="text-xs text-muted-foreground mt-2.5 flex items-center gap-1"><Phone className="h-3 w-3" />{m.phone}</p>}
-                </div>
-              </motion.div>
-            );
-          })}
+      {/* List */}
+      {isLoading ? (
+        <div className="py-16 text-center text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Loading users…
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card className="py-16 text-center text-sm text-muted-foreground">
+          <Users className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+          {search || filterRole !== "all" || filterSurface !== "all"
+            ? "No users match your filters."
+            : "No users yet — invite your first teammate."}
+        </Card>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((u) => (
+            <UserCard
+              key={`${u.member_id || ""}-${u.team_member_id || ""}`}
+              user={u}
+              isYou={u.user_id === user?.id}
+              onClick={() => setDetail(u)}
+              onEdit={() => setEditing(u)}
+              onRemove={() => {
+                if (confirm(`Remove ${u.full_name}?`)) removeMut.mutate(u);
+              }}
+            />
+          ))}
         </div>
       ) : (
-        <div className="rounded-2xl bg-card border border-border overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/30">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex-1">Member</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-24 hidden sm:block">Role</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-20 hidden md:block">Status</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 hidden lg:block text-center">Rating</span>
+        <Card className="overflow-hidden">
+          <div className="hidden md:grid grid-cols-[1.5fr_1fr_1fr_1fr_120px] gap-4 px-4 py-2.5 border-b border-border bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div>User</div>
+            <div>Role</div>
+            <div>Login</div>
+            <div>Day rate</div>
+            <div className="text-right">Actions</div>
           </div>
-          {filtered.map((m) => {
-            const Icon = roleIcons[m.role] || Users;
-            return (
-              <div key={m.id} onClick={() => setDetailMember(m)}
-                className="flex items-center gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
-                <div className="relative">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center"><span className="text-xs font-bold text-primary">{m.full_name.split(" ").map(n => n[0]).join("")}</span></div>
-                  <div className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background", availColors[m.availability] || availColors.unavailable)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{m.full_name}</p>
-                  <p className="text-[10px] text-muted-foreground">{m.phone || m.email || ""}</p>
-                </div>
-                <div className="w-24 hidden sm:block">
-                  <span className={cn("inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-medium capitalize", roleColors[m.role] || "bg-muted text-muted-foreground")}><Icon className="h-2.5 w-2.5" />{m.role.replace(/_/g, " ")}</span>
-                </div>
-                <div className="w-20 hidden md:block">
-                  <Badge variant="outline" className={cn("text-[10px]", m.availability === "available" ? "text-emerald-500 border-emerald-500/20" : m.availability === "busy" ? "text-red-500 border-red-500/20" : "text-amber-500 border-amber-500/20")}>
-                    {availLabels[m.availability] || "Unknown"}
+          <div className="divide-y divide-border/60">
+            {filtered.map((u) => {
+              const surface = SURFACE_META[u.login_surface];
+              const SurfaceIcon = surface.icon;
+              const isYou = u.user_id === user?.id;
+              return (
+                <div
+                  key={`${u.member_id || ""}-${u.team_member_id || ""}`}
+                  className="grid grid-cols-[1.5fr_1fr_1fr_1fr_120px] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => setDetail(u)}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={u.full_name} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
+                        {u.full_name}
+                        {isYou && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/30 text-primary">You</Badge>}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email || u.phone || "—"}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={cn("capitalize text-xs px-2.5 py-0.5 w-fit", ROLE_BADGE[u.role] || "bg-muted text-muted-foreground")}>
+                    {u.org_role === "owner" ? "Owner" : u.role}
                   </Badge>
-                </div>
-                <div className="w-16 hidden lg:flex items-center justify-center gap-0.5">
-                  <Star className="h-3 w-3 text-primary fill-primary" /><span className="text-xs font-medium">{(m.rating || 0).toFixed(1)}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {filtered.length === 0 && (
-        <div className="py-16 text-center"><Users className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" /><p className="text-sm text-muted-foreground">No team members found</p></div>
-      )}
-
-      {/* Member Detail Sheet */}
-      <Sheet open={!!detailMember} onOpenChange={(open) => !open && setDetailMember(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          {detailMember && (() => {
-            const Icon = roleIcons[detailMember.role] || Users;
-            return (
-              <>
-                <SheetHeader><SheetTitle className="text-left">Member Profile</SheetTitle></SheetHeader>
-                <div className="mt-6 space-y-5">
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center"><span className="text-xl font-bold text-primary">{detailMember.full_name.split(" ").map(n => n[0]).join("")}</span></div>
-                    <div>
-                      <p className="text-lg font-semibold text-foreground">{detailMember.full_name}</p>
-                      <span className={cn("inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-0.5 font-medium capitalize mt-1", roleColors[detailMember.role] || "bg-muted text-muted-foreground")}><Icon className="h-3 w-3" />{detailMember.role.replace(/_/g, " ")}</span>
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    {u.user_id ? (
+                      <Badge variant="outline" className={cn("text-xs inline-flex items-center gap-1", surface.color)}>
+                        <SurfaceIcon className="h-3 w-3" />
+                        {surface.short}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground bg-muted/30 border-border">No login</Badge>
+                    )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl bg-muted/30 border border-border p-3 text-center"><Zap className="h-4 w-4 text-amber-500 mx-auto mb-1" /><p className="text-lg font-bold text-foreground">{detailMember.experience_years || 0}</p><p className="text-[10px] text-muted-foreground">Yrs Exp</p></div>
-                    <div className="rounded-xl bg-muted/30 border border-border p-3 text-center"><IndianRupee className="h-4 w-4 text-emerald-500 mx-auto mb-1" /><p className="text-lg font-bold text-foreground">₹{((detailMember.daily_rate || 0) / 1000).toFixed(0)}K</p><p className="text-[10px] text-muted-foreground">Day Rate</p></div>
-                    <div className="rounded-xl bg-muted/30 border border-border p-3 text-center"><Star className="h-4 w-4 text-primary mx-auto mb-1" /><p className="text-lg font-bold text-foreground">{(detailMember.rating || 0).toFixed(1)}</p><p className="text-[10px] text-muted-foreground">Rating</p></div>
+                  <p className="text-sm text-foreground">
+                    {u.daily_rate ? `₹${(u.daily_rate / 1000).toFixed(0)}K` : "—"}
+                  </p>
+                  <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                    <RowActions u={u} isYou={isYou} onEdit={() => setEditing(u)} onRemove={() => removeMut.mutate(u)} />
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact</p>
-                    {detailMember.phone && <div className="flex items-center gap-2 text-sm text-foreground"><Phone className="h-4 w-4 text-muted-foreground" />{detailMember.phone}</div>}
-                    {detailMember.email && <div className="flex items-center gap-2 text-sm text-foreground"><Mail className="h-4 w-4 text-muted-foreground" />{detailMember.email}</div>}
-                  </div>
-                  {detailMember.specialties && detailMember.specialties.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Specialties</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {detailMember.specialties.map((s, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">{s}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {detailMember.notes && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes</p>
-                      <p className="text-sm text-foreground">{detailMember.notes}</p>
-                    </div>
-                  )}
                 </div>
-              </>
-            );
-          })()}
-        </SheetContent>
-      </Sheet>
-
-      {/* ═══ ADD MEMBER SHEET ═══ */}
-      <Sheet open={addOpen} onOpenChange={setAddOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg p-0">
-          <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/50">
-            <SheetTitle className="flex items-center gap-2"><UserPlus className="h-4 w-4 text-primary" /> Add Team Member</SheetTitle>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-140px)]">
-            <div className="px-6 py-5 space-y-4">
-              <div className="space-y-2"><Label className="text-xs font-medium">Role *</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {allRoles.map(({ value, label }) => { const Icon = roleIcons[value] || Users; return (
-                    <button key={value} onClick={() => updateForm("role", value)} className={cn("flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all", form.role === value ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/20")}>
-                      <div className={cn("h-7 w-7 rounded-md flex items-center justify-center", form.role === value ? "bg-primary/20" : "bg-muted")}><Icon className="h-3.5 w-3.5" /></div>{label}
-                    </button>
-                  ); })}
-                </div>
-              </div>
-              <FormSection title="Personal Information" icon={UserPlus} defaultOpen={true}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5 sm:col-span-2"><Label className="text-xs">Full Name *</Label><Input placeholder="e.g. Arjun Mehta" value={form.name} onChange={(e) => updateForm("name", e.target.value)} /></div>
-                  <div className="space-y-1.5"><Label className="text-xs">Phone</Label><Input placeholder="+91 98765 43210" value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} /></div>
-                  <div className="space-y-1.5"><Label className="text-xs">Email</Label><Input type="email" placeholder="arjun@example.com" value={form.email} onChange={(e) => updateForm("email", e.target.value)} /></div>
-                </div>
-              </FormSection>
-              <FormSection title="Professional Details" icon={IndianRupee} defaultOpen={false}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5"><Label className="text-xs">Experience (Years)</Label><Input type="number" placeholder="5" value={form.experience_years} onChange={(e) => updateForm("experience_years", e.target.value)} /></div>
-                  <div className="space-y-1.5"><Label className="text-xs">Daily Rate (₹)</Label><Input type="number" placeholder="5000" value={form.daily_rate} onChange={(e) => updateForm("daily_rate", e.target.value)} /></div>
-                  <div className="space-y-1.5 sm:col-span-2"><Label className="text-xs">Specialties (comma-separated)</Label><Input placeholder="e.g. Candid, Traditional, Drone" value={form.specialties} onChange={(e) => updateForm("specialties", e.target.value)} /></div>
-                </div>
-              </FormSection>
-              <div className="space-y-1.5"><Label className="text-xs font-medium">Additional Notes</Label><Textarea placeholder="Any additional notes..." className="min-h-[60px]" value={form.notes} onChange={(e) => updateForm("notes", e.target.value)} /></div>
-              <Button className="w-full" onClick={handleAdd} disabled={addMember.isPending}><Plus className="h-4 w-4 mr-1" /> Add Member</Button>
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
-
-      {/* Mobile Filter Sheet */}
-      <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-8 max-h-[70vh]">
-          <SheetHeader className="pb-4"><div className="text-base font-semibold flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-primary" /> Filters</div></SheetHeader>
-          <div className="space-y-5">
-            <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 block">Role</label>
-              <div className="flex flex-wrap gap-2">
-                {[{ value: "all", label: "All" }, ...allRoles].map((opt) => (
-                  <button key={opt.value} onClick={() => setFilterRole(opt.value)} className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-all", filterRole === opt.value ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border")}>{opt.label}</button>
-                ))}
-              </div>
-            </div>
-            <Button className="w-full h-11 rounded-xl" onClick={() => setFilterOpen(false)}><Filter className="h-4 w-4 mr-2" /> Show {filtered.length} Members</Button>
+              );
+            })}
           </div>
-        </SheetContent>
-      </Sheet>
+        </Card>
+      )}
+
+      {/* Add User dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-2xl p-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" /> Add Studio User
+            </DialogTitle>
+            <DialogDescription>
+              Every user gets a role + login surface. Add an email if they should be able to sign in;
+              skip the email to add a contractor record only.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh]">
+            <UserFormFields form={form} setForm={setForm} mode="create" />
+          </ScrollArea>
+          <DialogFooter className="px-6 py-4 border-t border-border">
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => inviteMut.mutate(form)}
+              disabled={inviteMut.isPending || !form.display_name.trim()}
+              className="gap-2"
+            >
+              {inviteMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {form.email ? "Send invite" : "Save user"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-2xl p-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5 text-primary" /> Edit {editing?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <EditUserForm
+              user={editing}
+              onSave={(role, surface, patch) =>
+                updateMut.mutate({
+                  memberId: editing.member_id,
+                  teamMemberId: editing.team_member_id,
+                  role,
+                  surface,
+                  patch,
+                })
+              }
+              saving={updateMut.isPending}
+              onCancel={() => setEditing(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail sheet */}
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-md">
+          {detail && <UserDetailView user={detail} onEdit={() => { setDetail(null); setEditing(detail); }} />}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────
+function Avatar({ name, size = "md" }: { name: string; size?: "md" | "lg" }) {
+  const initials = name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <div
+      className={cn(
+        "rounded-xl bg-primary/10 flex items-center justify-center shrink-0",
+        size === "md" ? "h-10 w-10" : "h-14 w-14"
+      )}
+    >
+      <span className={cn("font-bold text-primary", size === "md" ? "text-sm" : "text-lg")}>
+        {initials}
+      </span>
+    </div>
+  );
+}
+
+function UserCard({ user, isYou, onClick, onEdit, onRemove }: {
+  user: StudioUser;
+  isYou: boolean;
+  onClick: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const surface = SURFACE_META[user.login_surface];
+  const SurfaceIcon = surface.icon;
+  const RoleIcon = ROLE_ICON[user.role];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      onClick={onClick}
+      className="rounded-2xl bg-card border border-border overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group"
+    >
+      <div className="h-1 bg-gradient-to-r from-primary/60 to-primary/20" />
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <Avatar name={user.full_name} size="lg" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-base font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                {user.full_name}
+              </p>
+              {isYou && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/30 text-primary">You</Badge>}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <Badge variant="outline" className={cn("capitalize text-[10px] px-2 py-0", ROLE_BADGE[user.role] || "bg-muted text-muted-foreground")}>
+                {RoleIcon && <RoleIcon className="h-2.5 w-2.5 mr-1 inline" />}
+                {user.org_role === "owner" ? "Owner" : user.role}
+              </Badge>
+              {user.user_id ? (
+                <Badge variant="outline" className={cn("text-[10px] inline-flex items-center gap-1 px-2 py-0", surface.color)}>
+                  <SurfaceIcon className="h-2.5 w-2.5" />
+                  {surface.short}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] px-2 py-0 text-muted-foreground bg-muted/30">No login</Badge>
+              )}
+            </div>
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <RowActions u={user} isYou={isYou} onEdit={onEdit} onRemove={onRemove} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-border/50">
+          <div className="text-center">
+            <p className="text-sm font-bold text-foreground">{user.experience_years}</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Yrs</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-bold text-foreground">
+              {user.daily_rate ? `₹${(user.daily_rate / 1000).toFixed(0)}K` : "—"}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Rate</p>
+          </div>
+          <div className="text-center flex flex-col items-center">
+            <div className="flex items-center gap-0.5">
+              <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+              <p className="text-sm font-bold text-foreground">{user.rating.toFixed(1)}</p>
+            </div>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Rating</p>
+          </div>
+        </div>
+
+        {(user.email || user.phone) && (
+          <div className="mt-3 pt-3 border-t border-border/30 space-y-1">
+            {user.email && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
+                <Mail className="h-3 w-3 shrink-0" /> {user.email}
+              </p>
+            )}
+            {user.phone && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Phone className="h-3 w-3 shrink-0" /> {user.phone}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
-};
+}
 
-export default TeamPage;
+function RowActions({ u, isYou, onEdit, onRemove }: {
+  u: StudioUser; isYou: boolean; onEdit: () => void; onRemove: () => void;
+}) {
+  const isOwner = u.org_role === "owner";
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-8 w-8">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit} disabled={isOwner && !isYou}>
+          <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit user
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          disabled={isOwner || isYou}
+          onClick={onRemove}
+        >
+          <Trash2 className="h-3.5 w-3.5 mr-2" /> Remove from studio
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function UserFormFields({
+  form, setForm, mode,
+}: {
+  form: UserForm;
+  setForm: (f: UserForm | ((p: UserForm) => UserForm)) => void;
+  mode: "create" | "edit";
+}) {
+  const update = <K extends keyof UserForm>(k: K, v: UserForm[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  return (
+    <div className="px-6 py-4 space-y-5">
+      {/* Identity */}
+      <Section title="Identity">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Full name *</Label>
+            <Input
+              placeholder="Arjun Mehta"
+              value={form.display_name}
+              onChange={(e) => update("display_name", e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Email {mode === "create" && "(required for login)"}</Label>
+            <Input
+              type="email"
+              placeholder="arjun@studio.com"
+              value={form.email}
+              onChange={(e) => update("email", e.target.value)}
+              disabled={mode === "edit"}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Phone</Label>
+            <Input
+              placeholder="+91 98765 43210"
+              value={form.phone}
+              onChange={(e) => update("phone", e.target.value)}
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* Access */}
+      <Section title="Access" subtitle="Who they are inside the studio">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Role *</Label>
+            <Select value={form.role} onValueChange={(v) => update("role", v as AppRole)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ALL_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Drives default dashboard + sidebar. Tune per-role module access in /access-control.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Login surface *</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(SURFACE_META) as Surface[]).map((s) => {
+                const meta = SURFACE_META[s];
+                const SI = meta.icon;
+                const active = form.login_surface === s;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => update("login_surface", s)}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 p-3 rounded-xl border text-xs font-medium transition-all",
+                      active
+                        ? "border-primary bg-primary/10 text-primary shadow-sm"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                    )}
+                  >
+                    <SI className="h-4 w-4" />
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Web blocks /m. Mobile blocks the desktop dashboard. Both lets them switch.
+            </p>
+          </div>
+          {mode === "create" && form.email && (
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/20">
+              <div>
+                <p className="text-sm font-medium text-foreground">Send password-reset email</p>
+                <p className="text-[11px] text-muted-foreground">So they can pick their own password.</p>
+              </div>
+              <Switch checked={form.send_invite} onCheckedChange={(v) => update("send_invite", v)} />
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Operational */}
+      <Section title="Operational details" subtitle="For team scheduling, billing & event assignment">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Daily rate (₹)</Label>
+            <Input
+              type="number"
+              placeholder="5000"
+              value={form.daily_rate}
+              onChange={(e) => update("daily_rate", e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Experience (years)</Label>
+            <Input
+              type="number"
+              placeholder="5"
+              value={form.experience_years}
+              onChange={(e) => update("experience_years", e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Specialties (comma-separated)</Label>
+            <Input
+              placeholder="Candid, Traditional, Drone"
+              value={form.specialties}
+              onChange={(e) => update("specialties", e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Notes</Label>
+            <Textarea
+              className="min-h-[60px]"
+              placeholder="Anything else worth remembering..."
+              value={form.notes}
+              onChange={(e) => update("notes", e.target.value)}
+            />
+          </div>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+function EditUserForm({ user, onSave, saving, onCancel }: {
+  user: StudioUser;
+  onSave: (role: AppRole, surface: Surface, patch: Partial<UserForm>) => void;
+  saving: boolean;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<UserForm>({
+    email: user.email || "",
+    display_name: user.full_name,
+    role: user.role,
+    login_surface: user.login_surface,
+    send_invite: false,
+    phone: user.phone || "",
+    daily_rate: user.daily_rate ? String(user.daily_rate) : "",
+    experience_years: user.experience_years ? String(user.experience_years) : "",
+    specialties: user.specialties.join(", "),
+    notes: user.notes || "",
+  });
+
+  return (
+    <>
+      <ScrollArea className="max-h-[70vh]">
+        <UserFormFields form={form} setForm={setForm} mode="edit" />
+      </ScrollArea>
+      <DialogFooter className="px-6 py-4 border-t border-border">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button
+          onClick={() => onSave(form.role, form.login_surface, form)}
+          disabled={saving || !form.display_name.trim()}
+          className="gap-2"
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit3 className="h-4 w-4" />}
+          Save changes
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+function UserDetailView({ user, onEdit }: { user: StudioUser; onEdit: () => void }) {
+  const surface = SURFACE_META[user.login_surface];
+  const SurfaceIcon = surface.icon;
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>User profile</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-5 mt-2">
+        <div className="flex items-center gap-4">
+          <Avatar name={user.full_name} size="lg" />
+          <div className="min-w-0">
+            <p className="text-lg font-semibold text-foreground truncate">{user.full_name}</p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <Badge variant="outline" className={cn("capitalize text-xs", ROLE_BADGE[user.role] || "bg-muted text-muted-foreground")}>
+                {user.org_role === "owner" ? "Owner" : user.role}
+              </Badge>
+              {user.user_id ? (
+                <Badge variant="outline" className={cn("text-xs inline-flex items-center gap-1", surface.color)}>
+                  <SurfaceIcon className="h-3 w-3" />
+                  {surface.label}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs text-muted-foreground bg-muted/30">No login account</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-muted/30 border border-border p-3 text-center">
+            <Zap className="h-4 w-4 text-amber-500 mx-auto mb-1" />
+            <p className="text-lg font-bold">{user.experience_years}</p>
+            <p className="text-[10px] text-muted-foreground">Yrs Exp</p>
+          </div>
+          <div className="rounded-xl bg-muted/30 border border-border p-3 text-center">
+            <IndianRupee className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
+            <p className="text-lg font-bold">{user.daily_rate ? `₹${(user.daily_rate/1000).toFixed(0)}K` : "—"}</p>
+            <p className="text-[10px] text-muted-foreground">Day Rate</p>
+          </div>
+          <div className="rounded-xl bg-muted/30 border border-border p-3 text-center">
+            <Star className="h-4 w-4 text-amber-500 mx-auto mb-1 fill-amber-500" />
+            <p className="text-lg font-bold">{user.rating.toFixed(1)}</p>
+            <p className="text-[10px] text-muted-foreground">Rating</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Contact</p>
+          {user.email && <p className="text-sm flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> {user.email}</p>}
+          {user.phone && <p className="text-sm flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /> {user.phone}</p>}
+        </div>
+
+        {user.specialties.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Specialties</p>
+            <div className="flex flex-wrap gap-1.5">
+              {user.specialties.map((s, i) => <Badge key={i} variant="secondary" className="text-xs">{s}</Badge>)}
+            </div>
+          </div>
+        )}
+
+        {user.notes && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Notes</p>
+            <p className="text-sm text-foreground">{user.notes}</p>
+          </div>
+        )}
+
+        <Button onClick={onEdit} variant="outline" className="w-full gap-2">
+          <Edit3 className="h-4 w-4" /> Edit user
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}

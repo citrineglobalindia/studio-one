@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-29 (v4 — Members page + manage-member edge function + login_surface enforcement: admins now invite real users by email, choose role + Web/Mobile/Both surface; RoleLayoutWrapper + RoleMobileLayout block users from the wrong surface)
+> Last updated: 2026-04-29 (v5 — **unified Users concept**: dropped separate Team / Members pages, consolidated into one `/team` "Studio Users" page where every person has email + role + login surface + operational fields. `manage-member` edge fn now upserts auth.users + organization_members + team_members in one shot, so a new user is immediately available for both login AND event assignment.)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 
@@ -129,12 +129,19 @@ Schema:
 - Editor's flow: from a deliverable, "Raise payment" → links the request to the deliverable + project
 - Admin's flow: `/payment-requests` page → KPIs + per-row Approve / Reject / Mark-paid with optional transaction reference
 
-### 3.9 User & Role Management (RBAC) ✅ implemented
-- **Members page** at `/members` (admin/manager only) — list, invite, edit, remove
-- **Invite flow** — admin enters email + display name + role + login surface, edge function `manage-member` (service role) either creates a fresh auth user (with email-confirm) or attaches an existing one, upserts profile, upserts `organization_members` row with role + login_surface, then triggers a password-reset email so the invitee picks their own password
-- **Edit flow** — admin can change a member's role (any of 9 AppRole values) and surface (web/pwa/both) live, mirrored back to `profiles.role`
-- **Remove flow** — owner cannot be removed; admin cannot remove themselves
-- Four control surfaces:
+### 3.9 User & Role Management (RBAC) ✅ implemented (unified)
+**One concept: Studio User.** Every person in the studio is a user with email + role + login surface + operational fields. The previous Team/Members split is gone.
+
+- **Studio Users page** at `/team` (admin/manager only) — single surface for invite, edit, remove. Grid + list view, role + surface filters, KPI strip (total / with-login / web / mobile / both).
+- **Add User dialog** sections:
+  - **Identity** — full name, email, phone
+  - **Access** — role picker (any of 9 AppRole values), login surface picker (Web only / Mobile only / Both), Send-invite toggle
+  - **Operational** — daily rate, experience years, specialties, notes
+- **Invite flow** — `manage-member.invite` (service role edge fn) does all three writes in one transaction: creates or attaches `auth.users`, upserts `organization_members` (role + login_surface), upserts `team_members` (operational fields). Triggers password-reset email if requested.
+- **Contractor mode** — no email = no auth user. Just creates a `team_members` row so they can still be assigned to events. Shows a "No login" badge.
+- **Edit flow** — change name, role, surface, phone, rate, specialties, notes — all in one dialog. Role change mirrors to `profiles.role` so they see the right dashboard next login.
+- **Remove flow** — drops both org_member and team_member rows. Owner-protected, can't-self-remove.
+- Four control surfaces (same as before):
   - Profile role (`profiles.role`) — default dashboard
   - Org role (`organization_members.role`) — owner / admin / member / specific role
   - Login surface (`organization_members.login_surface`) — `web` / `pwa` / `both` — enforced in routing
@@ -222,7 +229,8 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 ## 8. Implementation status
 
 ### ✅ Phase 1 — built and live
-- **Members + Login Surface (v4)** — `/members` admin page (invite by email + role + Web/Mobile/Both surface), `manage-member` edge function (service role, three actions: invite/update/remove), `RoleContext.loginSurface` exposure, `RoleLayoutWrapper` + `RoleMobileLayout` enforcement so a "web only" user is bounced from `/m/*` and a "pwa only" user is bounced from the desktop shell. Owner-protection (cannot remove studio owner, cannot self-remove). Existing-user detection so re-inviting an already-registered email just attaches them to the studio.
+- **Unified Studio Users (v5)** — `/team` is now the single surface for everything user-related. One Add User dialog covers identity (name/email/phone), access (role + Web/Mobile/Both surface + send-invite toggle), and operational (rate/experience/specialties/notes). Edge fn `manage-member` does all three writes (auth.users + organization_members + team_members) atomically. New users are immediately available for both login AND event assignment. Contractor mode (no email) still works — creates only the team_members row with a "No login" badge. Old `/members` route now redirects to `/team`.
+- **Login Surface (v4)** — `manage-member` edge function (service role, three actions: invite/update/remove), `RoleContext.loginSurface` exposure, `RoleLayoutWrapper` + `RoleMobileLayout` enforcement so a "web only" user is bounced from `/m/*` and a "pwa only" user is bounced from the desktop shell. Owner-protection (cannot remove studio owner, cannot self-remove). Existing-user detection so re-inviting an already-registered email just attaches them to the studio.
 - **Claude AI Assistant** — Supabase Edge Function (`/functions/v1/ai-chat`) proxies to Anthropic API (claude-opus-4-7) with prompt caching + 8 read-only tools (`summary_kpis`, `list_leads`, `list_clients`, `list_projects`, `list_invoices`, `list_deliverables`, `list_overdue`, `revenue_breakdown`). Server-side agentic loop, JWT-validated, every query auto-scoped to caller's org. Streaming chat UI at `/ai-assistant` with markdown + table rendering, tool-call chips, suggestions, cancel/reset. Secret: `ANTHROPIC_API_KEY` in Supabase project settings.
 - Manager role + scoped permissions (now invitable from `/members`)
 - **Realtime notifications** — `notifications` table with auto-triggers (payment requested/approved/rejected/paid, leave requested, enquiry received). NotificationBell in header with live unread count via Supabase realtime, full `/notifications` page with All/Unread tabs, mark-read + delete
