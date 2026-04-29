@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-29 (v7.1 — Streamlined admin password reset UX: dialog opens with a strong password already generated and visible. Primary action "Set password & copy" applies it AND copies to clipboard in one click; secondary "Send reset email" remains. Admin → user → 2 clicks → password is in clipboard, ready to paste.) (v6 — Call Logs module removed.)
+> Last updated: 2026-04-29 (v7.2 — Reset password now works for legacy contractors: any user with an email gets the action. If they don't have an auth account yet, the same dialog auto-promotes them — creates the auth user, links the existing team_members row in place, and sets the chosen password. Edge fn `manage-member.invite` accepts `initial_password` + `link_team_member_id`.) (v7.1 — Streamlined admin password reset UX. v6 — Call Logs module removed.)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 

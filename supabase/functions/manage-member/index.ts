@@ -107,18 +107,31 @@ Deno.serve(async (req) => {
     }
 
     // ─── INVITE ───────────────────────────────────────────────────────────
+    // Three flavors:
+    //   1. Plain invite — create new user + new team_members row.
+    //   2. Promote contractor — admin passes link_team_member_id pointing to
+    //      an existing team_members row that has no auth user yet. We create
+    //      the auth user and link the existing row instead of inserting a
+    //      duplicate, preserving event assignment history.
+    //   3. Set initial password — admin passes initial_password to skip the
+    //      "user picks own password" round-trip.
     if (action === "invite") {
       const email = (body.email as string | undefined)?.trim().toLowerCase() || null;
       const role = body.role as string | undefined;
       const loginSurface = (body.login_surface as Surface | undefined) ?? "both";
       const displayName = (body.display_name as string | undefined)?.trim();
       const sendInvite = body.send_invite !== false; // default true
+      const linkTeamMemberId = body.link_team_member_id as string | undefined;
 
       if (!role || !VALID_ROLES.has(role)) return json({ error: "Invalid role" }, 400);
       if (!VALID_SURFACES.has(loginSurface)) return json({ error: "Invalid login_surface" }, 400);
 
       let targetUserId: string | null = null;
       let wasExistingUser = false;
+      // Optional explicit password — if the admin chose "set password
+      // manually" while inviting / promoting a contractor, use that instead
+      // of a random temp password so the user can sign in immediately.
+      const initialPassword = body.initial_password as string | undefined;
 
       // If caller provided email, create or attach an auth user
       if (email) {
@@ -132,11 +145,21 @@ Deno.serve(async (req) => {
         if (existing) {
           targetUserId = existing.id;
           wasExistingUser = true;
+          // If admin asked us to set a specific password while attaching an
+          // existing user, apply it now.
+          if (initialPassword && initialPassword.length >= 8) {
+            await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+              password: initialPassword,
+            });
+          }
         } else {
-          const tempPassword = genTempPassword();
+          const passwordToUse =
+            initialPassword && initialPassword.length >= 8
+              ? initialPassword
+              : genTempPassword();
           const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
             email,
-            password: tempPassword,
+            password: passwordToUse,
             email_confirm: true,
             user_metadata: displayName ? { display_name: displayName } : undefined,
           });
@@ -185,43 +208,65 @@ Deno.serve(async (req) => {
       // so they can be assigned to events. If user_id is null, they're a
       // contractor record only.
       const teamPatch = buildTeamPatch(body);
-      const teamRow: Record<string, unknown> = {
-        organization_id: organizationId,
-        user_id: targetUserId,
-        full_name: displayName || email || "Unnamed user",
-        role,
-        email,
-        availability: "available",
-        ...teamPatch,
-      };
-
-      // If a row with this user_id already exists in this org, update; else insert
       let teamMemberId: string | null = null;
-      if (targetUserId) {
-        const { data: existingTeam } = await supabaseAdmin
+
+      if (linkTeamMemberId && targetUserId) {
+        // Promotion path: attach existing contractor row to the new auth user
+        // so event assignment history (and downstream FKs) are preserved.
+        const linkUpdate: Record<string, unknown> = {
+          user_id: targetUserId,
+          role,
+          ...(displayName ? { full_name: displayName } : {}),
+          ...(email ? { email } : {}),
+          ...teamPatch,
+        };
+        const { data: upd, error: linkErr } = await supabaseAdmin
           .from("team_members")
-          .select("id")
+          .update(linkUpdate)
+          .eq("id", linkTeamMemberId)
           .eq("organization_id", organizationId)
-          .eq("user_id", targetUserId)
+          .select("id")
           .maybeSingle();
-        if (existingTeam) {
-          const { data: upd } = await supabaseAdmin
+        if (linkErr) return json({ error: `team_members link: ${linkErr.message}` }, 400);
+        teamMemberId = upd?.id ?? linkTeamMemberId;
+      } else {
+        const teamRow: Record<string, unknown> = {
+          organization_id: organizationId,
+          user_id: targetUserId,
+          full_name: displayName || email || "Unnamed user",
+          role,
+          email,
+          availability: "available",
+          ...teamPatch,
+        };
+
+        // If a row with this user_id already exists in this org, update; else insert
+        if (targetUserId) {
+          const { data: existingTeam } = await supabaseAdmin
             .from("team_members")
-            .update(teamRow)
-            .eq("id", existingTeam.id)
+            .select("id")
+            .eq("organization_id", organizationId)
+            .eq("user_id", targetUserId)
+            .maybeSingle();
+          if (existingTeam) {
+            const { data: upd } = await supabaseAdmin
+              .from("team_members")
+              .update(teamRow)
+              .eq("id", existingTeam.id)
+              .select("id")
+              .single();
+            teamMemberId = upd?.id ?? existingTeam.id;
+          }
+        }
+        if (!teamMemberId) {
+          const { data: ins, error: insErr } = await supabaseAdmin
+            .from("team_members")
+            .insert(teamRow)
             .select("id")
             .single();
-          teamMemberId = upd?.id ?? existingTeam.id;
+          if (insErr) return json({ error: `team_members: ${insErr.message}` }, 400);
+          teamMemberId = ins.id;
         }
-      }
-      if (!teamMemberId) {
-        const { data: ins, error: insErr } = await supabaseAdmin
-          .from("team_members")
-          .insert(teamRow)
-          .select("id")
-          .single();
-        if (insErr) return json({ error: `team_members: ${insErr.message}` }, 400);
-        teamMemberId = ins.id;
       }
 
       return json({

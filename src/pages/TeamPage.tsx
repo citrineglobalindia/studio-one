@@ -354,28 +354,57 @@ export default function TeamPage() {
   const resetMut = useMutation({
     mutationFn: async (vars: { user: StudioUser; mode: "email" | "set"; password?: string }) => {
       if (!orgId) throw new Error("No studio loaded");
-      if (!vars.user.user_id) throw new Error("This user has no login account.");
+      if (!vars.user.email) throw new Error("This user has no email on file.");
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
       if (!token) throw new Error("Not signed in");
-      return callManageMember(token, {
-        action: "reset_password",
+
+      // Existing auth user → straight reset
+      if (vars.user.user_id) {
+        return callManageMember(token, {
+          action: "reset_password",
+          organization_id: orgId,
+          target_user_id: vars.user.user_id,
+          member_id: vars.user.member_id,
+          mode: vars.mode,
+          new_password: vars.password,
+        });
+      }
+
+      // No auth user yet (legacy contractor) → invite + optional initial password.
+      // We pass link_team_member_id so the existing team_members row is upgraded
+      // in place rather than duplicated.
+      const res = await callManageMember(token, {
+        action: "invite",
         organization_id: orgId,
-        target_user_id: vars.user.user_id,
-        member_id: vars.user.member_id,
-        mode: vars.mode,
-        new_password: vars.password,
+        email: vars.user.email,
+        display_name: vars.user.full_name,
+        role: vars.user.role,
+        login_surface: "both",
+        send_invite: vars.mode === "email",
+        initial_password: vars.mode === "set" ? vars.password : undefined,
+        link_team_member_id: vars.user.team_member_id || undefined,
       });
+      return { ...res, mode: vars.mode, was_promotion: true };
     },
-    onSuccess: (res, vars) => {
+    onSuccess: (res: any, vars) => {
+      const wasPromotion = res.was_promotion === true;
       if (vars.mode === "email") {
-        toast.success(`Password-reset email sent to ${res.email}`);
+        toast.success(
+          wasPromotion
+            ? `Login created. Reset email sent to ${res.email}.`
+            : `Password-reset email sent to ${res.email}.`
+        );
       } else {
         toast.success(
-          `New password set for ${res.email}. Copied to your clipboard — paste it to share.`,
+          wasPromotion
+            ? `Login created for ${res.email}. Password copied to clipboard.`
+            : `New password set for ${res.email}. Copied to your clipboard — paste it to share.`,
           { duration: 6000 }
         );
       }
+      qc.invalidateQueries({ queryKey: ["studio-users", orgId] });
+      qc.invalidateQueries({ queryKey: ["team_members", orgId] });
       setResetUser(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -794,7 +823,11 @@ function RowActions({ u, isYou, onEdit, onResetPassword, onRemove }: {
   onRemove: () => void;
 }) {
   const isOwner = u.org_role === "owner";
-  const hasLogin = !!u.user_id;
+  // Reset is enabled whenever we have an email — if the user has no auth
+  // account yet (legacy contractor), the dialog will create one and set the
+  // password in one shot.
+  const canReset = !!u.email || !!u.user_id;
+  const resetLabel = u.user_id ? "Reset password" : "Create login & set password";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -806,8 +839,8 @@ function RowActions({ u, isYou, onEdit, onResetPassword, onRemove }: {
         <DropdownMenuItem onClick={onEdit} disabled={isOwner && !isYou}>
           <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit user
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onResetPassword} disabled={!hasLogin}>
-          <KeyRound className="h-3.5 w-3.5 mr-2" /> Reset password
+        <DropdownMenuItem onClick={onResetPassword} disabled={!canReset}>
+          <KeyRound className="h-3.5 w-3.5 mr-2" /> {resetLabel}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -1157,11 +1190,18 @@ function ResetPasswordDialog({
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <KeyRound className="h-5 w-5 text-primary" /> Reset password
+          <KeyRound className="h-5 w-5 text-primary" />
+          {user.user_id ? "Reset password" : "Create login & set password"}
         </DialogTitle>
         <DialogDescription>
           For <span className="font-medium text-foreground">{user.full_name}</span>
           {user.email && <span className="text-muted-foreground"> ({user.email})</span>}.
+          {!user.user_id && (
+            <span className="block mt-1 text-xs">
+              This user doesn't have a login account yet. We'll create one with this password
+              so they can sign in immediately.
+            </span>
+          )}
         </DialogDescription>
       </DialogHeader>
 
