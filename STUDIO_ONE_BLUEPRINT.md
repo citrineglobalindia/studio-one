@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-24 (v2 — added Manager role, realtime Notifications, global Cmd+K search, Process Planner templates + cross-project dashboard)
+> Last updated: 2026-04-25 (v3 — added Claude AI Assistant: Supabase Edge Function with tool use over studio data, streaming chat UI at /ai-assistant)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 
@@ -213,6 +213,7 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 ## 8. Implementation status
 
 ### ✅ Phase 1 — built and live
+- **Claude AI Assistant** — Supabase Edge Function (`/functions/v1/ai-chat`) proxies to Anthropic API (claude-opus-4-7) with prompt caching + 8 read-only tools (`summary_kpis`, `list_leads`, `list_clients`, `list_projects`, `list_invoices`, `list_deliverables`, `list_overdue`, `revenue_breakdown`). Server-side agentic loop, JWT-validated, every query auto-scoped to caller's org. Streaming chat UI at `/ai-assistant` with markdown + table rendering, tool-call chips, suggestions, cancel/reset. Secret: `ANTHROPIC_API_KEY` in Supabase project settings.
 - Manager role + scoped permissions
 - **Realtime notifications** — `notifications` table with auto-triggers (payment requested/approved/rejected/paid, leave requested, enquiry received). NotificationBell in header with live unread count via Supabase realtime, full `/notifications` page with All/Unread tabs, mark-read + delete
 - **Global search (Cmd+K / Ctrl+K)** — `GlobalSearch` modal searches leads/clients/projects/events/invoices/contracts/deliverables in one shot with quick "Jump to" page navigation
@@ -306,3 +307,4 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 |------|--------|
 | 2026-04-24 | Initial blueprint created. Captures live architecture as of commit `0264546`. |
 | 2026-04-24 | v2 advanced: Manager role, realtime notifications + bell, global Cmd+K search, Process Planner v2 (templates + cross-project dashboard), `login_surface` column added to `organization_members`, auto-notify SQL triggers wired. |
+| 2026-04-25 | v3 AI Assistant: deployed `ai-chat` Supabase Edge Function with Claude (opus 4.7) tool use over studio data. Streaming chat UI rebuilt at `/ai-assistant`. Requires `ANTHROPIC_API_KEY` set in Supabase project secrets. |
