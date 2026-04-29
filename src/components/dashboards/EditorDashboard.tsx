@@ -14,18 +14,18 @@ import { useClients } from "@/hooks/useClients";
 import { useEvents } from "@/hooks/useEvents";
 import { DeliverableDetailModal } from "@/components/deliverables/DeliverableDetailModal";
 
-const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
+const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 18 },
   visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 220, damping: 22 } },
 };
 
-const statusColors: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: "Pending", color: "text-muted-foreground", bg: "bg-muted" },
-  in_progress: { label: "Editing", color: "text-blue-400", bg: "bg-blue-500/20" },
-  review: { label: "Review", color: "text-amber-400", bg: "bg-amber-500/20" },
-  approved: { label: "Approved", color: "text-emerald-400", bg: "bg-emerald-500/20" },
-  delivered: { label: "Delivered", color: "text-primary", bg: "bg-primary/20" },
+const statusBadge: Record<string, { label: string; tone: string }> = {
+  pending: { label: "Pending", tone: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
+  in_progress: { label: "Editing", tone: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
+  review: { label: "Review", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+  approved: { label: "Approved", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+  delivered: { label: "Delivered", tone: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" },
 };
 
 export function EditorDashboard() {
@@ -45,7 +45,6 @@ export function EditorDashboard() {
     return isPast(dd) && !isToday(dd);
   });
 
-  // Sort: overdue first, then by status priority, then by due date
   const sorted = [...deliverables]
     .filter(d => d.status !== "delivered")
     .sort((a, b) => {
@@ -72,64 +71,91 @@ export function EditorDashboard() {
     };
   };
 
+  const stats = [
+    { label: "In Queue", value: myQueue.length, icon: Clock, gradient: "linear-gradient(135deg,#38bdf8,#2563eb)", glow: "shadow-sky-500/30" },
+    { label: "In Review", value: inReview.length, icon: Eye, gradient: "linear-gradient(135deg,#fbbf24,#f59e0b)", glow: "shadow-amber-500/30" },
+    { label: "Completed", value: completed.length, icon: CheckCircle2, gradient: "linear-gradient(135deg,#34d399,#10b981)", glow: "shadow-emerald-500/30" },
+    { label: "Overdue", value: overdue.length, icon: AlertTriangle, gradient: "linear-gradient(135deg,#f87171,#ef4444)", glow: "shadow-rose-500/30" },
+  ];
+
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl mx-auto space-y-5">
-      <motion.div variants={cardVariants} className="relative rounded-2xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/20 p-6">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <Edit3 className="h-4 w-4 text-emerald-500" />
-            <span className="text-[10px] font-medium text-emerald-500 uppercase tracking-[0.2em]">Editor Dashboard</span>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="px-5 pt-5 space-y-4">
+      {/* Hero */}
+      <motion.div
+        variants={cardVariants}
+        className="relative overflow-hidden rounded-3xl p-6 border border-white/10"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(56,189,248,0.18) 0%, rgba(37,99,235,0.22) 50%, rgba(79,70,229,0.18) 100%)",
+          boxShadow: "0 24px 60px -20px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+        }}
+      >
+        <div className="absolute -top-16 -right-12 w-48 h-48 bg-sky-400/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 w-40 h-40 bg-blue-600/30 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <Edit3 className="h-3.5 w-3.5 text-sky-300" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/80">Editor Hub</span>
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Editing Hub ✂️</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            <span className="text-emerald-400 font-medium">{myQueue.length} in queue</span> ·{" "}
-            <span className="text-amber-400 font-medium">{inReview.length} in review</span> ·{" "}
-            <span className="text-primary font-medium">{completed.length} completed</span>
-            {overdue.length > 0 && (
-              <> · <span className="text-red-400 font-medium">{overdue.length} overdue</span></>
-            )}
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">Editing Hub <span>✂️</span></h1>
+          <p className="text-xs text-sky-100/80 mt-2">
+            <span className="text-sky-300 font-semibold">{myQueue.length}</span> in queue ·{" "}
+            <span className="text-amber-300 font-semibold">{inReview.length}</span> review ·{" "}
+            <span className="text-emerald-300 font-semibold">{completed.length}</span> done
+            {overdue.length > 0 && <> · <span className="text-rose-300 font-semibold">{overdue.length} overdue</span></>}
           </p>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "In Queue", value: myQueue.length, icon: Clock, color: "text-blue-500", bg: "from-blue-500/15 to-blue-500/5" },
-          { label: "In Review", value: inReview.length, icon: Eye, color: "text-amber-500", bg: "from-amber-500/15 to-amber-500/5" },
-          { label: "Completed", value: completed.length, icon: CheckCircle2, color: "text-emerald-500", bg: "from-emerald-500/15 to-emerald-500/5" },
-          { label: "Overdue", value: overdue.length, icon: AlertTriangle, color: "text-red-500", bg: "from-red-500/15 to-red-500/5" },
-        ].map((s) => (
-          <motion.div key={s.label} variants={cardVariants} className={`bg-gradient-to-b ${s.bg} rounded-2xl border border-border p-4`}>
-            <s.icon className={`h-5 w-5 ${s.color} mb-2`} />
-            <p className="text-2xl font-display font-bold text-foreground">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{s.label}</p>
+      {/* KPI grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s) => (
+          <motion.div
+            key={s.label}
+            variants={cardVariants}
+            className="relative rounded-3xl p-4 border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
+            style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+          >
+            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg ${s.glow} mb-3`} style={{ background: s.gradient }}>
+              <s.icon className="h-5 w-5 text-white" />
+            </div>
+            <p className="text-3xl font-extrabold text-white leading-none">{s.value}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-1.5 font-semibold">{s.label}</p>
           </motion.div>
         ))}
       </div>
 
-      <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-primary" />
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <Film className="h-4 w-4 text-emerald-500" /> My Editing Queue
+      {/* Queue list */}
+      <motion.div
+        variants={cardVariants}
+        className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
+        style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-white/5">
+          <h2 className="font-bold text-white flex items-center gap-2 text-sm">
+            <Film className="h-4 w-4 text-sky-300" /> My Editing Queue
           </h2>
-          <Button variant="ghost" size="sm" className="text-xs text-primary gap-1" onClick={() => navigate("/m/deliverables")}>
-            All deliverables <ChevronRight className="h-3.5 w-3.5" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-sky-300 hover:text-sky-200 hover:bg-white/10 gap-1 h-7 px-2"
+            onClick={() => navigate("/m/deliverables")}
+          >
+            All <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-white/5">
           {isLoading ? (
             <div className="py-10 flex items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-sky-300" />
             </div>
           ) : sorted.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">
+            <div className="py-10 text-center text-sm text-slate-400">
               Nothing in your queue right now.
             </div>
           ) : (
             sorted.slice(0, 8).map((d) => {
-              const sc = statusColors[d.status] || statusColors.pending;
+              const sb = statusBadge[d.status] || statusBadge.pending;
               const ctx = labelFor(d);
               const dd = d.due_date ? new Date(d.due_date) : null;
               const isOverdueRow = dd && isPast(dd) && !isToday(dd) && d.status !== "delivered" && d.status !== "approved";
@@ -138,31 +164,31 @@ export function EditorDashboard() {
                 <button
                   key={d.id}
                   onClick={() => setOpenDeliverable(d)}
-                  className="w-full px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                  className="w-full px-4 py-3.5 hover:bg-white/[0.03] transition-colors text-left active:bg-white/[0.06]"
                 >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">
+                      <p className="text-sm font-semibold text-white truncate">
                         {d.title || d.deliverable_type}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {[ctx.clientName, ctx.eventName, d.deliverable_type].filter(Boolean).join(" · ")}
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {[ctx.clientName, ctx.eventName].filter(Boolean).join(" · ")}
                       </p>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] ${sc.bg} ${sc.color} border-transparent shrink-0`}>
-                      {sc.label}
+                    <Badge variant="outline" className={`text-[10px] ${sb.tone} shrink-0`}>
+                      {sb.label}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Progress value={d.progress || 0} className="flex-1 h-1.5" />
-                    <span className="text-[10px] font-medium text-muted-foreground w-9 text-right">
+                    <Progress value={d.progress || 0} className="flex-1 h-1.5 bg-white/5" />
+                    <span className="text-[10px] font-bold text-sky-300 w-9 text-right">
                       {d.progress || 0}%
                     </span>
                   </div>
                   {dd && (
                     <div
-                      className={`mt-1.5 flex items-center gap-1 text-[10px] ${
-                        isOverdueRow ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
+                      className={`mt-2 flex items-center gap-1 text-[10px] font-medium ${
+                        isOverdueRow ? "text-rose-300" : isDueToday ? "text-amber-300" : "text-slate-500"
                       }`}
                     >
                       <CalendarDays className="h-2.5 w-2.5" />

@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { motion } from "framer-motion";
 import {
   Tabs, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
@@ -17,15 +16,21 @@ import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { DeliverableDetailModal } from "@/components/deliverables/DeliverableDetailModal";
 
-const statusColors: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: "Pending", color: "text-muted-foreground", bg: "bg-muted" },
-  in_progress: { label: "Editing", color: "text-blue-400", bg: "bg-blue-500/15" },
-  review: { label: "Review", color: "text-amber-400", bg: "bg-amber-500/15" },
-  approved: { label: "Approved", color: "text-emerald-400", bg: "bg-emerald-500/15" },
-  delivered: { label: "Delivered", color: "text-primary", bg: "bg-primary/15" },
+const statusBadge: Record<string, { label: string; tone: string }> = {
+  pending: { label: "Pending", tone: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
+  in_progress: { label: "Editing", tone: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
+  review: { label: "Review", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+  approved: { label: "Approved", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+  delivered: { label: "Delivered", tone: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" },
 };
 
 type TabKey = "all" | "todo" | "in_progress" | "review" | "done";
+
+const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.05 } } };
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 220, damping: 22 } },
+};
 
 export default function RoleDeliverablesPage() {
   const { deliverables, isLoading, teamMember } = useMyDeliverables();
@@ -54,7 +59,6 @@ export default function RoleDeliverablesPage() {
     return list;
   }, [deliverables, tab, search]);
 
-  // Group by event (or project if no event)
   const grouped = useMemo(() => {
     const groups = new Map<string, { label: string; clientLabel?: string; eventDate?: string | null; items: DeliverableDB[] }>();
     for (const d of filtered) {
@@ -95,122 +99,143 @@ export default function RoleDeliverablesPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4 pb-20">
-      <div>
-        <h1 className="text-xl font-display font-bold flex items-center gap-2">
-          <Film className="h-5 w-5 text-emerald-500" />
-          My Deliverables
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          {teamMember?.full_name ? `Assigned to ${teamMember.full_name}` : "Tap any deliverable to update its status, progress, or notes"}
-        </p>
-      </div>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="px-5 pt-5 space-y-4">
+      {/* Hero */}
+      <motion.div
+        variants={cardVariants}
+        className="relative overflow-hidden rounded-3xl p-5 border border-white/10"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(56,189,248,0.18) 0%, rgba(37,99,235,0.22) 50%, rgba(79,70,229,0.18) 100%)",
+          boxShadow: "0 24px 60px -20px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+        }}
+      >
+        <div className="absolute -top-16 -right-12 w-48 h-48 bg-sky-400/30 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <Film className="h-5 w-5 text-sky-300" /> My Deliverables
+          </h1>
+          <p className="text-[11px] text-sky-100/80 mt-1.5">
+            {teamMember?.full_name ? `Assigned to ${teamMember.full_name}` : "Tap any deliverable to update status, progress, or notes"}
+          </p>
+        </div>
+      </motion.div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Search */}
+      <motion.div variants={cardVariants} className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
         <Input
           placeholder="Search by title or type…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="pl-9"
+          className="pl-10 h-11 bg-white/[0.04] border-white/10 text-white placeholder:text-slate-500 backdrop-blur-xl rounded-2xl"
         />
-      </div>
+      </motion.div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
-        <TabsList className="w-full grid grid-cols-5 h-auto">
-          <TabsTrigger value="all" className="text-[10px] flex-col gap-0.5 py-2">
-            All <span className="text-muted-foreground">{counts.all}</span>
-          </TabsTrigger>
-          <TabsTrigger value="todo" className="text-[10px] flex-col gap-0.5 py-2">
-            To Do <span className="text-muted-foreground">{counts.todo}</span>
-          </TabsTrigger>
-          <TabsTrigger value="in_progress" className="text-[10px] flex-col gap-0.5 py-2">
-            Editing <span className="text-muted-foreground">{counts.in_progress}</span>
-          </TabsTrigger>
-          <TabsTrigger value="review" className="text-[10px] flex-col gap-0.5 py-2">
-            Review <span className="text-muted-foreground">{counts.review}</span>
-          </TabsTrigger>
-          <TabsTrigger value="done" className="text-[10px] flex-col gap-0.5 py-2">
-            Done <span className="text-muted-foreground">{counts.done}</span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Tabs */}
+      <motion.div variants={cardVariants}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
+          <TabsList
+            className="w-full grid grid-cols-5 h-auto p-1 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl"
+          >
+            {[
+              { key: "all", label: "All", count: counts.all },
+              { key: "todo", label: "To Do", count: counts.todo },
+              { key: "in_progress", label: "Editing", count: counts.in_progress },
+              { key: "review", label: "Review", count: counts.review },
+              { key: "done", label: "Done", count: counts.done },
+            ].map(t => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className="text-[10px] flex-col gap-0 py-2 rounded-xl data-[state=active]:bg-gradient-to-br data-[state=active]:from-sky-500/30 data-[state=active]:to-blue-600/30 data-[state=active]:text-white text-slate-400"
+              >
+                <span className="font-semibold">{t.label}</span>
+                <span className="text-[9px] opacity-70">{t.count}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </motion.div>
 
+      {/* List */}
       {isLoading ? (
         <div className="py-12 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-sky-300" />
         </div>
       ) : grouped.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            <Film className="h-10 w-10 mx-auto mb-2 opacity-30" />
+        <motion.div
+          variants={cardVariants}
+          className="rounded-3xl p-10 text-center border border-white/10 bg-white/[0.04] backdrop-blur-xl"
+        >
+          <Film className="h-10 w-10 mx-auto mb-3 text-slate-500 opacity-50" />
+          <p className="text-sm text-slate-400">
             No deliverables {tab !== "all" ? `in "${tab.replace("_", " ")}"` : "assigned to you yet"}.
-          </CardContent>
-        </Card>
+          </p>
+        </motion.div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {grouped.map((g, i) => (
-            <div key={i}>
-              <div className="flex items-center justify-between mb-2 px-1">
+            <motion.div key={i} variants={cardVariants}>
+              <div className="flex items-center justify-between mb-2.5 px-1">
                 <div>
-                  <h2 className="text-sm font-semibold">{g.label}</h2>
+                  <h2 className="text-sm font-bold text-white">{g.label}</h2>
                   {g.clientLabel && (
-                    <p className="text-[10px] text-muted-foreground">{g.clientLabel}</p>
+                    <p className="text-[10px] text-slate-400">{g.clientLabel}</p>
                   )}
                 </div>
                 {g.eventDate && (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span className="text-[10px] text-sky-300/80 flex items-center gap-1 font-semibold">
                     <CalendarDays className="h-3 w-3" /> {format(new Date(g.eventDate), "d MMM")}
                   </span>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {g.items.map(d => {
-                  const sc = statusColors[d.status] || statusColors.pending;
+                  const sb = statusBadge[d.status] || statusBadge.pending;
                   const dd = d.due_date ? new Date(d.due_date) : null;
                   const isOverdueRow = dd && isPast(dd) && !isToday(dd) && d.status !== "delivered" && d.status !== "approved";
                   return (
-                    <Card
+                    <button
                       key={d.id}
-                      className="cursor-pointer hover:border-primary/40 transition-colors"
                       onClick={() => setOpenDeliverable(d)}
+                      className="w-full rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 text-left active:bg-white/[0.08] transition-colors"
+                      style={{ boxShadow: "0 12px 32px -16px rgba(0,0,0,0.6)" }}
                     >
-                      <CardContent className="p-3">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{d.title || d.deliverable_type}</p>
-                            <p className="text-[10px] text-muted-foreground capitalize">{d.deliverable_type}</p>
-                          </div>
-                          <Badge variant="outline" className={`text-[10px] ${sc.bg} ${sc.color} border-transparent shrink-0`}>
-                            {sc.label}
-                          </Badge>
+                      <div className="flex items-start justify-between gap-2 mb-2.5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{d.title || d.deliverable_type}</p>
+                          <p className="text-[10px] text-slate-400 capitalize mt-0.5">{d.deliverable_type}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Progress value={d.progress || 0} className="flex-1 h-1.5" />
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{d.progress || 0}%</span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          {dd ? (
-                            <span
-                              className={`text-[10px] flex items-center gap-1 ${
-                                isOverdueRow ? "text-red-400 font-medium" : "text-muted-foreground"
-                              }`}
-                            >
-                              {isOverdueRow ? <AlertTriangle className="h-2.5 w-2.5" /> : <CalendarDays className="h-2.5 w-2.5" />}
-                              {isOverdueRow ? "Overdue" : `Due ${format(dd, "d MMM")}`}
-                            </span>
-                          ) : <span />}
-                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                        {d.notes && (
-                          <p className="text-[10px] text-muted-foreground mt-2 line-clamp-2 italic">"{d.notes}"</p>
-                        )}
-                      </CardContent>
-                    </Card>
+                        <Badge variant="outline" className={`text-[10px] ${sb.tone} shrink-0`}>
+                          {sb.label}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Progress value={d.progress || 0} className="flex-1 h-1.5 bg-white/5" />
+                        <span className="text-[10px] font-bold text-sky-300 w-8 text-right">{d.progress || 0}%</span>
+                      </div>
+                      <div className="mt-2.5 flex items-center justify-between">
+                        {dd ? (
+                          <span
+                            className={`text-[10px] flex items-center gap-1 font-medium ${
+                              isOverdueRow ? "text-rose-300" : "text-slate-500"
+                            }`}
+                          >
+                            {isOverdueRow ? <AlertTriangle className="h-2.5 w-2.5" /> : <CalendarDays className="h-2.5 w-2.5" />}
+                            {isOverdueRow ? "Overdue" : `Due ${format(dd, "d MMM")}`}
+                          </span>
+                        ) : <span />}
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+                      </div>
+                      {d.notes && (
+                        <p className="text-[10px] text-slate-400 mt-2 line-clamp-2 italic">"{d.notes}"</p>
+                      )}
+                    </button>
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -220,6 +245,6 @@ export default function RoleDeliverablesPage() {
         onOpenChange={(o) => !o && setOpenDeliverable(null)}
         deliverable={openDeliverable}
       />
-    </div>
+    </motion.div>
   );
 }

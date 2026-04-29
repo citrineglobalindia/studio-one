@@ -6,9 +6,9 @@ import { Camera, CalendarDays, MapPin, CheckCircle2, Upload, ChevronRight, Loade
 import { useMyAssignedEvents } from "@/hooks/useMyAssignedEvents";
 import { useDeliverables } from "@/hooks/useDeliverables";
 
-const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
+const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 18 },
   visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 220, damping: 22 } },
 };
 
@@ -28,75 +28,103 @@ export function PhotographerDashboard() {
   const delivered = photoDeliverables.filter(d => d.status === "delivered" || d.status === "approved").length;
   const pending = photoDeliverables.filter(d => d.status === "pending" || d.status === "in_progress").length;
 
+  const stats = [
+    { label: "Upcoming Shoots", value: upcomingEvents.length, icon: CalendarDays, gradient: "linear-gradient(135deg,#38bdf8,#2563eb)", glow: "shadow-sky-500/30" },
+    { label: "Pending Delivery", value: pending, icon: Upload, gradient: "linear-gradient(135deg,#fbbf24,#f59e0b)", glow: "shadow-amber-500/30" },
+    { label: "Photos Delivered", value: delivered, icon: CheckCircle2, gradient: "linear-gradient(135deg,#34d399,#10b981)", glow: "shadow-emerald-500/30" },
+  ];
+
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl mx-auto space-y-5">
-      <motion.div variants={cardVariants} className="relative rounded-2xl bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent border border-blue-500/20 p-6">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <Camera className="h-4 w-4 text-blue-500" />
-            <span className="text-[10px] font-medium text-blue-500 uppercase tracking-[0.2em]">Photographer Dashboard</span>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="px-5 pt-5 space-y-4">
+      <motion.div
+        variants={cardVariants}
+        className="relative overflow-hidden rounded-3xl p-6 border border-white/10"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(56,189,248,0.18) 0%, rgba(37,99,235,0.22) 50%, rgba(79,70,229,0.18) 100%)",
+          boxShadow: "0 24px 60px -20px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+        }}
+      >
+        <div className="absolute -top-16 -right-12 w-48 h-48 bg-sky-400/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 w-40 h-40 bg-blue-600/30 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <Camera className="h-3.5 w-3.5 text-sky-300" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/80">Photographer</span>
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Welcome Back 📸</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            <span className="text-blue-400 font-medium">{upcomingEvents.length} upcoming shoots</span> ·{" "}
-            <span className="text-amber-400 font-medium">{pending} pending deliverables</span>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">Welcome back 📸</h1>
+          <p className="text-xs text-sky-100/80 mt-2">
+            <span className="text-sky-300 font-semibold">{upcomingEvents.length}</span> upcoming shoots ·{" "}
+            <span className="text-amber-300 font-semibold">{pending}</span> pending deliverables
           </p>
         </div>
       </motion.div>
 
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Upcoming Shoots", value: upcomingEvents.length, icon: CalendarDays, color: "text-blue-500", bg: "from-blue-500/15 to-blue-500/5" },
-          { label: "Pending Delivery", value: pending, icon: Upload, color: "text-amber-500", bg: "from-amber-500/15 to-amber-500/5" },
-          { label: "Photos Delivered", value: delivered, icon: CheckCircle2, color: "text-emerald-500", bg: "from-emerald-500/15 to-emerald-500/5" },
-        ].map((s) => (
-          <motion.div key={s.label} variants={cardVariants} className={`bg-gradient-to-b ${s.bg} rounded-2xl border border-border p-4`}>
-            <s.icon className={`h-5 w-5 ${s.color} mb-2`} />
-            <p className="text-2xl font-display font-bold text-foreground">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{s.label}</p>
+        {stats.map((s) => (
+          <motion.div
+            key={s.label}
+            variants={cardVariants}
+            className="rounded-3xl p-4 border border-white/10 bg-white/[0.04] backdrop-blur-xl"
+            style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+          >
+            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg ${s.glow} mb-3`} style={{ background: s.gradient }}>
+              <s.icon className="h-5 w-5 text-white" />
+            </div>
+            <p className="text-2xl font-extrabold text-white leading-none">{s.value}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-1.5 font-semibold">{s.label}</p>
           </motion.div>
         ))}
       </div>
 
-      <motion.div variants={cardVariants} className="rounded-2xl bg-card border border-border overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-blue-500 to-primary" />
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-blue-500" /> My Shoots
+      <motion.div
+        variants={cardVariants}
+        className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
+        style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-white/5">
+          <h2 className="font-bold text-white flex items-center gap-2 text-sm">
+            <CalendarDays className="h-4 w-4 text-sky-300" /> My Shoots
           </h2>
-          <Button variant="ghost" size="sm" className="text-xs text-primary gap-1" onClick={() => navigate("/m/calendar")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-sky-300 hover:text-sky-200 hover:bg-white/10 gap-1 h-7 px-2"
+            onClick={() => navigate("/m/calendar")}
+          >
             Calendar <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-white/5">
           {isLoading ? (
             <div className="py-10 flex items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-sky-300" />
             </div>
           ) : upcomingEvents.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">No upcoming shoots assigned</div>
+            <div className="py-10 text-center text-sm text-slate-400">No upcoming shoots assigned</div>
           ) : (
             upcomingEvents.slice(0, 6).map((evt) => (
-              <div
+              <button
                 key={evt.id}
-                className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
+                className="w-full px-4 py-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors text-left flex items-center justify-between gap-2"
                 onClick={() => navigate(`/m/projects/${evt.project_id}/event-day?event=${evt.id}`)}
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{evt.name}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
-                    {evt.client_name ? `${evt.client_name}${evt.partner_name ? ` & ${evt.partner_name}` : ""} · ` : ""}
-                    {evt.venue && <><MapPin className="h-3 w-3" />{evt.venue}</>}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white truncate">{evt.name}</p>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1.5 truncate mt-0.5">
+                    {evt.client_name && (
+                      <>{evt.client_name}{evt.partner_name ? ` & ${evt.partner_name}` : ""} · </>
+                    )}
+                    {evt.venue && <><MapPin className="h-3 w-3 inline" />{evt.venue}</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/30">
+                  <Badge variant="outline" className="text-[10px] bg-sky-500/15 text-sky-300 border-sky-500/30">
                     {new Date(evt.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                   </Badge>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>
@@ -104,15 +132,22 @@ export function PhotographerDashboard() {
 
       <motion.div variants={cardVariants} className="grid grid-cols-2 gap-3">
         {[
-          { label: "My Projects", icon: Upload, path: "/m/projects", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          { label: "View Calendar", icon: CalendarDays, path: "/m/calendar", color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: "My Projects", icon: Upload, path: "/m/projects" },
+          { label: "View Calendar", icon: CalendarDays, path: "/m/calendar" },
         ].map((a) => (
-          <Button key={a.label} variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate(a.path)}>
-            <div className={`h-10 w-10 rounded-xl ${a.bg} flex items-center justify-center`}>
-              <a.icon className={`h-5 w-5 ${a.color}`} />
+          <button
+            key={a.label}
+            onClick={() => navigate(a.path)}
+            className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl py-4 flex flex-col items-center gap-2 active:bg-white/[0.08] transition-colors"
+          >
+            <div
+              className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/30"
+              style={{ background: "linear-gradient(135deg,#38bdf8,#2563eb)" }}
+            >
+              <a.icon className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs font-medium">{a.label}</span>
-          </Button>
+            <span className="text-xs font-semibold text-white">{a.label}</span>
+          </button>
         ))}
       </motion.div>
     </motion.div>
