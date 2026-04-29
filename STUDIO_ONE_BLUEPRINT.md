@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-29 (v5 — **unified Users concept**: dropped separate Team / Members pages, consolidated into one `/team` "Studio Users" page where every person has email + role + login surface + operational fields. `manage-member` edge fn now upserts auth.users + organization_members + team_members in one shot, so a new user is immediately available for both login AND event assignment.)
+> Last updated: 2026-04-29 (v6 — Call Logs module removed: route, page, sidebar entry, AppModule type and AccessControl entries all dropped; the underlying `call_logs` table is left untouched in case it's wanted back later. v5 — **unified Users concept**: dropped separate Team / Members pages, consolidated into one `/team` "Studio Users" page.)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 
@@ -53,7 +53,7 @@ Roles are stored on `profiles.role` and (per studio) overridden via `organizatio
 | **Editor** | PWA `/m` | Tasks, Submissions, Payment Requests |
 | **Photographer** | PWA `/m` | Assigned events, attendance, calendar |
 | **Videographer** | PWA `/m` | Assigned events, attendance, calendar |
-| **Telecaller / Sales** | Web | Leads, Call Logs, Clients |
+| **Telecaller / Sales** | Web | Leads, Clients, Communications |
 | **Accountant** | Web | Invoices, Quotations, Contracts, Expenses, Payment Requests, Analytics |
 | **HR** | Web | Employees, Attendance, Leaves, Team |
 | **Vendor** | PWA `/m` | Assigned vendor orders, deliveries |
@@ -82,7 +82,6 @@ Modules are first-class objects in `RoleContext.AppModule`. The Super Admin can 
 - `Leads` table per-org: name, phone, email, source, event_type, event_date, budget, status, follow_up_date, assigned_to
 - Status flow: `new → contacted → qualified → proposal → converted | lost`
 - One-click convert lead → client + carry over data
-- **Call Logs** module: every call to a lead/client recorded with outcome, duration, notes, next_action
 
 ### 3.4 Accounts & Billing
 - **Quotations** — line items, validity, status flow draft → sent → viewed → approved
@@ -239,7 +238,7 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 - Org / member / super-admin / subscription model
 - Auth (email/password) with role-based dashboard routing
 - Clients, Projects, Events (with time-overlap team assignment)
-- Leads + Call Logs + Lead → Client conversion
+- Leads + Lead → Client conversion (call activity now lives inside the Lead detail timeline; standalone Call Logs module removed in v6)
 - Quotations, Invoices, Contracts (CRUD + status lifecycle)
 - **PDF Document Builder** (templates + logo + cover photo + gallery + branded export)
 - Tasks (Kanban) + Process Planner (basic)

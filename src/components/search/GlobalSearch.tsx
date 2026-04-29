@@ -4,7 +4,7 @@ import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import {
-  UserPlus, Users, FolderKanban, CalendarCheck, FileText, CreditCard, Phone, Film, Wallet,
+  UserPlus, Users, FolderKanban, CalendarCheck, FileText, CreditCard, Film, Wallet,
   LayoutDashboard, Settings as Cog, Loader2,
 } from "lucide-react";
 import { useLeads } from "@/hooks/useLeads";
@@ -30,7 +30,6 @@ const QUICK_ACTIONS = [
   { label: "Quotations", icon: FileText, path: "/quotations" },
   { label: "Invoices", icon: CreditCard, path: "/invoices" },
   { label: "Contracts", icon: FileText, path: "/contracts" },
-  { label: "Call Logs", icon: Phone, path: "/call-logs" },
   { label: "Payment Requests", icon: Wallet, path: "/payment-requests" },
   { label: "Settings", icon: Cog, path: "/settings" },
 ];

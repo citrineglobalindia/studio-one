@@ -25,7 +25,6 @@ import {
   ClipboardList,
   CalendarOff,
   LogOut,
-  Phone,
   Package,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -52,7 +51,6 @@ type SidebarItem = { title: string; url: string; icon: typeof LayoutDashboard; m
 const salesItems: SidebarItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
   { title: "Leads", url: "/leads", icon: UserPlus, module: "leads" },
-  { title: "Call Logs", url: "/call-logs", icon: Phone, module: "call-logs" },
   { title: "Clients", url: "/clients", icon: Users, module: "clients" },
 ];
 

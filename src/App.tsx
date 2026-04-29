@@ -26,7 +26,6 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import LeadsPage from "./pages/LeadsPage";
-import CallLogsPage from "./pages/CallLogsPage";
 import VendorOrdersPage from "./pages/VendorOrdersPage";
 import PaymentRequestsPage from "./pages/PaymentRequestsPage";
 import CalendarPage from "./pages/CalendarPage";
@@ -119,7 +118,6 @@ function ProtectedRoutes() {
       <Route element={<RoleLayoutWrapper />}>
         <Route path="/" element={<Index />} />
         <Route path="/leads" element={<LeadsPage />} />
-        <Route path="/call-logs" element={<CallLogsPage />} />
         <Route path="/vendor-orders" element={<VendorOrdersPage />} />
         <Route path="/payment-requests" element={<PaymentRequestsPage />} />
         <Route path="/clients" element={<ClientsPage />} />

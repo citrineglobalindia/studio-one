@@ -17,7 +17,7 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
 ];
 
 export type AppModule =
-  | "dashboard" | "leads" | "call-logs" | "clients" | "quotations"
+  | "dashboard" | "leads" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
   | "team" | "vendor-orders"
   | "invoices" | "contracts" | "payment-requests"
@@ -29,7 +29,6 @@ export type AppModule =
 export const ALL_MODULES: { value: AppModule; label: string; group: string }[] = [
   { value: "dashboard", label: "Dashboard", group: "Sales CRM" },
   { value: "leads", label: "Leads", group: "Sales CRM" },
-  { value: "call-logs", label: "Call Logs", group: "Sales CRM" },
   { value: "clients", label: "Clients", group: "Sales CRM" },
   { value: "quotations", label: "Quotations", group: "Sales CRM" },
   { value: "live-clients", label: "Live Clients", group: "Operations" },
@@ -64,7 +63,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   admin: ALL_MODULES.map((m) => m.value),
   // Manager: like Admin but bounded — no platform settings, no role/permission management
   manager: [
-    "dashboard", "leads", "call-logs", "clients", "quotations",
+    "dashboard", "leads", "clients", "quotations",
     "live-clients", "projects", "events", "albums", "calendar", "tasks", "process-planner",
     "team", "vendor-orders",
     "invoices", "contracts", "payment-requests",
@@ -73,7 +72,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   ],
   vendor: ["dashboard", "projects", "vendor-orders", "calendar", "tasks", "communications", "notifications", "profile"],
   editor: ["dashboard", "projects", "tasks", "albums", "communications", "notifications", "profile"],
-  telecaller: ["dashboard", "leads", "call-logs", "clients", "communications", "calendar", "notifications", "profile"],
+  telecaller: ["dashboard", "leads", "clients", "communications", "calendar", "notifications", "profile"],
   videographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
   photographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
   hr: ["dashboard", "hr-dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
