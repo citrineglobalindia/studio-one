@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-24
+> Last updated: 2026-04-24 (v2 — added Manager role, realtime Notifications, global Cmd+K search, Process Planner templates + cross-project dashboard)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 
@@ -40,10 +40,11 @@ Roles are stored on `profiles.role` and (per studio) overridden via `organizatio
 - Decide login access surface per user: Web / PWA / Both
 - Configure studio branding (logo, color, GST, contact)
 
-### 2.3 Manager
-- Same scope as Admin but bounded by what Admin grants
-- Typically: Clients, Projects, Events, Tasks, Team assignments
-- No access to platform settings, no permission control
+### 2.3 Manager ✅ implemented
+- Now a first-class `AppRole` (`manager`) in `RoleContext`
+- Default access: Sales CRM + Operations + Finance + Growth + Notifications/Profile
+  (everything except platform settings, permissions, HR-Module, AI tools)
+- Bounded by Admin via `studio_role_module_access` overrides
 
 ### 2.4 Operational roles
 
@@ -96,19 +97,22 @@ Modules are first-class objects in `RoleContext.AppModule`. The Super Admin can 
 - Tasks linked to project, optionally to assignee (team_member), priority, due date, progress %
 - Especially for Editors — primary working surface
 
-### 3.6 Process Planner ⭐ USP
-> **Differentiator. Implement to a high standard.**
+### 3.6 Process Planner ⭐ USP ✅ v2 implemented
+> **Differentiator. Implemented across 3 surfaces.**
 
-Each project gets a customisable workflow pipeline. Example:
-```
-Shoot → Data Backup → Editing → Review → Album Design → Print → Delivery
-```
+3 tabs at `/process-planner`:
 
-- Steps stored in `client_process_steps` with sequence, role responsible, ETA
-- Per-step status: pending / in_progress / done / blocked
-- Visibility:
-  - Inside a project (timeline + table view)
-  - Cross-project report (which step are X projects stuck on?)
+1. **Per-Client** (`/process-planner`) — pick a client, lay out their custom pipeline:
+   ```
+   Shoot → Data Backup → Editing → Review → Album Design → Print → Delivery
+   ```
+2. **Templates** (`/process-planner/templates`) — reusable workflow templates per studio (e.g. "Wedding Pipeline", "Pre-Wedding Pipeline"). Each template has ordered steps with name, description, **responsible role**, and **default ETA days from event date**. **Apply to client** materializes the template into concrete `client_process_steps` with auto-calculated due dates.
+3. **Across Projects** (`/process-planner/dashboard`) — bird's-eye bottleneck view: KPIs (pending / in-progress / done / blocked / overdue), and "Where projects are stuck" — active steps grouped by name with count + age of the oldest, so the bottleneck is obvious at a glance.
+
+Schema:
+- `process_templates` (per studio)
+- `process_template_steps` (ordered steps with role + eta_days)
+- `client_process_steps` extended with: `template_step_id`, `responsible_role`, `assignee_id`, `due_date`, `completed_at`, `blocked_reason`, `sequence`
 
 ### 3.7 Vendor Management
 - Vendor CRUD (treated as `team_members` with `role = printer_vendor` etc.)
@@ -209,6 +213,9 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 ## 8. Implementation status
 
 ### ✅ Phase 1 — built and live
+- Manager role + scoped permissions
+- **Realtime notifications** — `notifications` table with auto-triggers (payment requested/approved/rejected/paid, leave requested, enquiry received). NotificationBell in header with live unread count via Supabase realtime, full `/notifications` page with All/Unread tabs, mark-read + delete
+- **Global search (Cmd+K / Ctrl+K)** — `GlobalSearch` modal searches leads/clients/projects/events/invoices/contracts/deliverables in one shot with quick "Jump to" page navigation
 - Multi-tenant Supabase schema with RLS
 - Org / member / super-admin / subscription model
 - Auth (email/password) with role-based dashboard routing
@@ -298,3 +305,4 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 | Date | Change |
 |------|--------|
 | 2026-04-24 | Initial blueprint created. Captures live architecture as of commit `0264546`. |
+| 2026-04-24 | v2 advanced: Manager role, realtime notifications + bell, global Cmd+K search, Process Planner v2 (templates + cross-project dashboard), `login_surface` column added to `organization_members`, auto-notify SQL triggers wired. |

@@ -58,6 +58,8 @@ import LiveClientsPage from "./pages/LiveClientsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccessControlPage from "./pages/AccessControlPage";
 import ProcessPlannerPage from "./pages/ProcessPlannerPage";
+import ProcessTemplatesPage from "./pages/ProcessTemplatesPage";
+import ProcessDashboardPage from "./pages/ProcessDashboardPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
 
 // Role mobile pages
@@ -152,6 +154,8 @@ function ProtectedRoutes() {
         <Route path="/live-clients" element={<LiveClientsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/process-planner" element={<ProcessPlannerPage />} />
+        <Route path="/process-planner/templates" element={<ProcessTemplatesPage />} />
+        <Route path="/process-planner/dashboard" element={<ProcessDashboardPage />} />
       </Route>
       <Route path="/m" element={<RoleMobileLayout />}>
         <Route index element={<RoleDashboardPage />} />

@@ -2,10 +2,11 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "vendor" | "editor" | "telecaller" | "videographer" | "photographer" | "hr" | "accounts";
+export type AppRole = "admin" | "manager" | "vendor" | "editor" | "telecaller" | "videographer" | "photographer" | "hr" | "accounts";
 
 export const ALL_ROLES: { value: AppRole; label: string }[] = [
   { value: "admin", label: "Admin" },
+  { value: "manager", label: "Manager" },
   { value: "vendor", label: "Vendor" },
   { value: "editor", label: "Editor" },
   { value: "telecaller", label: "Telecaller" },
@@ -61,6 +62,15 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
 
 const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   admin: ALL_MODULES.map((m) => m.value),
+  // Manager: like Admin but bounded — no platform settings, no role/permission management
+  manager: [
+    "dashboard", "leads", "call-logs", "clients", "quotations",
+    "live-clients", "projects", "events", "albums", "calendar", "tasks", "process-planner",
+    "team", "vendor-orders",
+    "invoices", "contracts", "payment-requests",
+    "communications", "marketing", "analytics",
+    "notifications", "profile",
+  ],
   vendor: ["dashboard", "projects", "vendor-orders", "calendar", "tasks", "communications", "notifications", "profile"],
   editor: ["dashboard", "projects", "tasks", "albums", "communications", "notifications", "profile"],
   telecaller: ["dashboard", "leads", "call-logs", "clients", "communications", "calendar", "notifications", "profile"],
@@ -124,7 +134,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (profileData?.role) {
-        const validRoles: AppRole[] = ["admin", "vendor", "editor", "telecaller", "videographer", "photographer", "hr", "accounts"];
+        const validRoles: AppRole[] = ["admin", "manager", "vendor", "editor", "telecaller", "videographer", "photographer", "hr", "accounts"];
         if (validRoles.includes(profileData.role as AppRole)) {
           nextRole = profileData.role as AppRole;
         }

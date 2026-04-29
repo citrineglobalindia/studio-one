@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          description: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          description?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          description?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       albums: {
         Row: {
           album_size: string | null
@@ -278,45 +325,73 @@ export type Database = {
       }
       client_process_steps: {
         Row: {
+          assignee_id: string | null
+          blocked_reason: string | null
           client_id: string
+          completed_at: string | null
           created_at: string
           deadline: string | null
           description: string | null
+          due_date: string | null
           events: string[]
           heading: string
           id: string
           organization_id: string
+          responsible_role: string | null
+          sequence: number | null
           status: string
           step_number: number
+          template_step_id: string | null
           updated_at: string
         }
         Insert: {
+          assignee_id?: string | null
+          blocked_reason?: string | null
           client_id: string
+          completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
+          due_date?: string | null
           events?: string[]
           heading: string
           id?: string
           organization_id: string
+          responsible_role?: string | null
+          sequence?: number | null
           status?: string
           step_number?: number
+          template_step_id?: string | null
           updated_at?: string
         }
         Update: {
+          assignee_id?: string | null
+          blocked_reason?: string | null
           client_id?: string
+          completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
+          due_date?: string | null
           events?: string[]
           heading?: string
           id?: string
           organization_id?: string
+          responsible_role?: string | null
+          sequence?: number | null
           status?: string
           step_number?: number
+          template_step_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_process_steps_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_process_steps_client_id_fkey"
             columns: ["client_id"]
@@ -329,6 +404,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_process_steps_template_step_id_fkey"
+            columns: ["template_step_id"]
+            isOneToOne: false
+            referencedRelation: "process_template_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -1338,6 +1420,59 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          link: string | null
+          organization_id: string
+          read_at: string | null
+          recipient_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          link?: string | null
+          organization_id: string
+          read_at?: string | null
+          recipient_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          link?: string | null
+          organization_id?: string
+          read_at?: string | null
+          recipient_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -1345,6 +1480,7 @@ export type Database = {
           invited_at: string | null
           invited_email: string | null
           joined_at: string | null
+          login_surface: string
           organization_id: string
           role: string
           user_id: string
@@ -1355,6 +1491,7 @@ export type Database = {
           invited_at?: string | null
           invited_email?: string | null
           joined_at?: string | null
+          login_surface?: string
           organization_id: string
           role?: string
           user_id: string
@@ -1365,6 +1502,7 @@ export type Database = {
           invited_at?: string | null
           invited_email?: string | null
           joined_at?: string | null
+          login_surface?: string
           organization_id?: string
           role?: string
           user_id?: string
@@ -1581,6 +1719,95 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      process_template_steps: {
+        Row: {
+          created_at: string
+          default_eta_days: number | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          responsible_role: string | null
+          step_order: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_eta_days?: number | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          responsible_role?: string | null
+          step_order: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          default_eta_days?: number | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          responsible_role?: string | null
+          step_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_template_steps_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_template_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "process_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -2289,6 +2516,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _org_admin_user_ids: { Args: { _org: string }; Returns: string[] }
       get_org_role: {
         Args: { _org_id: string; _user_id: string }
         Returns: string

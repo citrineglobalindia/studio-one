@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useClients } from "@/hooks/useClients";
 import { useProcessSteps, type ProcessStep } from "@/hooks/useProcessSteps";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,6 +33,7 @@ const STATUS_CONFIG: Record<string, { label: string; dotClass: string; bgClass: 
 };
 
 export default function ProcessPlannerPage() {
+  const navigate = useNavigate();
   const { clients, isLoading: clientsLoading } = useClients();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const { steps, isLoading, addStep, updateStep, deleteStep } = useProcessSteps(selectedClientId || undefined);
@@ -78,21 +80,39 @@ export default function ProcessPlannerPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <ListChecks className="h-5 w-5 text-primary-foreground" />
+      <div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <ListChecks className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-display font-bold text-foreground">Process Planner</h1>
+              <p className="text-sm text-muted-foreground">Define &amp; track step-by-step workflows for each client</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Process Planner</h1>
-            <p className="text-sm text-muted-foreground">Define &amp; track step-by-step workflows for each client</p>
-          </div>
+          {selectedClientId && (
+            <Button onClick={handleAddStep} disabled={addStep.isPending} className="gap-2">
+              <Plus className="h-4 w-4" /> Add Step
+            </Button>
+          )}
         </div>
-        {selectedClientId && (
-          <Button onClick={handleAddStep} disabled={addStep.isPending} className="gap-2">
-            <Plus className="h-4 w-4" /> Add Step
-          </Button>
-        )}
+        {/* Tabs */}
+        <div className="mt-4 flex items-center gap-1 border-b">
+          {[
+            { label: "Per-Client", path: "/process-planner" },
+            { label: "Templates", path: "/process-planner/templates" },
+            { label: "Across Projects", path: "/process-planner/dashboard" },
+          ].map(t => (
+            <button
+              key={t.path}
+              onClick={() => navigate(t.path)}
+              className={`px-3 py-2 text-sm font-medium ${t.path === "/process-planner" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Client Selector */}
