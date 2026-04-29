@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
+import { Link, useLocation, useNavigate, Outlet, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Home, Briefcase, Calendar, Wallet, Settings as Cog, MessageCircle, Film, IndianRupee } from "lucide-react";
 import { useRole, ALL_ROLES } from "@/contexts/RoleContext";
@@ -36,7 +36,13 @@ interface Props {
 export function RoleMobileLayout({ children }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentRole } = useRole();
+  const { currentRole, loginSurface } = useRole();
+
+  // Login-surface enforcement: a user that's been granted "web" only must
+  // never see the mobile shell — bounce them back to the desktop dashboard.
+  if (loginSurface === "web") {
+    return <Navigate to="/" replace />;
+  }
 
   const isActive = (path: string) => {
     if (path === "/m") return location.pathname === "/m";

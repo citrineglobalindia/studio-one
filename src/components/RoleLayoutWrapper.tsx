@@ -1,7 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useRole, type AppModule } from "@/contexts/RoleContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { RoleMobileLayout } from "@/components/role-mobile/RoleMobileLayout";
 
 const routeModuleMap: Array<{ prefix: string; module: AppModule }> = [
   { prefix: "/access-control", module: "settings" },
@@ -18,6 +17,7 @@ const routeModuleMap: Array<{ prefix: string; module: AppModule }> = [
   { prefix: "/contracts", module: "contracts" },
   { prefix: "/invoices", module: "invoices" },
   { prefix: "/team", module: "team" },
+  { prefix: "/members", module: "members" },
   { prefix: "/albums", module: "projects" },
   { prefix: "/live-clients", module: "projects" },
   { prefix: "/events", module: "calendar" },
@@ -37,8 +37,9 @@ const routeModuleMap: Array<{ prefix: string; module: AppModule }> = [
 
 export function RoleLayoutWrapper() {
   const location = useLocation();
-  const { isAdmin, hasAccess } = useRole();
+  const { isAdmin, hasAccess, loginSurface } = useRole();
 
+  // Per-module access guard — applies to every desktop route
   const matchedRoute = routeModuleMap.find(({ prefix }) => {
     if (prefix === "/") return location.pathname === "/";
     return location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
@@ -48,6 +49,13 @@ export function RoleLayoutWrapper() {
     return <Navigate to="/" replace />;
   }
 
+  // Login-surface enforcement: a user that's been granted "pwa" only must
+  // never see the desktop dashboard, even if they're an admin in this org.
+  if (loginSurface === "pwa") {
+    return <Navigate to="/m" replace />;
+  }
+
+  // Admins and managers (when surface is web/both) get the desktop shell
   if (isAdmin) {
     return (
       <DashboardLayout>

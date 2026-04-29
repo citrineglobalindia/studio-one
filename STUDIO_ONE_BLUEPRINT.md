@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-25 (v3 — added Claude AI Assistant: Supabase Edge Function with tool use over studio data, streaming chat UI at /ai-assistant)
+> Last updated: 2026-04-29 (v4 — Members page + manage-member edge function + login_surface enforcement: admins now invite real users by email, choose role + Web/Mobile/Both surface; RoleLayoutWrapper + RoleMobileLayout block users from the wrong surface)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 
@@ -129,13 +129,16 @@ Schema:
 - Editor's flow: from a deliverable, "Raise payment" → links the request to the deliverable + project
 - Admin's flow: `/payment-requests` page → KPIs + per-row Approve / Reject / Mark-paid with optional transaction reference
 
-### 3.9 User & Role Management (RBAC)
-- Admin creates users via `create-studio` edge function or in-studio invite
-- Three control surfaces:
-  - Profile role (`profiles.role`) — sets the default dashboard
-  - Org role (`organization_members.role`) — owner / admin / member within the studio
-  - Per-role module access (`studio_role_module_access`) — overrides module visibility per role within this studio
-- Login surface (Web / PWA / Both) — to be persisted on `organization_members`
+### 3.9 User & Role Management (RBAC) ✅ implemented
+- **Members page** at `/members` (admin/manager only) — list, invite, edit, remove
+- **Invite flow** — admin enters email + display name + role + login surface, edge function `manage-member` (service role) either creates a fresh auth user (with email-confirm) or attaches an existing one, upserts profile, upserts `organization_members` row with role + login_surface, then triggers a password-reset email so the invitee picks their own password
+- **Edit flow** — admin can change a member's role (any of 9 AppRole values) and surface (web/pwa/both) live, mirrored back to `profiles.role`
+- **Remove flow** — owner cannot be removed; admin cannot remove themselves
+- Four control surfaces:
+  - Profile role (`profiles.role`) — default dashboard
+  - Org role (`organization_members.role`) — owner / admin / member / specific role
+  - Login surface (`organization_members.login_surface`) — `web` / `pwa` / `both` — enforced in routing
+  - Per-role module access (`studio_role_module_access`) — module visibility per role within this studio
 
 ### 3.10 Reports & Dashboards
 - **Owner dashboard** (web `/`) — revenue, leads, projects, calendar
@@ -162,14 +165,20 @@ Granular modules so toggling "Projects" doesn't accidentally hide "Albums" — e
 
 ---
 
-## 5. Login access control (planned)
+## 5. Login access control ✅ implemented
 
-`organization_members.access_surface` enum: `web` | `pwa` | `both` (default `both`).
+`organization_members.login_surface` text column: `web` | `pwa` | `both` (default `both`).
 
-Routing logic on auth:
-- if `web` only → block `/m/*` routes
-- if `pwa` only → redirect web routes to `/m`
-- if `both` → no restriction
+**Routing enforcement (live):**
+- `RoleContext` reads `login_surface` from the user's membership row when the org loads and exposes it via `useRole().loginSurface`
+- `RoleLayoutWrapper` (desktop shell) — if `loginSurface === "pwa"` → `<Navigate to="/m" replace />`
+- `RoleMobileLayout` (mobile shell at `/m/*`) — if `loginSurface === "web"` → `<Navigate to="/" replace />`
+- `both` (default) → user can roam freely between web and PWA
+- Super admins impersonating a studio always get `both` so they can audit either surface
+
+**Setting the surface:** Admin opens `/members`, clicks Edit on a row, picks Web only / Mobile only / Web + Mobile. Saved server-side via the `manage-member` edge function (action: `update`).
+
+**Granted at invite time:** When a new member is invited, admin picks their starting surface in the invite dialog. Defaults to `both`.
 
 ---
 
@@ -200,7 +209,7 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 |-------|---------|
 | `profiles` | user_id → display_name, role |
 | `organizations` | tenant root |
-| `organization_members` | user × org with role (owner/admin/member) |
+| `organization_members` | user × org with role (owner/admin/member or any AppRole) + `login_surface` (web/pwa/both) |
 | `super_admins` | platform-level operators |
 | `subscription_plans` | Starter / Pro / Enterprise definitions |
 | `subscriptions` | per-org subscription with trial/active/expired |
@@ -213,8 +222,9 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 ## 8. Implementation status
 
 ### ✅ Phase 1 — built and live
+- **Members + Login Surface (v4)** — `/members` admin page (invite by email + role + Web/Mobile/Both surface), `manage-member` edge function (service role, three actions: invite/update/remove), `RoleContext.loginSurface` exposure, `RoleLayoutWrapper` + `RoleMobileLayout` enforcement so a "web only" user is bounced from `/m/*` and a "pwa only" user is bounced from the desktop shell. Owner-protection (cannot remove studio owner, cannot self-remove). Existing-user detection so re-inviting an already-registered email just attaches them to the studio.
 - **Claude AI Assistant** — Supabase Edge Function (`/functions/v1/ai-chat`) proxies to Anthropic API (claude-opus-4-7) with prompt caching + 8 read-only tools (`summary_kpis`, `list_leads`, `list_clients`, `list_projects`, `list_invoices`, `list_deliverables`, `list_overdue`, `revenue_breakdown`). Server-side agentic loop, JWT-validated, every query auto-scoped to caller's org. Streaming chat UI at `/ai-assistant` with markdown + table rendering, tool-call chips, suggestions, cancel/reset. Secret: `ANTHROPIC_API_KEY` in Supabase project settings.
-- Manager role + scoped permissions
+- Manager role + scoped permissions (now invitable from `/members`)
 - **Realtime notifications** — `notifications` table with auto-triggers (payment requested/approved/rejected/paid, leave requested, enquiry received). NotificationBell in header with live unread count via Supabase realtime, full `/notifications` page with All/Unread tabs, mark-read + delete
 - **Global search (Cmd+K / Ctrl+K)** — `GlobalSearch` modal searches leads/clients/projects/events/invoices/contracts/deliverables in one shot with quick "Jump to" page navigation
 - Multi-tenant Supabase schema with RLS
@@ -238,9 +248,9 @@ Super Admin sets `localStorage.sa_impersonate_org` + the OrgContext picks that o
 ### 🟡 Phase 2 — in progress / partial
 - Process Planner: data layer ready, deeper UI (timeline, cross-project bottleneck report) pending
 - Vendor full lifecycle (vendor self-portal etc.)
-- Login surface control (Web / PWA / Both) — schema not yet added
 - Audit log surfaces beyond Super Admin
 - Bulk operations + CSV import on Leads/Clients
+- Custom invite-email template (currently uses Supabase default password-reset email — works but not branded)
 
 ### 🔴 Phase 3 — not yet started
 - Notifications (WhatsApp / email / in-app)

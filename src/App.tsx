@@ -57,6 +57,7 @@ import AccountsPage from "./pages/AccountsPage";
 import LiveClientsPage from "./pages/LiveClientsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccessControlPage from "./pages/AccessControlPage";
+import MembersPage from "./pages/MembersPage";
 import ProcessPlannerPage from "./pages/ProcessPlannerPage";
 import ProcessTemplatesPage from "./pages/ProcessTemplatesPage";
 import ProcessDashboardPage from "./pages/ProcessDashboardPage";
@@ -133,6 +134,7 @@ function ProtectedRoutes() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/albums" element={<AlbumsPage />} />
         <Route path="/team" element={<TeamPage />} />
+        <Route path="/members" element={<MembersPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/contracts" element={<ContractsPage />} />
         <Route path="/communications" element={<CommunicationsPage />} />

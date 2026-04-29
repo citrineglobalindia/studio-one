@@ -19,7 +19,7 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
 export type AppModule =
   | "dashboard" | "leads" | "call-logs" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
-  | "team" | "vendor-orders"
+  | "team" | "vendor-orders" | "members"
   | "invoices" | "contracts" | "payment-requests"
   | "communications" | "marketing" | "analytics" | "automation"
   | "ai-assistant" | "ai-selection"
@@ -40,6 +40,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "tasks", label: "Tasks", group: "Operations" },
   { value: "process-planner", label: "Process Planner", group: "Operations" },
   { value: "team", label: "Team", group: "Operations" },
+  { value: "members", label: "Studio Members", group: "Operations" },
   { value: "vendor-orders", label: "Vendor Orders", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
@@ -66,7 +67,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   manager: [
     "dashboard", "leads", "call-logs", "clients", "quotations",
     "live-clients", "projects", "events", "albums", "calendar", "tasks", "process-planner",
-    "team", "vendor-orders",
+    "team", "members", "vendor-orders",
     "invoices", "contracts", "payment-requests",
     "communications", "marketing", "analytics",
     "notifications", "profile",
@@ -79,6 +80,9 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   hr: ["dashboard", "hr-dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
   accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "analytics", "notifications", "profile"],
 };
+
+/** Where this user is allowed to sign in: web dashboard, mobile PWA, or both. */
+export type LoginSurface = "web" | "pwa" | "both";
 
 interface RoleContextType {
   currentRole: AppRole;
@@ -94,6 +98,14 @@ interface RoleContextType {
   studioRestrictedModules: string[];
   studioDisabledRoles: string[];
   organizationId: string | null;
+  /**
+   * The login surface the admin granted this user inside the active studio.
+   * Used by RoleLayoutWrapper to redirect web-only users away from /m and
+   * pwa-only users back to /m. Defaults to "both" for super admins.
+   */
+  loginSurface: LoginSurface;
+  /** True if the membership row says this user is the studio owner. */
+  isOwner: boolean;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -106,6 +118,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [studioRestrictedModules, setStudioRestrictedModules] = useState<string[]>([]);
   const [studioDisabledRoles, setStudioDisabledRoles] = useState<string[]>([]);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [loginSurface, setLoginSurface] = useState<LoginSurface>("both");
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -114,6 +128,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setStudioDisabledRoles([]);
       setRoleAccess(DEFAULT_ACCESS);
       setOrganizationId(null);
+      setLoginSurface("both");
+      setIsOwner(false);
       setRoleLoading(false);
       return;
     }
@@ -154,11 +170,25 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         if (!targetOrgId) {
           const { data: membership } = await supabase
             .from("organization_members")
-            .select("organization_id")
+            .select("organization_id, role, login_surface")
             .eq("user_id", user.id)
             .limit(1)
             .maybeSingle();
           targetOrgId = membership?.organization_id ?? null;
+
+          // Capture the user's surface + owner-flag for the org we just resolved.
+          // (For super admins impersonating, default to "both" so they can roam.)
+          if (membership) {
+            setLoginSurface(((membership.login_surface as LoginSurface) || "both"));
+            setIsOwner(membership.role === "owner");
+          } else {
+            setLoginSurface("both");
+            setIsOwner(false);
+          }
+        } else {
+          // Super admin impersonating — give them full surface access
+          setLoginSurface("both");
+          setIsOwner(false);
         }
 
         setOrganizationId(targetOrgId);
@@ -287,6 +317,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         studioRestrictedModules,
         studioDisabledRoles,
         organizationId,
+        loginSurface,
+        isOwner,
       }}
     >
       {children}
