@@ -371,7 +371,10 @@ export default function TeamPage() {
       if (vars.mode === "email") {
         toast.success(`Password-reset email sent to ${res.email}`);
       } else {
-        toast.success(`New password set for ${res.email}. They can sign in now.`);
+        toast.success(
+          `New password set for ${res.email}. Copied to your clipboard — paste it to share.`,
+          { duration: 6000 }
+        );
       }
       setResetUser(null);
     },
@@ -1092,11 +1095,24 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
+/** Generate a memorable-but-strong 14-char password using browser crypto. */
+function generateStrongPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  const body = Array.from(bytes).map((b) => chars[b % chars.length]).join("");
+  return body + Math.floor(Math.random() * 10) + "!";
+}
+
 /**
- * Two-mode password reset dialog:
- *   - "email": admin clicks one button, Supabase sends a recovery email.
- *   - "set":   admin types a new password, we apply it directly via the
- *              service-role edge function. The user can sign in immediately.
+ * Streamlined password-reset dialog:
+ *   - Opens with a strong password ALREADY generated and visible
+ *   - Default action: "Set & Copy" — sets the password and copies it to
+ *     clipboard so admin can paste it to the user immediately.
+ *   - Secondary: type a custom password if you prefer
+ *   - Tertiary:  send a recovery email instead (single click, no fields)
+ *
+ * The fastest path is now: open dialog → click Set & Copy → done.
  */
 function ResetPasswordDialog({
   user, saving, onSubmit, onCancel,
@@ -1106,32 +1122,35 @@ function ResetPasswordDialog({
   onSubmit: (mode: "email" | "set", password?: string) => void;
   onCancel: () => void;
 }) {
-  const [mode, setMode] = useState<"email" | "set">("email");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPw, setShowPw] = useState(false);
+  const [password, setPassword] = useState<string>(() => generateStrongPassword());
+  const [showPw, setShowPw] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const validSetMode = mode === "set" && password.length >= 8 && password === confirm;
-
-  function generatePassword() {
-    // Browser crypto: 16 char base62-ish + a digit + a symbol = strong default
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-    const bytes = new Uint8Array(14);
-    crypto.getRandomValues(bytes);
-    const body = Array.from(bytes).map((b) => chars[b % chars.length]).join("");
-    const generated = body + Math.floor(Math.random() * 10) + "!";
-    setPassword(generated);
-    setConfirm(generated);
-    setShowPw(true);
+  function regenerate() {
+    setPassword(generateStrongPassword());
+    setCopied(false);
   }
 
-  function copyPassword() {
+  async function copyPassword() {
     if (!password) return;
-    navigator.clipboard.writeText(password).then(() => {
+    try {
+      await navigator.clipboard.writeText(password);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    });
+    } catch (_) {
+      toast.error("Couldn't access clipboard. Copy the password manually.");
+    }
+  }
+
+  /** Set the password and copy it to clipboard in one go. */
+  async function setAndCopy() {
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
+    // Best-effort copy first so admin has it even if API fails
+    try { await navigator.clipboard.writeText(password); } catch (_) { /* ignore */ }
+    onSubmit("set", password);
   }
 
   return (
@@ -1141,150 +1160,99 @@ function ResetPasswordDialog({
           <KeyRound className="h-5 w-5 text-primary" /> Reset password
         </DialogTitle>
         <DialogDescription>
-          Reset password for <span className="font-medium text-foreground">{user.full_name}</span>
+          For <span className="font-medium text-foreground">{user.full_name}</span>
           {user.email && <span className="text-muted-foreground"> ({user.email})</span>}.
         </DialogDescription>
       </DialogHeader>
 
-      {/* Mode selector */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => setMode("email")}
-          className={cn(
-            "flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all",
-            mode === "email"
-              ? "border-primary bg-primary/5"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <MailOpen className={cn("h-4 w-4", mode === "email" ? "text-primary" : "text-muted-foreground")} />
-            <span className={cn("text-sm font-semibold", mode === "email" ? "text-primary" : "text-foreground")}>
-              Send reset email
-            </span>
+      {/* Big password field — pre-filled, visible, primary action */}
+      <div className="space-y-3 py-2">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">New password</Label>
+            <button
+              type="button"
+              onClick={regenerate}
+              className="text-[11px] text-primary hover:underline"
+            >
+              Generate new
+            </button>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            User picks their own password from a link in their inbox.
-          </p>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("set")}
-          className={cn(
-            "flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all",
-            mode === "set"
-              ? "border-primary bg-primary/5"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <KeyRound className={cn("h-4 w-4", mode === "set" ? "text-primary" : "text-muted-foreground")} />
-            <span className={cn("text-sm font-semibold", mode === "set" ? "text-primary" : "text-foreground")}>
-              Set password manually
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Pick a password yourself and share it with the user.
-          </p>
-        </button>
-      </div>
-
-      {/* Mode-specific fields */}
-      {mode === "set" && (
-        <div className="space-y-3 pt-2">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">New password (min 8 chars)</Label>
-              <button
-                type="button"
-                onClick={generatePassword}
-                className="text-[11px] text-primary hover:underline"
-              >
-                Generate strong password
-              </button>
-            </div>
-            <div className="relative">
-              <Input
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="pr-20"
-              />
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                {password && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    type="button"
-                    onClick={copyPassword}
-                    aria-label="Copy password"
-                  >
-                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-                  </Button>
-                )}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7"
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  aria-label="Toggle password visibility"
-                >
-                  {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Confirm new password</Label>
+          <div className="relative">
             <Input
               type={showPw ? "text" : "password"}
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="••••••••"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setCopied(false); }}
+              className="pr-20 font-mono text-base tracking-tight"
             />
-            {confirm && password !== confirm && (
-              <p className="text-[11px] text-destructive">Passwords don't match.</p>
-            )}
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                type="button"
+                onClick={copyPassword}
+                aria-label="Copy password"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                type="button"
+                onClick={() => setShowPw((s) => !s)}
+                aria-label="Toggle visibility"
+              >
+                {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
           </div>
-          <div className="rounded-lg bg-amber-500/5 border border-amber-500/30 p-3">
-            <p className="text-[11px] text-amber-600 dark:text-amber-400">
-              The user can sign in with this password immediately.
-              Share it through a secure channel — they should change it on first login.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {mode === "email" && (
-        <div className="rounded-lg bg-muted/30 border border-border p-3">
           <p className="text-[11px] text-muted-foreground">
-            We'll generate a one-time recovery link and send it to {user.email}.
-            They'll be able to set a new password. Their current password (if any)
-            is not changed until they complete the flow.
+            Auto-generated. Edit if you'd like — minimum 8 characters.
           </p>
         </div>
-      )}
 
-      <DialogFooter className="pt-2">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        {/* Primary action */}
         <Button
-          disabled={saving || (mode === "set" && !validSetMode)}
-          onClick={() => onSubmit(mode, mode === "set" ? password : undefined)}
-          className="gap-2"
+          onClick={setAndCopy}
+          disabled={saving || password.length < 8}
+          className="w-full gap-2 h-11"
+          size="lg"
         >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : mode === "email" ? (
-            <Send className="h-4 w-4" />
-          ) : (
-            <KeyRound className="h-4 w-4" />
-          )}
-          {mode === "email" ? "Send reset email" : "Set new password"}
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+          Set password & copy
         </Button>
+
+        {/* Divider */}
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+              Or
+            </span>
+          </div>
+        </div>
+
+        {/* Secondary: send email */}
+        <Button
+          variant="outline"
+          onClick={() => onSubmit("email")}
+          disabled={saving || !user.email}
+          className="w-full gap-2"
+        >
+          <MailOpen className="h-4 w-4" />
+          Send reset email instead
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center">
+          User picks their own password from a link mailed to them.
+        </p>
+      </div>
+
+      <DialogFooter>
+        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
       </DialogFooter>
     </>
   );
