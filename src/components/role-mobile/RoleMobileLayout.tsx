@@ -1,22 +1,29 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Home, Briefcase, Calendar, Wallet, Settings as Cog, MessageCircle, Film } from "lucide-react";
+import { Bell, Home, Briefcase, Calendar, Wallet, Settings as Cog, MessageCircle, Film, IndianRupee } from "lucide-react";
 import { useRole, ALL_ROLES } from "@/contexts/RoleContext";
 import { Button } from "@/components/ui/button";
 
 // Roles that work on assigned events (no generic "Projects" list)
-const EVENT_ROLES = new Set(["photographer", "videographer", "editor", "vendor"]);
+const EVENT_ROLES = new Set(["photographer", "videographer", "vendor"]);
 
 const buildNavItems = (role: string) => {
+  // Editor's job is task-based (deliverables) — they don't need Events at all.
+  if (role === "editor") {
+    return [
+      { icon: Home, label: "Home", path: "/m" },
+      { icon: Film, label: "Tasks", path: "/m/deliverables" },
+      { icon: IndianRupee, label: "Payments", path: "/m/payments" },
+      { icon: Wallet, label: "Money", path: "/m/transactions" },
+      { icon: Cog, label: "Settings", path: "/m/settings" },
+    ];
+  }
   const isEventRole = EVENT_ROLES.has(role);
-  const isEditor = role === "editor";
   return [
     { icon: Home, label: "Home", path: "/m" },
     { icon: Briefcase, label: isEventRole ? "Events" : "Projects", path: "/m/projects" },
-    isEditor
-      ? { icon: Film, label: "Edits", path: "/m/deliverables" }
-      : { icon: Calendar, label: "Calendar", path: "/m/calendar" },
+    { icon: Calendar, label: "Calendar", path: "/m/calendar" },
     { icon: Wallet, label: "Money", path: "/m/transactions" },
     { icon: Cog, label: "Settings", path: "/m/settings" },
   ];

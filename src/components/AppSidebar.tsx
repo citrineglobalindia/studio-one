@@ -73,6 +73,7 @@ const financeItems: SidebarItem[] = [
   { title: "Invoices", url: "/invoices", icon: CreditCard, module: "invoices" },
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
   { title: "Contracts", url: "/contracts", icon: Briefcase, module: "contracts" },
+  { title: "Payment Requests", url: "/payment-requests", icon: Wallet, module: "payment-requests" },
 ];
 
 const growthItems: SidebarItem[] = [

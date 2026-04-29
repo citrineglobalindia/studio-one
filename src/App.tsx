@@ -28,6 +28,7 @@ import InvoicesPage from "./pages/InvoicesPage";
 import LeadsPage from "./pages/LeadsPage";
 import CallLogsPage from "./pages/CallLogsPage";
 import VendorOrdersPage from "./pages/VendorOrdersPage";
+import PaymentRequestsPage from "./pages/PaymentRequestsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
@@ -65,6 +66,7 @@ import RoleDashboardPage from "./pages/role-mobile/RoleDashboardPage";
 import RoleProjectsPage from "./pages/role-mobile/RoleProjectsPage";
 import RoleCalendarPage from "./pages/role-mobile/RoleCalendarPage";
 import RoleDeliverablesPage from "./pages/role-mobile/RoleDeliverablesPage";
+import RolePaymentsPage from "./pages/role-mobile/RolePaymentsPage";
 import RoleTransactionsPage from "./pages/role-mobile/RoleTransactionsPage";
 import RoleAttendancePage from "./pages/role-mobile/RoleAttendancePage";
 import RoleChatPage from "./pages/role-mobile/RoleChatPage";
@@ -117,6 +119,7 @@ function ProtectedRoutes() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/call-logs" element={<CallLogsPage />} />
         <Route path="/vendor-orders" element={<VendorOrdersPage />} />
+        <Route path="/payment-requests" element={<PaymentRequestsPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/quotations" element={<QuotationsPage />} />
@@ -155,6 +158,7 @@ function ProtectedRoutes() {
         <Route path="projects" element={<RoleProjectsPage />} />
         <Route path="projects/:projectId/event-day" element={<EventDayPage />} />
         <Route path="deliverables" element={<RoleDeliverablesPage />} />
+        <Route path="payments" element={<RolePaymentsPage />} />
         <Route path="calendar" element={<RoleCalendarPage />} />
         <Route path="transactions" element={<RoleTransactionsPage />} />
         <Route path="expenses" element={<RoleExpensePage />} />

@@ -19,7 +19,7 @@ export type AppModule =
   | "dashboard" | "leads" | "call-logs" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
   | "team" | "vendor-orders"
-  | "invoices" | "contracts"
+  | "invoices" | "contracts" | "payment-requests"
   | "communications" | "marketing" | "analytics" | "automation"
   | "ai-assistant" | "ai-selection"
   | "hr-dashboard" | "hr-employees" | "hr-attendance" | "hr-leaves"
@@ -42,6 +42,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "vendor-orders", label: "Vendor Orders", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
+  { value: "payment-requests", label: "Payment Requests", group: "Finance" },
   { value: "accounts-page", label: "Accounts", group: "Finance" },
   { value: "communications", label: "Communications", group: "Growth" },
   { value: "marketing", label: "Marketing", group: "Growth" },
@@ -66,7 +67,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   videographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
   photographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
   hr: ["dashboard", "hr-dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
-  accounts: ["dashboard", "invoices", "contracts", "accounts-page", "analytics", "notifications", "profile"],
+  accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "analytics", "notifications", "profile"],
 };
 
 interface RoleContextType {

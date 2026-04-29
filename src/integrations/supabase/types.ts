@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -543,6 +543,66 @@ export type Database = {
           },
         ]
       }
+      deliverable_attachments: {
+        Row: {
+          created_at: string
+          deliverable_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          notes: string | null
+          organization_id: string
+          thumbnail_url: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          deliverable_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          thumbnail_url?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          deliverable_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          thumbnail_url?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverable_attachments_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverable_attachments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deliverables: {
         Row: {
           assigned_to: string | null
@@ -559,6 +619,8 @@ export type Database = {
           progress: number | null
           project_id: string
           status: string
+          submission_notes: string | null
+          submitted_at: string | null
           title: string | null
           updated_at: string
         }
@@ -577,6 +639,8 @@ export type Database = {
           progress?: number | null
           project_id: string
           status?: string
+          submission_notes?: string | null
+          submitted_at?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -595,6 +659,8 @@ export type Database = {
           progress?: number | null
           project_id?: string
           status?: string
+          submission_notes?: string | null
+          submitted_at?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -1372,6 +1438,101 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      payment_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          currency: string
+          deliverable_id: string | null
+          description: string
+          id: string
+          organization_id: string
+          paid_at: string | null
+          paid_reference: string | null
+          payment_account: string | null
+          payment_method: string | null
+          project_id: string | null
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          team_member_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          currency?: string
+          deliverable_id?: string | null
+          description: string
+          id?: string
+          organization_id: string
+          paid_at?: string | null
+          paid_reference?: string | null
+          payment_account?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          team_member_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          currency?: string
+          deliverable_id?: string | null
+          description?: string
+          id?: string
+          organization_id?: string
+          paid_at?: string | null
+          paid_reference?: string | null
+          payment_account?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          team_member_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_settings: {
         Row: {
