@@ -42,13 +42,13 @@ const ProgressBar = ({ label, value, total, color, delay }: { label: string; val
   return (
     <div className="mb-3 last:mb-0">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-medium text-slate-400">{label}</span>
-        <span className="text-[12px] font-bold text-white">
+        <span className="text-[11px] font-medium text-slate-500">{label}</span>
+        <span className="text-[12px] font-bold text-slate-900">
           <AnimatedNumber value={value} delay={delay} />
-          <span className="text-slate-500 font-normal"> / {total}</span>
+          <span className="text-slate-400 font-normal"> / {total}</span>
         </span>
       </div>
-      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -82,32 +82,31 @@ export default function RoleDashboardPage() {
       {/* Hero card */}
       <motion.div
         variants={cardVariants}
-        className="relative overflow-hidden rounded-3xl p-5 border border-white/10"
+        className="relative overflow-hidden rounded-3xl p-5 text-white"
         style={{
-          background:
-            "linear-gradient(135deg, rgba(56,189,248,0.18) 0%, rgba(37,99,235,0.22) 50%, rgba(79,70,229,0.18) 100%)",
-          boxShadow: "0 24px 60px -20px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+          background: "linear-gradient(135deg, #38bdf8 0%, #2563eb 50%, #4f46e5 100%)",
+          boxShadow: "0 24px 60px -16px rgba(37,99,235,0.5)",
         }}
       >
-        <div className="absolute -top-16 -right-12 w-48 h-48 bg-sky-400/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-10 w-40 h-40 bg-blue-600/30 rounded-full blur-3xl" />
+        <div className="absolute -top-16 -right-12 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 w-40 h-40 bg-indigo-400/40 rounded-full blur-3xl" />
 
         <div className="relative z-10">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-sky-200/80 font-semibold">Welcome back</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] opacity-90 font-semibold">Welcome back</span>
             <motion.span
               animate={{ rotate: [0, 15, -15, 0] }}
               transition={{ repeat: Infinity, duration: 2, repeatDelay: 3 }}
               className="text-sm"
             >👋</motion.span>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight capitalize text-white">{displayName}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight capitalize">{displayName}</h1>
           <div className="mt-2 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white/10 border border-white/10 text-sky-100 px-2.5 py-1 rounded-lg">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white/20 border border-white/20 px-2.5 py-1 rounded-lg">
               <Icon className="h-3 w-3" />
               {roleLoading ? "Loading…" : cfg.label}
             </span>
-            <span className="text-[10px] text-sky-200/70 font-medium">{cfg.tagline}</span>
+            <span className="text-[10px] opacity-90 font-medium">{cfg.tagline}</span>
           </div>
 
           {/* Hero stats */}
@@ -116,12 +115,12 @@ export default function RoleDashboardPage() {
               <motion.div
                 key={s.label}
                 variants={cardVariants}
-                className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 text-center"
+                className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center"
               >
-                <p className="text-2xl font-extrabold leading-tight text-white">
+                <p className="text-2xl font-extrabold leading-tight">
                   <AnimatedNumber value={s.value} delay={0.2 + i * 0.1} />
                 </p>
-                <p className="text-[9px] uppercase tracking-[0.15em] font-semibold text-sky-200/70 mt-1">{s.label}</p>
+                <p className="text-[9px] uppercase tracking-[0.15em] font-semibold opacity-90 mt-1">{s.label}</p>
               </motion.div>
             ))}
           </div>
@@ -131,14 +130,14 @@ export default function RoleDashboardPage() {
       {/* Primary KPI */}
       <motion.div
         variants={cardVariants}
-        className="rounded-3xl p-5 border border-white/10 bg-white/[0.04] backdrop-blur-xl"
-        style={{ boxShadow: "0 16px 40px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)" }}
+        className="rounded-3xl p-5 border border-blue-100 bg-white"
+        style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-sky-200/60 font-semibold">{cfg.primaryMetric.label}</p>
-            <p className="text-3xl font-extrabold text-white mt-1">{cfg.primaryMetric.value}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">{cfg.primaryMetric.sub}</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{cfg.primaryMetric.label}</p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-1">{cfg.primaryMetric.value}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{cfg.primaryMetric.sub}</p>
           </div>
           <div
             className="h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/30"
@@ -152,14 +151,14 @@ export default function RoleDashboardPage() {
       {/* Today's quote */}
       <motion.div
         variants={cardVariants}
-        className="rounded-3xl p-4 border border-white/10 bg-white/[0.04] backdrop-blur-xl flex items-center gap-3"
+        className="rounded-3xl p-4 border border-blue-100 bg-white flex items-center gap-3"
       >
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-400/30 to-blue-600/30 flex items-center justify-center shrink-0">
-          <Sparkles className="h-5 w-5 text-sky-300" />
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-100 to-blue-100 flex items-center justify-center shrink-0">
+          <Sparkles className="h-5 w-5 text-blue-600" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">{cfg.greeting}</p>
-          <p className="text-[11px] text-slate-400">{cfg.tagline}</p>
+          <p className="text-sm font-semibold text-slate-900">{cfg.greeting}</p>
+          <p className="text-[11px] text-slate-500">{cfg.tagline}</p>
         </div>
       </motion.div>
 
@@ -168,40 +167,40 @@ export default function RoleDashboardPage() {
         variants={cardVariants}
         whileTap={{ scale: 0.98 }}
         onClick={() => navigate("/m/attendance")}
-        className="w-full text-left rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
-        style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+        className="w-full text-left rounded-3xl border border-blue-100 bg-white overflow-hidden"
+        style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
       >
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
-                className="h-11 w-11 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20"
+                className="h-11 w-11 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30"
                 style={{ background: "linear-gradient(135deg, #10b981, #047857)" }}
               >
                 <CalendarCheck className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h4 className="font-bold text-[15px] text-white">Attendance</h4>
-                <p className="text-[10px] text-slate-400">This month at a glance</p>
+                <h4 className="font-bold text-[15px] text-slate-900">Attendance</h4>
+                <p className="text-[10px] text-slate-500">This month at a glance</p>
               </div>
             </div>
-            <ArrowRight className="h-4 w-4 text-slate-500" />
+            <ArrowRight className="h-4 w-4 text-slate-400" />
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-4">
             {[
-              { label: "Present", value: 18, icon: CheckCircle2, color: "text-emerald-300", bg: "bg-emerald-500/15" },
-              { label: "Leave", value: 2, icon: Clock, color: "text-amber-300", bg: "bg-amber-500/15" },
-              { label: "Absent", value: 1, icon: AlertCircle, color: "text-rose-300", bg: "bg-rose-500/15" },
+              { label: "Present", value: 18, icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-100" },
+              { label: "Leave", value: 2, icon: Clock, color: "text-amber-700", bg: "bg-amber-50 border-amber-100" },
+              { label: "Absent", value: 1, icon: AlertCircle, color: "text-rose-700", bg: "bg-rose-50 border-rose-100" },
             ].map((s, i) => {
               const SIcon = s.icon;
               return (
-                <div key={s.label} className={`${s.bg} border border-white/5 rounded-2xl p-3 text-center`}>
+                <div key={s.label} className={`${s.bg} border rounded-2xl p-3 text-center`}>
                   <SIcon className={`h-4 w-4 mx-auto mb-1.5 ${s.color}`} />
                   <p className={`text-xl font-extrabold ${s.color} leading-none`}>
                     <AnimatedNumber value={s.value} delay={0.3 + i * 0.08} />
                   </p>
-                  <p className="text-[9px] uppercase tracking-wider text-slate-400 mt-1.5 font-semibold">{s.label}</p>
+                  <p className="text-[9px] uppercase tracking-wider text-slate-500 mt-1.5 font-semibold">{s.label}</p>
                 </div>
               );
             })}
@@ -212,14 +211,15 @@ export default function RoleDashboardPage() {
             <motion.div initial={{ width: 0 }} animate={{ width: "10%" }} transition={{ delay: 0.65, duration: 1 }} className="bg-amber-500 rounded-full" />
             <motion.div initial={{ width: 0 }} animate={{ width: "5%" }} transition={{ delay: 0.8, duration: 1 }} className="bg-rose-500 rounded-full" />
           </div>
-          <p className="text-[10px] text-slate-400 mt-2">85% attendance rate</p>
+          <p className="text-[10px] text-slate-500 mt-2">85% attendance rate</p>
         </div>
       </motion.button>
 
       {/* Workload */}
       <motion.div
         variants={cardVariants}
-        className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
+        className="rounded-3xl border border-blue-100 bg-white overflow-hidden"
+        style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
       >
         <div className="p-5">
           <div className="flex justify-between items-start mb-4">
@@ -231,13 +231,13 @@ export default function RoleDashboardPage() {
                 <Target className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h4 className="font-bold text-[15px] text-white">My Workload</h4>
-                <p className="text-[10px] text-slate-400">Tasks across your projects</p>
+                <h4 className="font-bold text-[15px] text-slate-900">My Workload</h4>
+                <p className="text-[10px] text-slate-500">Tasks across your projects</p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total</span>
-              <span className="text-white font-extrabold text-2xl leading-tight">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Total</span>
+              <span className="text-blue-600 font-extrabold text-2xl leading-tight">
                 <AnimatedNumber value={totalTasks} delay={0.3} />
               </span>
             </div>
@@ -246,14 +246,14 @@ export default function RoleDashboardPage() {
           <div className="space-y-2.5 mb-3.5">
             {cfg.stats.map((s, i) => {
               const palette = [
-                { dot: "bg-emerald-400", text: "text-emerald-300" },
-                { dot: "bg-amber-400", text: "text-amber-300" },
-                { dot: "bg-sky-400", text: "text-sky-300" },
-              ][i] ?? { dot: "bg-slate-500", text: "text-slate-400" };
+                { dot: "bg-emerald-500", text: "text-emerald-700" },
+                { dot: "bg-amber-500", text: "text-amber-700" },
+                { dot: "bg-blue-500", text: "text-blue-700" },
+              ][i] ?? { dot: "bg-slate-400", text: "text-slate-600" };
               return (
                 <div key={s.label} className="flex items-center gap-2.5 text-[12px]">
                   <span className={`size-2.5 rounded-full ${palette.dot}`} />
-                  <span className="text-slate-300 flex-1">{s.label}</span>
+                  <span className="text-slate-700 flex-1">{s.label}</span>
                   <span className={`font-bold ${palette.text}`}>
                     <AnimatedNumber value={s.value} delay={0.4 + i * 0.1} />
                   </span>
@@ -263,10 +263,10 @@ export default function RoleDashboardPage() {
           </div>
 
           {totalTasks > 0 && (
-            <div className="flex h-2 rounded-full overflow-hidden gap-0.5 bg-white/5">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${(stat0 / totalTasks) * 100}%` }} transition={{ delay: 0.5, duration: 1 }} className="bg-emerald-400 rounded-full" />
-              <motion.div initial={{ width: 0 }} animate={{ width: `${(stat1 / totalTasks) * 100}%` }} transition={{ delay: 0.65, duration: 1 }} className="bg-amber-400 rounded-full" />
-              <motion.div initial={{ width: 0 }} animate={{ width: `${(stat2 / totalTasks) * 100}%` }} transition={{ delay: 0.8, duration: 1 }} className="bg-sky-400 rounded-full" />
+            <div className="flex h-2 rounded-full overflow-hidden gap-0.5 bg-blue-50">
+              <motion.div initial={{ width: 0 }} animate={{ width: `${(stat0 / totalTasks) * 100}%` }} transition={{ delay: 0.5, duration: 1 }} className="bg-emerald-500 rounded-full" />
+              <motion.div initial={{ width: 0 }} animate={{ width: `${(stat1 / totalTasks) * 100}%` }} transition={{ delay: 0.65, duration: 1 }} className="bg-amber-500 rounded-full" />
+              <motion.div initial={{ width: 0 }} animate={{ width: `${(stat2 / totalTasks) * 100}%` }} transition={{ delay: 0.8, duration: 1 }} className="bg-blue-500 rounded-full" />
             </div>
           )}
         </div>
@@ -275,7 +275,8 @@ export default function RoleDashboardPage() {
       {/* Performance */}
       <motion.div
         variants={cardVariants}
-        className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
+        className="rounded-3xl border border-blue-100 bg-white overflow-hidden"
+        style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
       >
         <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
@@ -286,8 +287,8 @@ export default function RoleDashboardPage() {
               <BarChart3 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h4 className="font-bold text-[15px] text-white">Monthly Performance</h4>
-              <p className="text-[10px] text-slate-400">Tracking your progress</p>
+              <h4 className="font-bold text-[15px] text-slate-900">Monthly Performance</h4>
+              <p className="text-[10px] text-slate-500">Tracking your progress</p>
             </div>
           </div>
           <ProgressBar label="Targets Met" value={42} total={50} color="linear-gradient(90deg,#34d399,#10b981)" delay={0.5} />
@@ -301,7 +302,8 @@ export default function RoleDashboardPage() {
         variants={cardVariants}
         whileTap={{ scale: 0.97 }}
         onClick={() => navigate("/m/projects")}
-        className="w-full rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 flex items-center gap-3.5 active:bg-white/[0.08] transition-colors"
+        className="w-full rounded-3xl border border-blue-100 bg-white p-4 flex items-center gap-3.5 active:bg-blue-50 transition-colors"
+        style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
       >
         <div
           className="h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/30"
@@ -310,10 +312,10 @@ export default function RoleDashboardPage() {
           <Zap className="h-5 w-5 text-white" />
         </div>
         <div className="flex-1 text-left">
-          <h4 className="text-sm font-bold text-white">Jump to Projects</h4>
-          <p className="text-[11px] text-slate-400">Manage and update assignments</p>
+          <h4 className="text-sm font-bold text-slate-900">Jump to Projects</h4>
+          <p className="text-[11px] text-slate-500">Manage and update assignments</p>
         </div>
-        <ArrowRight className="h-4 w-4 text-slate-500" />
+        <ArrowRight className="h-4 w-4 text-slate-400" />
       </motion.button>
     </motion.div>
   );

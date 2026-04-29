@@ -21,11 +21,11 @@ const cardVariants = {
 };
 
 const statusBadge: Record<string, { label: string; tone: string }> = {
-  pending: { label: "Pending", tone: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
-  in_progress: { label: "Editing", tone: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
-  review: { label: "Review", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
-  approved: { label: "Approved", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
-  delivered: { label: "Delivered", tone: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" },
+  pending: { label: "Pending", tone: "bg-slate-100 text-slate-600 border-slate-200" },
+  in_progress: { label: "Editing", tone: "bg-sky-100 text-sky-700 border-sky-200" },
+  review: { label: "Review", tone: "bg-amber-100 text-amber-700 border-amber-200" },
+  approved: { label: "Approved", tone: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  delivered: { label: "Delivered", tone: "bg-indigo-100 text-indigo-700 border-indigo-200" },
 };
 
 export function EditorDashboard() {
@@ -83,26 +83,25 @@ export function EditorDashboard() {
       {/* Hero */}
       <motion.div
         variants={cardVariants}
-        className="relative overflow-hidden rounded-3xl p-6 border border-white/10"
+        className="relative overflow-hidden rounded-3xl p-6 text-white"
         style={{
-          background:
-            "linear-gradient(135deg, rgba(56,189,248,0.18) 0%, rgba(37,99,235,0.22) 50%, rgba(79,70,229,0.18) 100%)",
-          boxShadow: "0 24px 60px -20px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+          background: "linear-gradient(135deg, #38bdf8 0%, #2563eb 50%, #4f46e5 100%)",
+          boxShadow: "0 24px 60px -16px rgba(37,99,235,0.5)",
         }}
       >
-        <div className="absolute -top-16 -right-12 w-48 h-48 bg-sky-400/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 -left-10 w-40 h-40 bg-blue-600/30 rounded-full blur-3xl" />
+        <div className="absolute -top-16 -right-12 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 w-40 h-40 bg-indigo-400/40 rounded-full blur-3xl" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-1">
-            <Edit3 className="h-3.5 w-3.5 text-sky-300" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/80">Editor Hub</span>
+            <Edit3 className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">Editor Hub</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Editing Hub <span>✂️</span></h1>
-          <p className="text-xs text-sky-100/80 mt-2">
-            <span className="text-sky-300 font-semibold">{myQueue.length}</span> in queue ·{" "}
-            <span className="text-amber-300 font-semibold">{inReview.length}</span> review ·{" "}
-            <span className="text-emerald-300 font-semibold">{completed.length}</span> done
-            {overdue.length > 0 && <> · <span className="text-rose-300 font-semibold">{overdue.length} overdue</span></>}
+          <h1 className="text-2xl font-extrabold tracking-tight">Editing Hub <span>✂️</span></h1>
+          <p className="text-xs opacity-90 mt-2">
+            <span className="font-bold">{myQueue.length}</span> in queue ·{" "}
+            <span className="font-bold">{inReview.length}</span> review ·{" "}
+            <span className="font-bold">{completed.length}</span> done
+            {overdue.length > 0 && <> · <span className="font-bold">{overdue.length} overdue</span></>}
           </p>
         </div>
       </motion.div>
@@ -113,14 +112,14 @@ export function EditorDashboard() {
           <motion.div
             key={s.label}
             variants={cardVariants}
-            className="relative rounded-3xl p-4 border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
-            style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+            className="relative rounded-3xl p-4 border border-blue-100 bg-white overflow-hidden"
+            style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
           >
-            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg ${s.glow} mb-3`} style={{ background: s.gradient }}>
+            <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shadow-lg ${s.glow} mb-3`} style={{ background: s.gradient }}>
               <s.icon className="h-5 w-5 text-white" />
             </div>
-            <p className="text-3xl font-extrabold text-white leading-none">{s.value}</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-1.5 font-semibold">{s.label}</p>
+            <p className="text-3xl font-extrabold text-slate-900 leading-none">{s.value}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1.5 font-semibold">{s.label}</p>
           </motion.div>
         ))}
       </div>
@@ -128,29 +127,29 @@ export function EditorDashboard() {
       {/* Queue list */}
       <motion.div
         variants={cardVariants}
-        className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
-        style={{ boxShadow: "0 16px 40px -16px rgba(0,0,0,0.6)" }}
+        className="rounded-3xl border border-blue-100 bg-white overflow-hidden"
+        style={{ boxShadow: "0 10px 30px -12px rgba(59,130,246,0.18)" }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <h2 className="font-bold text-white flex items-center gap-2 text-sm">
-            <Film className="h-4 w-4 text-sky-300" /> My Editing Queue
+        <div className="flex items-center justify-between p-4 border-b border-blue-50">
+          <h2 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
+            <Film className="h-4 w-4 text-blue-600" /> My Editing Queue
           </h2>
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-sky-300 hover:text-sky-200 hover:bg-white/10 gap-1 h-7 px-2"
+            className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1 h-7 px-2"
             onClick={() => navigate("/m/deliverables")}
           >
             All <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-blue-50">
           {isLoading ? (
             <div className="py-10 flex items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-sky-300" />
+              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
             </div>
           ) : sorted.length === 0 ? (
-            <div className="py-10 text-center text-sm text-slate-400">
+            <div className="py-10 text-center text-sm text-slate-500">
               Nothing in your queue right now.
             </div>
           ) : (
@@ -164,14 +163,14 @@ export function EditorDashboard() {
                 <button
                   key={d.id}
                   onClick={() => setOpenDeliverable(d)}
-                  className="w-full px-4 py-3.5 hover:bg-white/[0.03] transition-colors text-left active:bg-white/[0.06]"
+                  className="w-full px-4 py-3.5 hover:bg-blue-50/50 active:bg-blue-50 transition-colors text-left"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white truncate">
+                      <p className="text-sm font-semibold text-slate-900 truncate">
                         {d.title || d.deliverable_type}
                       </p>
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
                         {[ctx.clientName, ctx.eventName].filter(Boolean).join(" · ")}
                       </p>
                     </div>
@@ -180,15 +179,15 @@ export function EditorDashboard() {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Progress value={d.progress || 0} className="flex-1 h-1.5 bg-white/5" />
-                    <span className="text-[10px] font-bold text-sky-300 w-9 text-right">
+                    <Progress value={d.progress || 0} className="flex-1 h-1.5" />
+                    <span className="text-[10px] font-bold text-blue-600 w-9 text-right">
                       {d.progress || 0}%
                     </span>
                   </div>
                   {dd && (
                     <div
                       className={`mt-2 flex items-center gap-1 text-[10px] font-medium ${
-                        isOverdueRow ? "text-rose-300" : isDueToday ? "text-amber-300" : "text-slate-500"
+                        isOverdueRow ? "text-rose-600" : isDueToday ? "text-amber-600" : "text-slate-500"
                       }`}
                     >
                       <CalendarDays className="h-2.5 w-2.5" />
