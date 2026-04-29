@@ -1,7 +1,7 @@
 # StudioOne — Platform Blueprint
 
 > Living spec. Update this file whenever architecture, modules, roles or major decisions change.
-> Last updated: 2026-04-29 (v6 — Call Logs module removed: route, page, sidebar entry, AppModule type and AccessControl entries all dropped; the underlying `call_logs` table is left untouched in case it's wanted back later. v5 — **unified Users concept**: dropped separate Team / Members pages, consolidated into one `/team` "Studio Users" page.)
+> Last updated: 2026-04-29 (v7 — Admin password reset for any studio user. New `reset_password` action on the manage-member edge function with two modes: send recovery email OR set password directly. UI lives on `/team` user dropdown.) (v6 — Call Logs module removed.)
 
 This is the canonical product / engineering specification for StudioOne, a multi-tenant SaaS for photography & videography studios. Everything below should be the source of truth — the codebase implements this; new features get added here first.
 
@@ -139,6 +139,9 @@ Schema:
 - **Invite flow** — `manage-member.invite` (service role edge fn) does all three writes in one transaction: creates or attaches `auth.users`, upserts `organization_members` (role + login_surface), upserts `team_members` (operational fields). Triggers password-reset email if requested.
 - **Contractor mode** — no email = no auth user. Just creates a `team_members` row so they can still be assigned to events. Shows a "No login" badge.
 - **Edit flow** — change name, role, surface, phone, rate, specialties, notes — all in one dialog. Role change mirrors to `profiles.role` so they see the right dashboard next login.
+- **Reset password flow** — per-user dropdown action with two modes:
+  - **Send reset email** — generates a Supabase recovery link, mailed to the user; they pick their own password
+  - **Set password manually** — admin types (or auto-generates) a new password, applied directly via service role; user can sign in immediately. Includes copy-to-clipboard, show/hide toggle, strong-password generator. Disabled for users with no login account.
 - **Remove flow** — drops both org_member and team_member rows. Owner-protected, can't-self-remove.
 - Four control surfaces (same as before):
   - Profile role (`profiles.role`) — default dashboard

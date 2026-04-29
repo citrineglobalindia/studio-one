@@ -17,7 +17,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Action = "invite" | "update" | "remove";
+type Action = "invite" | "update" | "remove" | "reset_password";
 type Surface = "web" | "pwa" | "both";
 
 const VALID_ROLES = new Set([
@@ -340,6 +340,94 @@ Deno.serve(async (req) => {
       }
 
       return json({ success: true });
+    }
+
+    // ─── RESET PASSWORD ───────────────────────────────────────────────────
+    // Two modes:
+    //   - mode: "email"  → generate Supabase recovery link / send reset email.
+    //   - mode: "set"    → admin types a new password, we set it directly via
+    //                       auth.admin.updateUserById. The user can sign in
+    //                       immediately with that password.
+    // Either way the target must be a member of the caller's organization.
+    if (action === "reset_password") {
+      const targetUserId = body.target_user_id as string | undefined;
+      const memberId = body.member_id as string | undefined;
+      const mode = (body.mode as string | undefined) || "email";
+      const newPassword = body.new_password as string | undefined;
+
+      // Resolve target user_id either directly or via member_id
+      let userId: string | null = targetUserId ?? null;
+      if (!userId && memberId) {
+        const { data: m } = await supabaseAdmin
+          .from("organization_members")
+          .select("user_id, organization_id")
+          .eq("id", memberId)
+          .maybeSingle();
+        if (m && m.organization_id === organizationId) {
+          userId = m.user_id ?? null;
+        }
+      }
+
+      if (!userId) {
+        return json({ error: "Target user not found in this studio." }, 404);
+      }
+
+      // Sanity: confirm target is actually in this org (defense in depth even
+      // though the caller-authorization above should already cover it).
+      const { data: targetMembership } = await supabaseAdmin
+        .from("organization_members")
+        .select("id, role")
+        .eq("organization_id", organizationId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!targetMembership) {
+        return json({ error: "User is not a member of this studio." }, 403);
+      }
+
+      // Lookup email for either mode (we need it to generate the link;
+      // for "set" mode we just want it for the response).
+      const { data: targetUser, error: targetErr } =
+        await supabaseAdmin.auth.admin.getUserById(userId);
+      if (targetErr || !targetUser?.user) {
+        return json({ error: "Auth user not found." }, 404);
+      }
+      const email = targetUser.user.email;
+      if (!email) {
+        return json({ error: "User has no email on file." }, 400);
+      }
+
+      if (mode === "email") {
+        // Generate a recovery link. Supabase delivers the email if SMTP is
+        // configured; if not, the link is returned in the response so the
+        // admin can hand it over manually.
+        const { data: linkData, error: linkErr } =
+          await supabaseAdmin.auth.admin.generateLink({
+            type: "recovery",
+            email,
+          });
+        if (linkErr) return json({ error: linkErr.message }, 400);
+        return json({
+          success: true,
+          mode: "email",
+          email,
+          // action_link is only useful in dev / when SMTP isn't set up,
+          // but it's harmless to return — the admin already has full powers.
+          action_link: linkData?.properties?.action_link ?? null,
+        });
+      }
+
+      if (mode === "set") {
+        if (!newPassword || newPassword.length < 8) {
+          return json({ error: "Password must be at least 8 characters." }, 400);
+        }
+        const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password: newPassword,
+        });
+        if (updErr) return json({ error: updErr.message }, 400);
+        return json({ success: true, mode: "set", email });
+      }
+
+      return json({ error: `Unknown reset_password mode: ${mode}` }, 400);
     }
 
     return json({ error: `Unknown action: ${action}` }, 400);

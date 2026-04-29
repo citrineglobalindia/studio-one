@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import {
   Users, UserPlus, Mail, Phone, Shield, Smartphone, Monitor, BadgeCheck,
   MoreVertical, Trash2, Edit3, Loader2, Search, Star, IndianRupee, Zap,
-  Camera, Video, LayoutGrid, List, KeyRound, Send,
+  Camera, Video, LayoutGrid, List, KeyRound, Send, Eye, EyeOff,
+  Copy, MailOpen, Check,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -151,6 +152,7 @@ export default function TeamPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<StudioUser | null>(null);
   const [detail, setDetail] = useState<StudioUser | null>(null);
+  const [resetUser, setResetUser] = useState<StudioUser | null>(null);
   const [form, setForm] = useState<UserForm>(blankForm);
 
   const canManage = isAdmin || currentRole === "manager";
@@ -349,6 +351,33 @@ export default function TeamPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const resetMut = useMutation({
+    mutationFn: async (vars: { user: StudioUser; mode: "email" | "set"; password?: string }) => {
+      if (!orgId) throw new Error("No studio loaded");
+      if (!vars.user.user_id) throw new Error("This user has no login account.");
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      return callManageMember(token, {
+        action: "reset_password",
+        organization_id: orgId,
+        target_user_id: vars.user.user_id,
+        member_id: vars.user.member_id,
+        mode: vars.mode,
+        new_password: vars.password,
+      });
+    },
+    onSuccess: (res, vars) => {
+      if (vars.mode === "email") {
+        toast.success(`Password-reset email sent to ${res.email}`);
+      } else {
+        toast.success(`New password set for ${res.email}. They can sign in now.`);
+      }
+      setResetUser(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const removeMut = useMutation({
     mutationFn: async (u: StudioUser) => {
       if (!orgId) throw new Error("No studio loaded");
@@ -492,6 +521,7 @@ export default function TeamPage() {
               isYou={u.user_id === user?.id}
               onClick={() => setDetail(u)}
               onEdit={() => setEditing(u)}
+              onResetPassword={() => setResetUser(u)}
               onRemove={() => {
                 if (confirm(`Remove ${u.full_name}?`)) removeMut.mutate(u);
               }}
@@ -545,7 +575,13 @@ export default function TeamPage() {
                     {u.daily_rate ? `₹${(u.daily_rate / 1000).toFixed(0)}K` : "—"}
                   </p>
                   <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-                    <RowActions u={u} isYou={isYou} onEdit={() => setEditing(u)} onRemove={() => removeMut.mutate(u)} />
+                    <RowActions
+                      u={u}
+                      isYou={isYou}
+                      onEdit={() => setEditing(u)}
+                      onResetPassword={() => setResetUser(u)}
+                      onRemove={() => removeMut.mutate(u)}
+                    />
                   </div>
                 </div>
               );
@@ -616,6 +652,20 @@ export default function TeamPage() {
           {detail && <UserDetailView user={detail} onEdit={() => { setDetail(null); setEditing(detail); }} />}
         </DialogContent>
       </Dialog>
+
+      {/* Reset Password dialog */}
+      <Dialog open={!!resetUser} onOpenChange={(o) => !o && setResetUser(null)}>
+        <DialogContent className="max-w-md">
+          {resetUser && (
+            <ResetPasswordDialog
+              user={resetUser}
+              saving={resetMut.isPending}
+              onSubmit={(mode, password) => resetMut.mutate({ user: resetUser, mode, password })}
+              onCancel={() => setResetUser(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -637,11 +687,12 @@ function Avatar({ name, size = "md" }: { name: string; size?: "md" | "lg" }) {
   );
 }
 
-function UserCard({ user, isYou, onClick, onEdit, onRemove }: {
+function UserCard({ user, isYou, onClick, onEdit, onResetPassword, onRemove }: {
   user: StudioUser;
   isYou: boolean;
   onClick: () => void;
   onEdit: () => void;
+  onResetPassword: () => void;
   onRemove: () => void;
 }) {
   const surface = SURFACE_META[user.login_surface];
@@ -683,7 +734,13 @@ function UserCard({ user, isYou, onClick, onEdit, onRemove }: {
             </div>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
-            <RowActions u={user} isYou={isYou} onEdit={onEdit} onRemove={onRemove} />
+            <RowActions
+              u={user}
+              isYou={isYou}
+              onEdit={onEdit}
+              onResetPassword={onResetPassword}
+              onRemove={onRemove}
+            />
           </div>
         </div>
 
@@ -726,10 +783,15 @@ function UserCard({ user, isYou, onClick, onEdit, onRemove }: {
   );
 }
 
-function RowActions({ u, isYou, onEdit, onRemove }: {
-  u: StudioUser; isYou: boolean; onEdit: () => void; onRemove: () => void;
+function RowActions({ u, isYou, onEdit, onResetPassword, onRemove }: {
+  u: StudioUser;
+  isYou: boolean;
+  onEdit: () => void;
+  onResetPassword: () => void;
+  onRemove: () => void;
 }) {
   const isOwner = u.org_role === "owner";
+  const hasLogin = !!u.user_id;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -740,6 +802,9 @@ function RowActions({ u, isYou, onEdit, onRemove }: {
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={onEdit} disabled={isOwner && !isYou}>
           <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit user
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onResetPassword} disabled={!hasLogin}>
+          <KeyRound className="h-3.5 w-3.5 mr-2" /> Reset password
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -1024,5 +1089,203 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
       </div>
       {children}
     </div>
+  );
+}
+
+/**
+ * Two-mode password reset dialog:
+ *   - "email": admin clicks one button, Supabase sends a recovery email.
+ *   - "set":   admin types a new password, we apply it directly via the
+ *              service-role edge function. The user can sign in immediately.
+ */
+function ResetPasswordDialog({
+  user, saving, onSubmit, onCancel,
+}: {
+  user: StudioUser;
+  saving: boolean;
+  onSubmit: (mode: "email" | "set", password?: string) => void;
+  onCancel: () => void;
+}) {
+  const [mode, setMode] = useState<"email" | "set">("email");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const validSetMode = mode === "set" && password.length >= 8 && password === confirm;
+
+  function generatePassword() {
+    // Browser crypto: 16 char base62-ish + a digit + a symbol = strong default
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    const bytes = new Uint8Array(14);
+    crypto.getRandomValues(bytes);
+    const body = Array.from(bytes).map((b) => chars[b % chars.length]).join("");
+    const generated = body + Math.floor(Math.random() * 10) + "!";
+    setPassword(generated);
+    setConfirm(generated);
+    setShowPw(true);
+  }
+
+  function copyPassword() {
+    if (!password) return;
+    navigator.clipboard.writeText(password).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <KeyRound className="h-5 w-5 text-primary" /> Reset password
+        </DialogTitle>
+        <DialogDescription>
+          Reset password for <span className="font-medium text-foreground">{user.full_name}</span>
+          {user.email && <span className="text-muted-foreground"> ({user.email})</span>}.
+        </DialogDescription>
+      </DialogHeader>
+
+      {/* Mode selector */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setMode("email")}
+          className={cn(
+            "flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all",
+            mode === "email"
+              ? "border-primary bg-primary/5"
+              : "border-border bg-card hover:border-primary/40"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <MailOpen className={cn("h-4 w-4", mode === "email" ? "text-primary" : "text-muted-foreground")} />
+            <span className={cn("text-sm font-semibold", mode === "email" ? "text-primary" : "text-foreground")}>
+              Send reset email
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            User picks their own password from a link in their inbox.
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("set")}
+          className={cn(
+            "flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all",
+            mode === "set"
+              ? "border-primary bg-primary/5"
+              : "border-border bg-card hover:border-primary/40"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <KeyRound className={cn("h-4 w-4", mode === "set" ? "text-primary" : "text-muted-foreground")} />
+            <span className={cn("text-sm font-semibold", mode === "set" ? "text-primary" : "text-foreground")}>
+              Set password manually
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Pick a password yourself and share it with the user.
+          </p>
+        </button>
+      </div>
+
+      {/* Mode-specific fields */}
+      {mode === "set" && (
+        <div className="space-y-3 pt-2">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">New password (min 8 chars)</Label>
+              <button
+                type="button"
+                onClick={generatePassword}
+                className="text-[11px] text-primary hover:underline"
+              >
+                Generate strong password
+              </button>
+            </div>
+            <div className="relative">
+              <Input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pr-20"
+              />
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                {password && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    type="button"
+                    onClick={copyPassword}
+                    aria-label="Copy password"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  aria-label="Toggle password visibility"
+                >
+                  {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Confirm new password</Label>
+            <Input
+              type={showPw ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+            />
+            {confirm && password !== confirm && (
+              <p className="text-[11px] text-destructive">Passwords don't match.</p>
+            )}
+          </div>
+          <div className="rounded-lg bg-amber-500/5 border border-amber-500/30 p-3">
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              The user can sign in with this password immediately.
+              Share it through a secure channel — they should change it on first login.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {mode === "email" && (
+        <div className="rounded-lg bg-muted/30 border border-border p-3">
+          <p className="text-[11px] text-muted-foreground">
+            We'll generate a one-time recovery link and send it to {user.email}.
+            They'll be able to set a new password. Their current password (if any)
+            is not changed until they complete the flow.
+          </p>
+        </div>
+      )}
+
+      <DialogFooter className="pt-2">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button
+          disabled={saving || (mode === "set" && !validSetMode)}
+          onClick={() => onSubmit(mode, mode === "set" ? password : undefined)}
+          className="gap-2"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : mode === "email" ? (
+            <Send className="h-4 w-4" />
+          ) : (
+            <KeyRound className="h-4 w-4" />
+          )}
+          {mode === "email" ? "Send reset email" : "Set new password"}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
