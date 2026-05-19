@@ -36,33 +36,33 @@ const routeModuleMap: Array<{ prefix: string; module: AppModule }> = [
 
 export function RoleLayoutWrapper() {
   const location = useLocation();
-  const { isAdmin, hasAccess, loginSurface } = useRole();
+  const { hasAccess, loginSurface } = useRole();
 
-  // Per-module access guard — applies to every desktop route
-  const matchedRoute = routeModuleMap.find(({ prefix }) => {
-    if (prefix === "/") return location.pathname === "/";
-    return location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
-  });
-
-  if (matchedRoute && !hasAccess(matchedRoute.module)) {
-    return <Navigate to="/" replace />;
-  }
-
-  // Login-surface enforcement: a user that's been granted "pwa" only must
-  // never see the desktop dashboard, even if they're an admin in this org.
+  // Login-surface enforcement first (must run BEFORE module-access redirect
+  // to avoid bouncing a pwa-only user to "/" — which they may also lack
+  // access to — instead of the mobile shell where they belong).
+  //
+  // pwa-only  → never see desktop, send to /m
+  // web|both  → desktop dashboard, regardless of role. Module access then
+  //             gates which routes are reachable inside the desktop shell.
   if (loginSurface === "pwa") {
     return <Navigate to="/m" replace />;
   }
 
-  // Admins and managers (when surface is web/both) get the desktop shell
-  if (isAdmin) {
-    return (
-      <DashboardLayout>
-        <Outlet />
-      </DashboardLayout>
-    );
+  // Per-module access guard — applies to every desktop route. If the user
+  // hits a route they don't have access to, send them to "/" (every role
+  // has dashboard access by default).
+  const matchedRoute = routeModuleMap.find(({ prefix }) => {
+    if (prefix === "/") return location.pathname === "/";
+    return location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
+  });
+  if (matchedRoute && !hasAccess(matchedRoute.module)) {
+    return <Navigate to="/" replace />;
   }
 
-  // Non-admin roles use the mobile shell exclusively
-  return <Navigate to="/m" replace />;
+  return (
+    <DashboardLayout>
+      <Outlet />
+    </DashboardLayout>
+  );
 }
