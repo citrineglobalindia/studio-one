@@ -56,7 +56,7 @@ export const ROLE_CONFIG: Record<Exclude<AppRole, "admin">, RoleConfig> = {
     primaryMetric: { label: "This Month", value: "₹35K", sub: "completed" },
   },
   telecaller: {
-    label: "Telecaller",
+    label: "Sales",
     tagline: "Convert every call",
     icon: PhoneCall,
     greeting: "Your leads are waiting.",
@@ -102,6 +102,54 @@ export const ROLE_CONFIG: Record<Exclude<AppRole, "admin">, RoleConfig> = {
       { label: "Paid", value: 26 },
     ],
     primaryMetric: { label: "Receivables", value: "₹2.4L", sub: "open" },
+  },
+  administrator: {
+    label: "Administrator",
+    tagline: "Run the studio",
+    icon: UserCog,
+    greeting: "Keep operations smooth.",
+    stats: [
+      { label: "Active", value: 18 },
+      { label: "Pending", value: 5 },
+      { label: "Done", value: 47 },
+    ],
+    primaryMetric: { label: "Open items", value: "12", sub: "this week" },
+  },
+  manager: {
+    label: "Manager",
+    tagline: "Drive the team",
+    icon: UserCog,
+    greeting: "Steer the day.",
+    stats: [
+      { label: "Tasks", value: 22 },
+      { label: "Team", value: 14 },
+      { label: "Done", value: 36 },
+    ],
+    primaryMetric: { label: "Output", value: "84%", sub: "this week" },
+  },
+  photographer_vendor: {
+    label: "Photographer (Vendor)",
+    tagline: "Capture, deliver, get paid",
+    icon: Camera,
+    greeting: "Your shoots today.",
+    stats: [
+      { label: "Shoots", value: 6 },
+      { label: "Paid", value: 4 },
+      { label: "Pending", value: 2 },
+    ],
+    primaryMetric: { label: "Outstanding", value: "₹12K", sub: "pending" },
+  },
+  videographer_vendor: {
+    label: "Videographer (Vendor)",
+    tagline: "Shoot, edit, get paid",
+    icon: Video,
+    greeting: "Your shoots today.",
+    stats: [
+      { label: "Shoots", value: 5 },
+      { label: "Paid", value: 3 },
+      { label: "Pending", value: 2 },
+    ],
+    primaryMetric: { label: "Outstanding", value: "₹14K", sub: "pending" },
   },
 };
 

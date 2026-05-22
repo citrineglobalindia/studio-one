@@ -2,25 +2,40 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "manager" | "vendor" | "editor" | "telecaller" | "videographer" | "photographer" | "hr" | "accounts";
+export type AppRole =
+  | "admin"
+  | "administrator"
+  | "manager"
+  | "vendor"
+  | "editor"
+  | "telecaller"
+  | "videographer"
+  | "photographer"
+  | "videographer_vendor"
+  | "photographer_vendor"
+  | "hr"
+  | "accounts";
 
 export const ALL_ROLES: { value: AppRole; label: string }[] = [
   { value: "admin", label: "Admin" },
+  { value: "administrator", label: "Administrator" },
   { value: "manager", label: "Manager" },
-  { value: "vendor", label: "Vendor" },
-  { value: "editor", label: "Editor" },
-  { value: "telecaller", label: "Telecaller" },
-  { value: "videographer", label: "Videographer" },
-  { value: "photographer", label: "Photographer" },
-  { value: "hr", label: "HR" },
   { value: "accounts", label: "Accounts" },
+  { value: "hr", label: "HR" },
+  { value: "telecaller", label: "Sales" },
+  { value: "editor", label: "Editor" },
+  { value: "photographer", label: "Photographer (Office)" },
+  { value: "videographer", label: "Videographer (Office)" },
+  { value: "photographer_vendor", label: "Photographer (Vendor)" },
+  { value: "videographer_vendor", label: "Videographer (Vendor)" },
+  { value: "vendor", label: "Vendor" },
 ];
 
 export type AppModule =
   | "dashboard" | "leads" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
   | "team" | "vendor-orders"
-  | "invoices" | "contracts" | "payment-requests"
+  | "invoices" | "contracts" | "payment-requests" | "salary"
   | "communications" | "marketing" | "analytics" | "automation"
   | "ai-assistant" | "ai-selection"
   | "hr-dashboard" | "hr-employees" | "hr-attendance" | "hr-leaves"
@@ -44,6 +59,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "contracts", label: "Contracts", group: "Finance" },
   { value: "payment-requests", label: "Payment Requests", group: "Finance" },
   { value: "accounts-page", label: "Accounts", group: "Finance" },
+  { value: "salary", label: "Salary", group: "Finance" },
   { value: "communications", label: "Communications", group: "Growth" },
   { value: "marketing", label: "Marketing", group: "Growth" },
   { value: "analytics", label: "Analytics", group: "Growth" },
@@ -59,8 +75,17 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "settings", label: "Settings", group: "System" },
 ];
 
+// Accounts/finance-only modules (Administrator does NOT get these by default)
+const ACCOUNTS_ONLY_MODULES: AppModule[] = [
+  "invoices", "contracts", "payment-requests", "accounts-page", "salary",
+];
+
 const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   admin: ALL_MODULES.map((m) => m.value),
+  // Administrator: all modules except finance/accounts modules. Admin can further restrict.
+  administrator: ALL_MODULES
+    .map((m) => m.value)
+    .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
   // Manager: like Admin but bounded — no platform settings, no role/permission management
   manager: [
     "dashboard", "leads", "clients", "quotations",
@@ -71,12 +96,16 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
     "notifications", "profile",
   ],
   vendor: ["dashboard", "projects", "vendor-orders", "calendar", "tasks", "communications", "notifications", "profile"],
-  editor: ["dashboard", "projects", "tasks", "albums", "communications", "notifications", "profile"],
-  telecaller: ["dashboard", "leads", "clients", "communications", "calendar", "notifications", "profile"],
-  videographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
-  photographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "notifications", "profile"],
+  editor: ["dashboard", "projects", "tasks", "albums", "communications", "hr-attendance", "payment-requests", "notifications", "profile"],
+  // Sales (telecaller): leads-only focus — RLS enforces own-leads visibility
+  telecaller: ["dashboard", "leads", "communications", "calendar", "notifications", "profile"],
+  videographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  photographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  // Vendor photographer/videographer: outside contractor — no attendance/leaves, paid per event
+  photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "communications", "notifications", "profile"],
+  videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "communications", "notifications", "profile"],
   hr: ["dashboard", "hr-dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
-  accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "analytics", "notifications", "profile"],
+  accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "analytics", "notifications", "profile"],
 };
 
 /** Where this user is allowed to sign in: web dashboard, mobile PWA, or both. */
@@ -107,6 +136,12 @@ interface RoleContextType {
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
+
+const VALID_ROLES: AppRole[] = [
+  "admin", "administrator", "manager", "vendor", "editor", "telecaller",
+  "videographer", "photographer", "videographer_vendor", "photographer_vendor",
+  "hr", "accounts",
+];
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -148,8 +183,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (profileData?.role) {
-        const validRoles: AppRole[] = ["admin", "manager", "vendor", "editor", "telecaller", "videographer", "photographer", "hr", "accounts"];
-        if (validRoles.includes(profileData.role as AppRole)) {
+        if (VALID_ROLES.includes(profileData.role as AppRole)) {
           nextRole = profileData.role as AppRole;
         }
       }
@@ -217,7 +251,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
           // Build roleAccess map: start from defaults, override with DB rows
           const loadedAccess: Record<AppRole, AppModule[]> = { ...DEFAULT_ACCESS };
           for (const row of accessRes.data || []) {
-            if (row?.role) {
+            if (row?.role && VALID_ROLES.includes(row.role as AppRole)) {
               loadedAccess[row.role as AppRole] = ((row.allowed_modules as string[]) || []) as AppModule[];
             }
           }

@@ -34,11 +34,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 const ROLE_META: Record<string, { icon: React.ElementType; color: string; description: string }> = {
+  administrator: { icon: Shield, color: "text-indigo-400", description: "Studio administrator (all access except finance)" },
+  manager: { icon: UserCog, color: "text-sky-400", description: "Operations manager" },
   vendor: { icon: Users, color: "text-blue-400", description: "External vendors & partners" },
   editor: { icon: Pencil, color: "text-purple-400", description: "Photo & video editors" },
-  telecaller: { icon: Phone, color: "text-green-400", description: "Lead callers & follow-ups" },
-  videographer: { icon: Video, color: "text-rose-400", description: "Video shoot & production" },
-  photographer: { icon: Camera, color: "text-amber-400", description: "Photography team" },
+  telecaller: { icon: Phone, color: "text-green-400", description: "Sales / lead callers" },
+  videographer: { icon: Video, color: "text-rose-400", description: "In-office video team" },
+  photographer: { icon: Camera, color: "text-amber-400", description: "In-office photography team" },
+  videographer_vendor: { icon: Video, color: "text-rose-300", description: "External videographer (paid per event)" },
+  photographer_vendor: { icon: Camera, color: "text-amber-300", description: "External photographer (paid per event)" },
   hr: { icon: UserCog, color: "text-cyan-400", description: "Human resources management" },
   accounts: { icon: Calculator, color: "text-emerald-400", description: "Finance & accounting" },
 };
@@ -76,6 +80,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
   "hr-leaves": Palmtree,
   notifications: Bell,
   "accounts-page": Calculator,
+  salary: Calculator,
   profile: Users,
   settings: Settings,
 };
