@@ -56,38 +56,22 @@ const salesItems: SidebarItem[] = [
 
 const operationsItems: SidebarItem[] = [
   { title: "Live Clients", url: "/live-clients", icon: Activity, module: "live-clients" },
-  { title: "Projects", url: "/projects", icon: FolderKanban, module: "projects" },
-  { title: "Events", url: "/events", icon: CalendarCheck, module: "events" },
-  { title: "Albums", url: "/albums", icon: BookImage, module: "albums" },
   { title: "Calendar", url: "/calendar", icon: CalendarDays, module: "calendar" },
   { title: "Tasks", url: "/tasks", icon: Zap, module: "tasks" },
   { title: "Process Planner", url: "/process-planner", icon: ClipboardList, module: "process-planner" },
   { title: "Users", url: "/team", icon: UsersRound, module: "team" },
-  { title: "Vendor Orders", url: "/vendor-orders", icon: Package, module: "vendor-orders" },
 ];
 
 const financeItems: SidebarItem[] = [
   { title: "Quotations", url: "/quotations", icon: FileText, module: "quotations" },
   { title: "Invoices", url: "/invoices", icon: CreditCard, module: "invoices" },
-  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
   { title: "Contracts", url: "/contracts", icon: Briefcase, module: "contracts" },
   { title: "Payment Requests", url: "/payment-requests", icon: Wallet, module: "payment-requests" },
-];
-
-const growthItems: SidebarItem[] = [
-  { title: "Communications", url: "/communications", icon: MessageSquare, module: "communications" },
-  { title: "Marketing", url: "/marketing", icon: Megaphone, module: "marketing" },
-  { title: "Analytics", url: "/analytics", icon: BarChart3, module: "analytics" },
-  { title: "Automation", url: "/automation", icon: Zap, module: "automation" },
-];
-
-const aiItems: SidebarItem[] = [
-  { title: "AI Assistant", url: "/ai-assistant", icon: Bot, module: "ai-assistant" },
-  { title: "Smart Selection", url: "/ai-selection", icon: Sparkles, module: "ai-selection" },
+  { title: "Salary", url: "/salary", icon: Wallet, module: "salary" },
+  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
 ];
 
 const hrItems: SidebarItem[] = [
-  { title: "HR Dashboard", url: "/hr", icon: UserCog, module: "hr-dashboard" },
   { title: "Employees", url: "/hr/employees", icon: UsersRound, module: "hr-employees" },
   { title: "Attendance", url: "/hr/attendance", icon: ClipboardList, module: "hr-attendance" },
   { title: "Leaves", url: "/hr/leaves", icon: CalendarOff, module: "hr-leaves" },
@@ -102,9 +86,7 @@ const groups = [
   { label: "Sales CRM", items: salesItems },
   { label: "Operations", items: operationsItems },
   { label: "Finance", items: financeItems },
-  { label: "Growth", items: growthItems },
   { label: "HR Module", items: hrItems },
-  { label: "AI & Smart Tools", items: aiItems },
   { label: "System", items: systemItems },
 ];
 

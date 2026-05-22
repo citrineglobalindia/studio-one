@@ -26,28 +26,20 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import LeadsPage from "./pages/LeadsPage";
-import VendorOrdersPage from "./pages/VendorOrdersPage";
 import PaymentRequestsPage from "./pages/PaymentRequestsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import QuotationsPage from "./pages/QuotationsPage";
 import ContractsPage from "./pages/ContractsPage";
-import AIAssistantPage from "./pages/AIAssistantPage";
-import AISelectionPage from "./pages/AISelectionPage";
 import TasksPage from "./pages/TasksPage";
 import EventsPage from "./pages/EventsPage";
 import AlbumsPage from "./pages/AlbumsPage";
 import EventDayPage from "./pages/EventDayPage";
-import CommunicationsPage from "./pages/CommunicationsPage";
-import MarketingPage from "./pages/MarketingPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import AutomationPage from "./pages/AutomationPage";
 import GalleryPage from "./pages/GalleryPage";
 import PortalPage from "./pages/PortalPage";
 
 import SettingsPage from "./pages/SettingsPage";
-import HRDashboard from "./pages/hr/HRDashboard";
 import HREmployees from "./pages/hr/HREmployees";
 import HRAttendance from "./pages/hr/HRAttendance";
 import HRLeaves from "./pages/hr/HRLeaves";
@@ -118,7 +110,6 @@ function ProtectedRoutes() {
       <Route element={<RoleLayoutWrapper />}>
         <Route path="/" element={<Index />} />
         <Route path="/leads" element={<LeadsPage />} />
-        <Route path="/vendor-orders" element={<VendorOrdersPage />} />
         <Route path="/payment-requests" element={<PaymentRequestsPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
@@ -135,17 +126,10 @@ function ProtectedRoutes() {
         <Route path="/members" element={<Navigate to="/team" replace />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/contracts" element={<ContractsPage />} />
-        <Route path="/communications" element={<CommunicationsPage />} />
-        <Route path="/marketing" element={<MarketingPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/automation" element={<AutomationPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/portal" element={<PortalPage />} />
-        <Route path="/ai-assistant" element={<AIAssistantPage />} />
-        <Route path="/ai-selection" element={<AISelectionPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/access-control" element={<AccessControlPage />} />
-        <Route path="/hr" element={<HRDashboard />} />
         <Route path="/hr/employees" element={<HREmployees />} />
         <Route path="/hr/attendance" element={<HRAttendance />} />
         <Route path="/hr/leaves" element={<HRLeaves />} />

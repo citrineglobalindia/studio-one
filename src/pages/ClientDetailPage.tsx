@@ -10,7 +10,7 @@ import {
   Users, Phone, Mail, MapPin, Crown, ArrowLeft, CalendarDays, Sparkles, Heart,
   Briefcase, Receipt, PartyPopper, Plus, MoreHorizontal, Edit, Trash2, Copy,
   Share2, Loader2, Camera, Video, ClipboardList, FileText, UsersRound,
-  Save, X, Gift, CalendarCheck, Cake, Home, MessageSquare, Upload,
+  Save, X, Gift, CalendarCheck, Cake, Home, MessageSquare, Upload, BookImage,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,28 @@ export default function ClientDetailPage() {
   const { events: dbEvents, updateEvent } = useEvents();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
   const { members: dbTeamMembers } = useTeamMembers();
+
+  // Albums (filtered to this client)
+  const [clientAlbums, setClientAlbums] = useState<any[]>([]);
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("albums" as any)
+        .select("*")
+        .eq("client_id", id)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load client albums", error);
+        setClientAlbums([]);
+      } else {
+        setClientAlbums((data || []) as any[]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
 
   const client = clients.find((c: any) => c.id === id) as AnyClient | undefined;
 
@@ -530,6 +552,7 @@ export default function ClientDetailPage() {
               { value: "projects",  icon: Briefcase,          label: "Projects",  count: clientProjects.length },
               { value: "invoices",  icon: Receipt,            label: "Invoices",  count: clientInvoices.length },
               { value: "events",    icon: CalendarDays,       label: "Events",    count: clientEvents.length },
+              { value: "albums",    icon: BookImage,          label: "Albums",    count: clientAlbums.length },
               { value: "process",   icon: ClipboardList,      label: "Process",   count: processSteps.length },
               { value: "contracts", icon: FileText,           label: "Contracts" },
               { value: "team",      icon: UsersRound,         label: "Team",      count: teamMembers.length },
@@ -763,6 +786,50 @@ export default function ClientDetailPage() {
                   </motion.div>
                 );
               })}
+            </TabsContent>
+
+            {/* ───── ALBUMS ───── */}
+            <TabsContent value="albums" className="mt-0 space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <BookImage className="h-4 w-4 text-primary" /> Albums ({clientAlbums.length})
+                </h3>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/albums")}>
+                  <Plus className="h-3.5 w-3.5" /> Open Albums
+                </Button>
+              </div>
+              {clientAlbums.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+                  <BookImage className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No albums for this client yet</p>
+                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => navigate("/albums")}>
+                    <Plus className="h-3.5 w-3.5" /> Create album
+                  </Button>
+                </div>
+              ) : (
+                clientAlbums.map((a: any, i: number) => (
+                  <motion.div
+                    key={a.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="rounded-2xl border border-border bg-card p-4 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <BookImage className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{a.project_name || a.title || "Album"}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {a.status && <Badge variant="secondary" className="text-[10px]">{a.status}</Badge>}
+                          {a.created_at && <span className="text-[10px] text-muted-foreground">{fmtDate(a.created_at)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </TabsContent>
 
             {/* ───── PROCESS PLAN ───── */}

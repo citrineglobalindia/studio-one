@@ -89,7 +89,7 @@ export function VendorDashboard() {
       <motion.div variants={cardVariants} className="grid grid-cols-2 gap-3">
         {[
           { label: "My Projects", icon: Briefcase, path: "/projects", color: "text-indigo-500", bg: "bg-indigo-500/10" },
-          { label: "Messages", icon: MessageSquare, path: "/communications", color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: "Calendar", icon: MessageSquare, path: "/calendar", color: "text-blue-500", bg: "bg-blue-500/10" },
         ].map((a) => (
           <Button key={a.label} variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate(a.path)}>
             <div className={`h-10 w-10 rounded-xl ${a.bg} flex items-center justify-center`}><a.icon className={`h-5 w-5 ${a.color}`} /></div>

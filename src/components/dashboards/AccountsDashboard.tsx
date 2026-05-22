@@ -116,7 +116,6 @@ export function AccountsDashboard() {
         {[
           { label: "Invoices", icon: CreditCard, path: "/invoices", color: "text-emerald-500", bg: "bg-emerald-500/10" },
           { label: "Contracts", icon: Briefcase, path: "/contracts", color: "text-blue-500", bg: "bg-blue-500/10" },
-          { label: "Analytics", icon: BarChart3, path: "/analytics", color: "text-primary", bg: "bg-primary/10" },
         ].map((a) => (
           <Button key={a.label} variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate(a.path)}>
             <div className={`h-10 w-10 rounded-xl ${a.bg} flex items-center justify-center`}><a.icon className={`h-5 w-5 ${a.color}`} /></div>

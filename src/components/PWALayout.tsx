@@ -25,12 +25,6 @@ const moduleConfig: Record<AppModule, { icon: typeof LayoutDashboard; label: str
   "team": { icon: UsersRound, label: "Team", path: "/team", color: "from-indigo-500 to-violet-500" },
   "invoices": { icon: CreditCard, label: "Invoices", path: "/invoices", color: "from-emerald-500 to-green-500" },
   "contracts": { icon: Briefcase, label: "Contracts", path: "/contracts", color: "from-slate-500 to-gray-500" },
-  "communications": { icon: MessageSquare, label: "Chat", path: "/communications", color: "from-blue-500 to-indigo-500" },
-  "marketing": { icon: Megaphone, label: "Marketing", path: "/marketing", color: "from-fuchsia-500 to-pink-500" },
-  "analytics": { icon: BarChart3, label: "Analytics", path: "/analytics", color: "from-cyan-500 to-teal-500" },
-  "automation": { icon: Zap, label: "Auto", path: "/automation", color: "from-orange-500 to-red-500" },
-  "ai-assistant": { icon: Bot, label: "AI", path: "/ai-assistant", color: "from-violet-500 to-fuchsia-500" },
-  "ai-selection": { icon: Sparkles, label: "Select", path: "/ai-selection", color: "from-amber-500 to-yellow-500" },
   "hr-dashboard": { icon: UserCog, label: "HR", path: "/hr", color: "from-teal-500 to-emerald-500" },
   "hr-employees": { icon: UsersRound, label: "Staff", path: "/hr/employees", color: "from-blue-500 to-sky-500" },
   "hr-attendance": { icon: ClipboardList, label: "Attend", path: "/hr/attendance", color: "from-green-500 to-emerald-500" },
@@ -43,25 +37,24 @@ const moduleConfig: Record<AppModule, { icon: typeof LayoutDashboard; label: str
   "albums": { icon: FolderKanban, label: "Albums", path: "/albums", color: "from-fuchsia-500 to-purple-500" },
   "salary": { icon: Wallet, label: "Salary", path: "/salary", color: "from-lime-500 to-green-500" },
   "live-clients": { icon: Users, label: "Live", path: "/live-clients", color: "from-orange-500 to-amber-500" },
-  "vendor-orders": { icon: Briefcase, label: "Orders", path: "/vendor-orders", color: "from-zinc-500 to-slate-500" },
   "payment-requests": { icon: CreditCard, label: "Payments", path: "/payment-requests", color: "from-emerald-500 to-teal-500" },
   "process-planner": { icon: ClipboardList, label: "Process", path: "/process-planner", color: "from-violet-500 to-indigo-500" },
 };
 
 // Role-specific bottom navigation — each role gets exactly 4 tabs + more
 const ROLE_TABS: Record<AppRole, AppModule[]> = {
-  admin: ["dashboard", "projects", "tasks", "communications"],
-  administrator: ["dashboard", "projects", "tasks", "communications"],
-  manager: ["dashboard", "projects", "tasks", "communications"],
+  admin: ["dashboard", "projects", "tasks", "calendar"],
+  administrator: ["dashboard", "projects", "tasks", "calendar"],
+  manager: ["dashboard", "projects", "tasks", "calendar"],
   photographer: ["dashboard", "events", "calendar", "communications"],
   videographer: ["dashboard", "events", "calendar", "communications"],
   photographer_vendor: ["dashboard", "events", "calendar", "payment-requests"],
   videographer_vendor: ["dashboard", "events", "calendar", "payment-requests"],
-  editor: ["dashboard", "tasks", "projects", "communications"],
-  telecaller: ["dashboard", "leads", "calendar", "communications"],
-  vendor: ["dashboard", "projects", "calendar", "communications"],
+  editor: ["dashboard", "tasks", "projects", "calendar"],
+  telecaller: ["dashboard", "leads", "calendar", "notifications"],
+  vendor: ["dashboard", "projects", "calendar", "tasks"],
   hr: ["dashboard", "hr-dashboard", "hr-attendance", "hr-leaves"],
-  accounts: ["dashboard", "invoices", "accounts-page", "analytics"],
+  accounts: ["dashboard", "invoices", "accounts-page", "payment-requests"],
 };
 
 // Role theme accents

@@ -34,11 +34,9 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
 export type AppModule =
   | "dashboard" | "leads" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
-  | "team" | "vendor-orders"
+  | "team"
   | "invoices" | "contracts" | "payment-requests" | "salary"
-  | "communications" | "marketing" | "analytics" | "automation"
-  | "ai-assistant" | "ai-selection"
-  | "hr-dashboard" | "hr-employees" | "hr-attendance" | "hr-leaves"
+  | "hr-employees" | "hr-attendance" | "hr-leaves"
   | "notifications" | "accounts-page" | "profile" | "settings";
 
 export const ALL_MODULES: { value: AppModule; label: string; group: string }[] = [
@@ -54,19 +52,11 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "tasks", label: "Tasks", group: "Operations" },
   { value: "process-planner", label: "Process Planner", group: "Operations" },
   { value: "team", label: "Users", group: "Operations" },
-  { value: "vendor-orders", label: "Vendor Orders", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
   { value: "payment-requests", label: "Payment Requests", group: "Finance" },
   { value: "accounts-page", label: "Accounts", group: "Finance" },
   { value: "salary", label: "Salary", group: "Finance" },
-  { value: "communications", label: "Communications", group: "Growth" },
-  { value: "marketing", label: "Marketing", group: "Growth" },
-  { value: "analytics", label: "Analytics", group: "Growth" },
-  { value: "automation", label: "Automation", group: "Growth" },
-  { value: "ai-assistant", label: "AI Assistant", group: "AI & Smart Tools" },
-  { value: "ai-selection", label: "Smart Selection", group: "AI & Smart Tools" },
-  { value: "hr-dashboard", label: "HR Dashboard", group: "HR Module" },
   { value: "hr-employees", label: "Employees", group: "HR Module" },
   { value: "hr-attendance", label: "Attendance", group: "HR Module" },
   { value: "hr-leaves", label: "Leaves", group: "HR Module" },
@@ -90,22 +80,21 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   manager: [
     "dashboard", "leads", "clients", "quotations",
     "live-clients", "projects", "events", "albums", "calendar", "tasks", "process-planner",
-    "team", "vendor-orders",
+    "team",
     "invoices", "contracts", "payment-requests",
-    "communications", "marketing", "analytics",
     "notifications", "profile",
   ],
-  vendor: ["dashboard", "projects", "vendor-orders", "calendar", "tasks", "communications", "notifications", "profile"],
-  editor: ["dashboard", "projects", "tasks", "albums", "communications", "hr-attendance", "payment-requests", "notifications", "profile"],
+  vendor: ["dashboard", "projects", "calendar", "tasks", "notifications", "profile"],
+  editor: ["dashboard", "projects", "tasks", "albums", "hr-attendance", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads-only focus — RLS enforces own-leads visibility
-  telecaller: ["dashboard", "leads", "communications", "calendar", "notifications", "profile"],
-  videographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
-  photographer: ["dashboard", "projects", "events", "calendar", "tasks", "communications", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  telecaller: ["dashboard", "leads", "calendar", "notifications", "profile"],
+  videographer: ["dashboard", "projects", "events", "calendar", "tasks", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  photographer: ["dashboard", "projects", "events", "calendar", "tasks", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Vendor photographer/videographer: outside contractor — no attendance/leaves, paid per event
-  photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "communications", "notifications", "profile"],
-  videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "communications", "notifications", "profile"],
-  hr: ["dashboard", "hr-dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
-  accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "analytics", "notifications", "profile"],
+  photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
+  videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
+  hr: ["dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
+  accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "notifications", "profile"],
 };
 
 /** Where this user is allowed to sign in: web dashboard, mobile PWA, or both. */
