@@ -45,6 +45,7 @@ import HRAttendance from "./pages/hr/HRAttendance";
 import HRLeaves from "./pages/hr/HRLeaves";
 import NotificationsPage from "./pages/NotificationsPage";
 import AccountsPage from "./pages/AccountsPage";
+import SalaryPage from "./pages/SalaryPage";
 import LiveClientsPage from "./pages/LiveClientsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccessControlPage from "./pages/AccessControlPage";
@@ -135,6 +136,7 @@ function ProtectedRoutes() {
         <Route path="/hr/leaves" element={<HRLeaves />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/salary" element={<SalaryPage />} />
         <Route path="/live-clients" element={<LiveClientsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/process-planner" element={<ProcessPlannerPage />} />
