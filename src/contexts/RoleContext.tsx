@@ -25,6 +25,27 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
   { value: "videographer_vendor", label: "Videographer (Vendor)" },
 ];
 
+// Role creation hierarchy:
+//   Admin    -> can create Administrator + Accounts (the "leadership" tier)
+//   Administrator -> can create everyone else (Sales, Office photo/video/editor, Vendor photo/video)
+//   Anyone else -> cannot create users
+export const ROLES_ADMIN_CAN_CREATE: AppRole[] = ["administrator", "accounts"];
+export const ROLES_ADMINISTRATOR_CAN_CREATE: AppRole[] = [
+  "telecaller", "editor",
+  "photographer", "videographer",
+  "photographer_vendor", "videographer_vendor",
+];
+
+export function getCreatableRoles(creator: AppRole | null | undefined): AppRole[] {
+  if (creator === "admin") return ROLES_ADMIN_CAN_CREATE;
+  if (creator === "administrator") return ROLES_ADMINISTRATOR_CAN_CREATE;
+  return [];
+}
+
+export function canCreateRole(creator: AppRole | null | undefined, target: AppRole): boolean {
+  return getCreatableRoles(creator).includes(target);
+}
+
 export type AppModule =
   | "dashboard" | "leads" | "clients" | "quotations"
   | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"

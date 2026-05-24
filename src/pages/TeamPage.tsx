@@ -12,7 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
-import { useRole, ALL_ROLES, type AppRole } from "@/contexts/RoleContext";
+import { useRole, ALL_ROLES, getCreatableRoles, type AppRole } from "@/contexts/RoleContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,7 +79,7 @@ interface UserForm {
 const blankForm: UserForm = {
   email: "",
   display_name: "",
-  role: "photographer",
+  role: "telecaller",
   login_surface: "both",
   send_invite: true,
   phone: "",
@@ -433,8 +433,15 @@ export default function TeamPage() {
 
   // Reset form when add dialog opens
   useEffect(() => {
-    if (addOpen) setForm(blankForm);
-  }, [addOpen]);
+    if (addOpen) {
+      const allowed = getCreatableRoles(currentRole);
+      const next: typeof blankForm = {
+        ...blankForm,
+        role: (allowed.includes(blankForm.role) ? blankForm.role : (allowed[0] ?? blankForm.role)) as AppRole,
+      };
+      setForm(next);
+    }
+  }, [addOpen, currentRole]);
 
   if (!canManage) {
     return (
@@ -635,7 +642,7 @@ export default function TeamPage() {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh]">
-            <UserFormFields form={form} setForm={setForm} mode="create" />
+            <UserFormFields form={form} setForm={setForm} mode="create" allowedRoles={getCreatableRoles(currentRole)} />
           </ScrollArea>
           <DialogFooter className="px-6 py-4 border-t border-border">
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
@@ -856,11 +863,12 @@ function RowActions({ u, isYou, onEdit, onResetPassword, onRemove }: {
 }
 
 function UserFormFields({
-  form, setForm, mode,
+  form, setForm, mode, allowedRoles,
 }: {
   form: UserForm;
   setForm: (f: UserForm | ((p: UserForm) => UserForm)) => void;
   mode: "create" | "edit";
+  allowedRoles: AppRole[];
 }) {
   const update = <K extends keyof UserForm>(k: K, v: UserForm[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -907,7 +915,7 @@ function UserFormFields({
             <Select value={form.role} onValueChange={(v) => update("role", v as AppRole)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {ALL_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                {ALL_ROLES.filter((r) => allowedRoles.includes(r.value)).map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
@@ -1021,7 +1029,7 @@ function EditUserForm({ user, onSave, saving, onCancel }: {
   return (
     <>
       <ScrollArea className="max-h-[70vh]">
-        <UserFormFields form={form} setForm={setForm} mode="edit" />
+        <UserFormFields form={form} setForm={setForm} mode="edit" allowedRoles={isAdmin ? (ALL_ROLES.filter(r => r.value !== "admin").map(r => r.value)) : getCreatableRoles(currentRole)} />
       </ScrollArea>
       <DialogFooter className="px-6 py-4 border-t border-border">
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
