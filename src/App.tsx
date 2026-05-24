@@ -8,9 +8,12 @@ import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { OrgProvider } from "@/contexts/OrgContext";
 import { RoleLayoutWrapper } from "@/components/RoleLayoutWrapper";
-import NotFound from "./pages/NotFound.tsx";
-import Index from "./pages/Index.tsx";
+
+import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
+
+// Landing pages (public marketing)
 import LandingLayout from "./pages/landing/LandingLayout";
 import LandingHome from "./pages/landing/Home";
 import LandingFeatures from "./pages/landing/Features";
@@ -18,64 +21,21 @@ import LandingPricing from "./pages/landing/Pricing";
 import LandingTestimonials from "./pages/landing/Testimonials";
 import LandingAbout from "./pages/landing/About";
 import LandingContact from "./pages/landing/Contact";
+
+// Legal
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
 
-import ProjectsPage from "./pages/ProjectsPage";
-import ProjectDetailPage from "./pages/ProjectDetailPage";
+// Core (kept)
 import TeamPage from "./pages/TeamPage";
-import InvoicesPage from "./pages/InvoicesPage";
-import LeadsPage from "./pages/LeadsPage";
-import PaymentRequestsPage from "./pages/PaymentRequestsPage";
-import CalendarPage from "./pages/CalendarPage";
-import ClientsPage from "./pages/ClientsPage";
-import AddClientPage from "./pages/AddClientPage";
-import ClientDetailPage from "./pages/ClientDetailPage";
-import QuotationsPage from "./pages/QuotationsPage";
-import ContractsPage from "./pages/ContractsPage";
-import TasksPage from "./pages/TasksPage";
-import EventsPage from "./pages/EventsPage";
-import AlbumsPage from "./pages/AlbumsPage";
-import EventDayPage from "./pages/EventDayPage";
-import GalleryPage from "./pages/GalleryPage";
-import PortalPage from "./pages/PortalPage";
-
-import SettingsPage from "./pages/SettingsPage";
-import HREmployees from "./pages/hr/HREmployees";
-import HRAttendance from "./pages/hr/HRAttendance";
-import HRLeaves from "./pages/hr/HRLeaves";
-import NotificationsPage from "./pages/NotificationsPage";
-import AccountsPage from "./pages/AccountsPage";
-import SalaryPage from "./pages/SalaryPage";
-import LiveClientsPage from "./pages/LiveClientsPage";
 import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 import AccessControlPage from "./pages/AccessControlPage";
-import ProcessPlannerPage from "./pages/ProcessPlannerPage";
-import ProcessTemplatesPage from "./pages/ProcessTemplatesPage";
-import ProcessDashboardPage from "./pages/ProcessDashboardPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import PlaceholderPage from "./pages/PlaceholderPage";
+
+// Super Admin
 import SuperAdminPage from "./pages/SuperAdminPage";
-
-// Role mobile pages
-import { RoleMobileLayout } from "@/components/role-mobile/RoleMobileLayout";
-import RoleDashboardPage from "./pages/role-mobile/RoleDashboardPage";
-import RoleProjectsPage from "./pages/role-mobile/RoleProjectsPage";
-import RoleCalendarPage from "./pages/role-mobile/RoleCalendarPage";
-import RoleDeliverablesPage from "./pages/role-mobile/RoleDeliverablesPage";
-import RolePaymentsPage from "./pages/role-mobile/RolePaymentsPage";
-import RoleTransactionsPage from "./pages/role-mobile/RoleTransactionsPage";
-import RoleAttendancePage from "./pages/role-mobile/RoleAttendancePage";
-import RoleChatPage from "./pages/role-mobile/RoleChatPage";
-import RoleProfilePage from "./pages/role-mobile/RoleProfilePage";
-import RoleSettingsPage from "./pages/role-mobile/RoleSettingsPage";
-import RoleExpensePage from "./pages/role-mobile/RoleExpensePage";
-import RoleNotificationsPage from "./pages/role-mobile/RoleNotificationsPage";
-import AboutAppPage from "./pages/role-mobile/AboutAppPage";
-import AppearancePage from "./pages/role-mobile/AppearancePage";
-import FeedbackPage from "./pages/role-mobile/FeedbackPage";
-import HelpPage from "./pages/role-mobile/HelpPage";
-import PrivacyPolicyMobilePage from "./pages/role-mobile/PrivacyPolicyMobilePage";
-
-// Super Admin sub-pages
 import SADashboard from "./pages/superadmin/SADashboard";
 import SAStudios from "./pages/superadmin/SAStudios";
 import SAModules from "./pages/superadmin/SAModules";
@@ -111,115 +71,78 @@ function ProtectedRoutes() {
     <Routes>
       <Route element={<RoleLayoutWrapper />}>
         <Route path="/" element={<Index />} />
-        <Route path="/leads" element={<LeadsPage />} />
-        <Route path="/payment-requests" element={<PaymentRequestsPage />} />
-        <Route path="/clients" element={<ClientsPage />} />
-        <Route path="/clients/new" element={<AddClientPage />} />
-        <Route path="/clients/:id" element={<ClientDetailPage />} />
-        <Route path="/quotations" element={<QuotationsPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/projects/:id" element={<ProjectDetailPage />} />
-        <Route path="/projects/:projectId/event-day" element={<EventDayPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/events" element={<EventsPage />} />
-        <Route path="/albums" element={<AlbumsPage />} />
         <Route path="/team" element={<TeamPage />} />
-        {/* /members consolidated into /team — every team member is a user */}
         <Route path="/members" element={<Navigate to="/team" replace />} />
-        <Route path="/invoices" element={<InvoicesPage />} />
-        <Route path="/contracts" element={<ContractsPage />} />
-        <Route path="/gallery" element={<GalleryPage />} />
-        <Route path="/portal" element={<PortalPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/access-control" element={<AccessControlPage />} />
-        <Route path="/hr/employees" element={<HREmployees />} />
-        <Route path="/hr/attendance" element={<HRAttendance />} />
-        <Route path="/hr/leaves" element={<HRLeaves />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/accounts" element={<AccountsPage />} />
-        <Route path="/salary" element={<SalaryPage />} />
-        <Route path="/live-clients" element={<LiveClientsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/process-planner" element={<ProcessPlannerPage />} />
-        <Route path="/process-planner/templates" element={<ProcessTemplatesPage />} />
-        <Route path="/process-planner/dashboard" element={<ProcessDashboardPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
       </Route>
-      <Route path="/m" element={<RoleMobileLayout />}>
-        <Route index element={<RoleDashboardPage />} />
-        <Route path="projects" element={<RoleProjectsPage />} />
-        <Route path="projects/:projectId/event-day" element={<EventDayPage />} />
-        <Route path="deliverables" element={<RoleDeliverablesPage />} />
-        <Route path="payments" element={<RolePaymentsPage />} />
-        <Route path="calendar" element={<RoleCalendarPage />} />
-        <Route path="transactions" element={<RoleTransactionsPage />} />
-        <Route path="expenses" element={<RoleExpensePage />} />
-        <Route path="attendance" element={<RoleAttendancePage />} />
-        <Route path="chat" element={<RoleChatPage />} />
-        <Route path="profile" element={<RoleProfilePage />} />
-        <Route path="notifications" element={<RoleNotificationsPage />} />
-        <Route path="settings" element={<RoleSettingsPage />} />
-        <Route path="settings/about" element={<AboutAppPage />} />
-        <Route path="settings/appearance" element={<AppearancePage />} />
-        <Route path="settings/feedback" element={<FeedbackPage />} />
-        <Route path="settings/help" element={<HelpPage />} />
-        <Route path="settings/privacy" element={<PrivacyPolicyMobilePage />} />
+
+      {/* Super Admin (separate layout inside the page) */}
+      <Route path="/superadmin" element={<SuperAdminPage />}>
+        <Route index element={<SADashboard />} />
+        <Route path="dashboard" element={<SADashboard />} />
+        <Route path="studios" element={<SAStudios />} />
+        <Route path="modules" element={<SAModules />} />
+        <Route path="subscriptions" element={<SASubscriptions />} />
+        <Route path="users" element={<SAUsers />} />
+        <Route path="enquiries" element={<SAEnquiries />} />
+        <Route path="activity" element={<SAActivity />} />
+        <Route path="reports" element={<SAReports />} />
+        <Route path="notifications" element={<SANotifications />} />
+        <Route path="settings" element={<SASettings />} />
+        <Route path="system" element={<SASystemControl />} />
+        <Route path="*" element={<SAPlaceholder />} />
       </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
-function AuthRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
-  return <AuthPage />;
+function AppContent() {
+  return (
+    <Routes>
+      {/* Public landing */}
+      <Route path="/landing" element={<LandingLayout />}>
+        <Route index element={<LandingHome />} />
+        <Route path="features" element={<LandingFeatures />} />
+        <Route path="pricing" element={<LandingPricing />} />
+        <Route path="testimonials" element={<LandingTestimonials />} />
+        <Route path="about" element={<LandingAbout />} />
+        <Route path="contact" element={<LandingContact />} />
+      </Route>
+
+      {/* Auth */}
+      <Route path="/auth" element={<AuthPage />} />
+
+      {/* Legal */}
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+
+      {/* Everything else inside auth/role wrapper */}
+      <Route path="/*" element={<ProtectedRoutes />} />
+    </Routes>
+  );
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <AuthProvider>
-        <OrgProvider>
-          <RoleProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/landing" element={<LandingLayout />}>
-                    <Route index element={<LandingHome />} />
-                    <Route path="features" element={<LandingFeatures />} />
-                    <Route path="pricing" element={<LandingPricing />} />
-                    <Route path="testimonials" element={<LandingTestimonials />} />
-                    <Route path="about" element={<LandingAbout />} />
-                    <Route path="contact" element={<LandingContact />} />
-                  </Route>
-                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route path="/auth" element={<AuthRoute />} />
-                  {/* Super Admin with nested routes */}
-                  <Route path="/super-admin" element={<SuperAdminPage />}>
-                    <Route index element={<SADashboard />} />
-                    <Route path="studios" element={<SAStudios />} />
-                    <Route path="enquiries" element={<SAEnquiries />} />
-                    <Route path="modules" element={<SAModules />} />
-                    <Route path="subscriptions" element={<SASubscriptions />} />
-                    <Route path="users" element={<SAUsers />} />
-                    <Route path="activity" element={<SAActivity />} />
-                    <Route path="reports" element={<SAReports />} />
-                    <Route path="notifications" element={<SANotifications />} />
-                    <Route path="system" element={<SASystemControl />} />
-                    <Route path="settings" element={<SASettings />} />
-                  </Route>
-                  <Route path="/*" element={<ProtectedRoutes />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </RoleProvider>
-        </OrgProvider>
-      </AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <OrgProvider>
+              <RoleProvider>
+                <AppContent />
+              </RoleProvider>
+            </OrgProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

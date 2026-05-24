@@ -5,9 +5,6 @@ import { Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
-import { FloatingAIButton } from "@/components/FloatingAIButton";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -65,7 +62,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <RoleSwitcher />
               <ThemeSwitcher />
-              <NotificationBell />
+              
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/profile")}>
                 <span className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">{profileInitials}</span>
               </Button>
@@ -78,7 +75,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
-        <FloatingAIButton />
         <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
     </SidebarProvider>

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { SubscriptionManager } from "@/components/SubscriptionManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -669,7 +668,7 @@ export default function SettingsPage() {
             <Button className="gap-2"><Save className="h-3.5 w-3.5" /> Save Payment Details</Button>
           </div>
 
-          <SubscriptionManager />
+          
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-6">

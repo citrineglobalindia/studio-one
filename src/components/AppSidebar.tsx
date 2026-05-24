@@ -27,7 +27,6 @@ import {
   LogOut,
   Package,
 } from "lucide-react";
-import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole, type AppModule } from "@/contexts/RoleContext";
@@ -44,50 +43,20 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { NavLink } from "@/components/NavLink";
 
 // Map sidebar items to their AppModule keys for access filtering
 type SidebarItem = { title: string; url: string; icon: typeof LayoutDashboard; module: AppModule };
 
-const salesItems: SidebarItem[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
-  { title: "Leads", url: "/leads", icon: UserPlus, module: "leads" },
-  { title: "Clients", url: "/clients", icon: Users, module: "clients" },
-];
-
-const operationsItems: SidebarItem[] = [
-  { title: "Live Clients", url: "/live-clients", icon: Activity, module: "live-clients" },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays, module: "calendar" },
-  { title: "Tasks", url: "/tasks", icon: Zap, module: "tasks" },
-  { title: "Process Planner", url: "/process-planner", icon: ClipboardList, module: "process-planner" },
-  { title: "Users", url: "/team", icon: UsersRound, module: "team" },
-];
-
-const financeItems: SidebarItem[] = [
-  { title: "Quotations", url: "/quotations", icon: FileText, module: "quotations" },
-  { title: "Invoices", url: "/invoices", icon: CreditCard, module: "invoices" },
-  { title: "Contracts", url: "/contracts", icon: Briefcase, module: "contracts" },
-  { title: "Expense", url: "/payment-requests", icon: Wallet, module: "payment-requests" },
-  { title: "Salary", url: "/salary", icon: Wallet, module: "salary" },
-  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
-];
-
-const hrItems: SidebarItem[] = [
-  { title: "Employees", url: "/hr/employees", icon: UsersRound, module: "hr-employees" },
-  { title: "Attendance", url: "/hr/attendance", icon: ClipboardList, module: "hr-attendance" },
-  { title: "Leaves", url: "/hr/leaves", icon: CalendarOff, module: "hr-leaves" },
-];
-
 const systemItems: SidebarItem[] = [
-  { title: "Notifications", url: "/notifications", icon: Bell, module: "notifications" },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
+  { title: "Users", url: "/team", icon: UsersRound, module: "team" },
   { title: "Access Control", url: "/access-control", icon: Shield, module: "settings" },
+  { title: "Settings", url: "/settings", icon: Settings, module: "settings" },
 ];
 
 const groups = [
-  { label: "Sales CRM", items: salesItems },
-  { label: "Operations", items: operationsItems },
-  { label: "Finance", items: financeItems },
-  { label: "HR Module", items: hrItems },
-  { label: "System", items: systemItems },
+  { label: "Core", items: systemItems },
 ];
 
 export function AppSidebar() {
