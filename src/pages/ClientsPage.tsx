@@ -17,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useClients, type DbClient } from "@/hooks/useClients";
-import { AddClientSheet } from "@/components/AddClientSheet";
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
   active: { label: "Active", color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-500/10", borderColor: "border-emerald-200 dark:border-emerald-500/30" },
@@ -67,7 +66,6 @@ export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "budget" | "recent">("recent");
 
   const filtered = useMemo(() => {
@@ -114,7 +112,7 @@ export default function ClientsPage() {
             <p className="text-xs text-muted-foreground">{clients.length} clients · ₹{(totalBudget / 100000).toFixed(1)}L total value</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2 rounded-xl" onClick={() => setAddOpen(true)}>
+        <Button size="sm" className="gap-2 rounded-xl" onClick={() => navigate("/clients/new")}>
           <Plus className="h-4 w-4" /> Add Client
         </Button>
       </motion.div>
@@ -373,12 +371,6 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* Add Client Sheet */}
-      <AddClientSheet
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        onAdd={(data) => addClient.mutate(data)}
-      />
     </motion.div>
   );
 }
