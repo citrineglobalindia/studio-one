@@ -66,7 +66,7 @@ const financeItems: SidebarItem[] = [
   { title: "Quotations", url: "/quotations", icon: FileText, module: "quotations" },
   { title: "Invoices", url: "/invoices", icon: CreditCard, module: "invoices" },
   { title: "Contracts", url: "/contracts", icon: Briefcase, module: "contracts" },
-  { title: "Payment Requests", url: "/payment-requests", icon: Wallet, module: "payment-requests" },
+  { title: "Expense", url: "/payment-requests", icon: Wallet, module: "payment-requests" },
   { title: "Salary", url: "/salary", icon: Wallet, module: "salary" },
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
 ];

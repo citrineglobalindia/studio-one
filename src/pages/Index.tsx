@@ -24,8 +24,6 @@ import { PhotographerDashboard } from "@/components/dashboards/PhotographerDashb
 import { VideographerDashboard } from "@/components/dashboards/VideographerDashboard";
 import { EditorDashboard } from "@/components/dashboards/EditorDashboard";
 import { TelecallerDashboard } from "@/components/dashboards/TelecallerDashboard";
-import { VendorDashboard } from "@/components/dashboards/VendorDashboard";
-import { HRDashboardRole } from "@/components/dashboards/HRDashboardRole";
 import { AccountsDashboard } from "@/components/dashboards/AccountsDashboard";
 import { LiveOpsCard } from "@/components/dashboards/LiveOpsCard";
 
@@ -161,8 +159,6 @@ const Index = () => {
   if (currentRole === "videographer") return <VideographerDashboard />;
   if (currentRole === "editor") return <EditorDashboard />;
   if (currentRole === "telecaller") return <TelecallerDashboard />;
-  if (currentRole === "vendor") return <VendorDashboard />;
-  if (currentRole === "hr") return <HRDashboardRole />;
   if (currentRole === "accounts") return <AccountsDashboard />;
 
   return (

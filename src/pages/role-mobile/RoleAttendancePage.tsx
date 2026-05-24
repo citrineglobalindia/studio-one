@@ -120,7 +120,8 @@ export default function RoleAttendancePage() {
   };
 
   // Vendors don't get attendance
-  if (currentRole === "vendor") return <Navigate to="/m" replace />;
+  // Vendor variants (photographer_vendor/videographer_vendor) skip attendance
+  if (currentRole === "photographer_vendor" || currentRole === "videographer_vendor") return <Navigate to="/m" replace />;
 
   return (
     <div className="px-4 pt-4 pb-6">

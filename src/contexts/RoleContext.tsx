@@ -5,30 +5,24 @@ import { supabase } from "@/integrations/supabase/client";
 export type AppRole =
   | "admin"
   | "administrator"
-  | "manager"
-  | "vendor"
-  | "editor"
+  | "accounts"
   | "telecaller"
+  | "editor"
   | "videographer"
   | "photographer"
   | "videographer_vendor"
-  | "photographer_vendor"
-  | "hr"
-  | "accounts";
+  | "photographer_vendor";
 
 export const ALL_ROLES: { value: AppRole; label: string }[] = [
   { value: "admin", label: "Admin" },
   { value: "administrator", label: "Administrator" },
-  { value: "manager", label: "Manager" },
   { value: "accounts", label: "Accounts" },
-  { value: "hr", label: "HR" },
   { value: "telecaller", label: "Sales" },
   { value: "editor", label: "Editor" },
   { value: "photographer", label: "Photographer (Office)" },
   { value: "videographer", label: "Videographer (Office)" },
   { value: "photographer_vendor", label: "Photographer (Vendor)" },
   { value: "videographer_vendor", label: "Videographer (Vendor)" },
-  { value: "vendor", label: "Vendor" },
 ];
 
 export type AppModule =
@@ -54,7 +48,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "team", label: "Users", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
-  { value: "payment-requests", label: "Payment Requests", group: "Finance" },
+  { value: "payment-requests", label: "Expense", group: "Finance" },
   { value: "accounts-page", label: "Accounts", group: "Finance" },
   { value: "salary", label: "Salary", group: "Finance" },
   { value: "hr-employees", label: "Employees", group: "HR Module" },
@@ -76,15 +70,6 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   administrator: ALL_MODULES
     .map((m) => m.value)
     .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
-  // Manager: like Admin but bounded — no platform settings, no role/permission management
-  manager: [
-    "dashboard", "leads", "clients", "quotations",
-    "live-clients", "projects", "events", "albums", "calendar", "tasks", "process-planner",
-    "team",
-    "invoices", "contracts", "payment-requests",
-    "notifications", "profile",
-  ],
-  vendor: ["dashboard", "projects", "calendar", "tasks", "notifications", "profile"],
   editor: ["dashboard", "projects", "tasks", "albums", "hr-attendance", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads-only focus — RLS enforces own-leads visibility
   telecaller: ["dashboard", "leads", "calendar", "notifications", "profile"],
@@ -93,7 +78,6 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   // Vendor photographer/videographer: outside contractor — no attendance/leaves, paid per event
   photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
   videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
-  hr: ["dashboard", "hr-employees", "hr-attendance", "hr-leaves", "team", "notifications", "profile"],
   accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "notifications", "profile"],
 };
 
@@ -127,9 +111,8 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 const VALID_ROLES: AppRole[] = [
-  "admin", "administrator", "manager", "vendor", "editor", "telecaller",
+  "admin", "administrator", "accounts", "telecaller", "editor",
   "videographer", "photographer", "videographer_vendor", "photographer_vendor",
-  "hr", "accounts",
 ];
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {

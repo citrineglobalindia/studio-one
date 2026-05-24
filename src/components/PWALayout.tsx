@@ -37,7 +37,7 @@ const moduleConfig: Record<AppModule, { icon: typeof LayoutDashboard; label: str
   "albums": { icon: FolderKanban, label: "Albums", path: "/albums", color: "from-fuchsia-500 to-purple-500" },
   "salary": { icon: Wallet, label: "Salary", path: "/salary", color: "from-lime-500 to-green-500" },
   "live-clients": { icon: Users, label: "Live", path: "/live-clients", color: "from-orange-500 to-amber-500" },
-  "payment-requests": { icon: CreditCard, label: "Payments", path: "/payment-requests", color: "from-emerald-500 to-teal-500" },
+  "payment-requests": { icon: CreditCard, label: "Expense", path: "/payment-requests", color: "from-emerald-500 to-teal-500" },
   "process-planner": { icon: ClipboardList, label: "Process", path: "/process-planner", color: "from-violet-500 to-indigo-500" },
 };
 
@@ -45,15 +45,12 @@ const moduleConfig: Record<AppModule, { icon: typeof LayoutDashboard; label: str
 const ROLE_TABS: Record<AppRole, AppModule[]> = {
   admin: ["dashboard", "projects", "tasks", "calendar"],
   administrator: ["dashboard", "projects", "tasks", "calendar"],
-  manager: ["dashboard", "projects", "tasks", "calendar"],
   photographer: ["dashboard", "events", "calendar", "communications"],
   videographer: ["dashboard", "events", "calendar", "communications"],
   photographer_vendor: ["dashboard", "events", "calendar", "payment-requests"],
   videographer_vendor: ["dashboard", "events", "calendar", "payment-requests"],
   editor: ["dashboard", "tasks", "projects", "calendar"],
   telecaller: ["dashboard", "leads", "calendar", "notifications"],
-  vendor: ["dashboard", "projects", "calendar", "tasks"],
-  hr: ["dashboard", "hr-dashboard", "hr-attendance", "hr-leaves"],
   accounts: ["dashboard", "invoices", "accounts-page", "payment-requests"],
 };
 
@@ -61,15 +58,12 @@ const ROLE_TABS: Record<AppRole, AppModule[]> = {
 const ROLE_THEME: Record<AppRole, { emoji: string; accent: string; gradientFrom: string }> = {
   admin: { emoji: "👑", accent: "from-primary to-primary/60", gradientFrom: "from-primary/15" },
   administrator: { emoji: "🛡️", accent: "from-indigo-500 to-violet-500", gradientFrom: "from-indigo-500/15" },
-  manager: { emoji: "🗂️", accent: "from-sky-500 to-blue-500", gradientFrom: "from-sky-500/15" },
   photographer: { emoji: "📸", accent: "from-blue-500 to-cyan-500", gradientFrom: "from-blue-500/15" },
   videographer: { emoji: "🎬", accent: "from-purple-500 to-fuchsia-500", gradientFrom: "from-purple-500/15" },
   photographer_vendor: { emoji: "📷", accent: "from-blue-400 to-cyan-400", gradientFrom: "from-blue-400/15" },
   videographer_vendor: { emoji: "🎥", accent: "from-purple-400 to-fuchsia-400", gradientFrom: "from-purple-400/15" },
   editor: { emoji: "✂️", accent: "from-emerald-500 to-teal-500", gradientFrom: "from-emerald-500/15" },
   telecaller: { emoji: "📞", accent: "from-amber-500 to-orange-500", gradientFrom: "from-amber-500/15" },
-  vendor: { emoji: "🤝", accent: "from-indigo-500 to-violet-500", gradientFrom: "from-indigo-500/15" },
-  hr: { emoji: "👥", accent: "from-teal-500 to-emerald-500", gradientFrom: "from-teal-500/15" },
   accounts: { emoji: "💰", accent: "from-emerald-500 to-green-500", gradientFrom: "from-emerald-500/15" },
 };
 

@@ -155,7 +155,7 @@ export default function TeamPage() {
   const [resetUser, setResetUser] = useState<StudioUser | null>(null);
   const [form, setForm] = useState<UserForm>(blankForm);
 
-  const canManage = isAdmin || currentRole === "manager";
+  const canManage = isAdmin || currentRole === "administrator";
 
   const { data: studioUsers = [], isLoading } = useQuery({
     queryKey: ["studio-users", orgId],
@@ -212,7 +212,7 @@ export default function TeamPage() {
           invited_email: m.invited_email ?? null,
           team_member_id: t?.id ?? null,
           full_name: t?.full_name || p?.display_name || m.invited_email || "Unknown",
-          role: ((t?.role as AppRole) || (m.role as AppRole) || "vendor"),
+          role: ((t?.role as AppRole) || (m.role as AppRole) || "editor"),
           email: t?.email || m.invited_email || null,
           phone: t?.phone || null,
           daily_rate: Number(t?.daily_rate || 0),

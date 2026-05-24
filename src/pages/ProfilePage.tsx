@@ -18,7 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const formatRoleLabel = (role: string) => {
   if (!role) return "Admin";
-  if (role === "hr") return "HR";
   return role
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

@@ -67,30 +67,6 @@ export const ROLE_CONFIG: Record<Exclude<AppRole, "admin">, RoleConfig> = {
     ],
     primaryMetric: { label: "This Month", value: "₹18K", sub: "incentive" },
   },
-  vendor: {
-    label: "Vendor",
-    tagline: "Deliver on time",
-    icon: Briefcase,
-    greeting: "Check your orders.",
-    stats: [
-      { label: "Orders", value: 9 },
-      { label: "In transit", value: 3 },
-      { label: "Paid", value: 14 },
-    ],
-    primaryMetric: { label: "Outstanding", value: "₹26K", sub: "pending" },
-  },
-  hr: {
-    label: "HR",
-    tagline: "People first",
-    icon: UserCog,
-    greeting: "Team is waiting on you.",
-    stats: [
-      { label: "Staff", value: 24 },
-      { label: "Leaves", value: 4 },
-      { label: "Present", value: 19 },
-    ],
-    primaryMetric: { label: "Attendance", value: "92%", sub: "this week" },
-  },
   accounts: {
     label: "Accounts",
     tagline: "Books always balanced",
@@ -114,18 +90,6 @@ export const ROLE_CONFIG: Record<Exclude<AppRole, "admin">, RoleConfig> = {
       { label: "Done", value: 47 },
     ],
     primaryMetric: { label: "Open items", value: "12", sub: "this week" },
-  },
-  manager: {
-    label: "Manager",
-    tagline: "Drive the team",
-    icon: UserCog,
-    greeting: "Steer the day.",
-    stats: [
-      { label: "Tasks", value: 22 },
-      { label: "Team", value: 14 },
-      { label: "Done", value: 36 },
-    ],
-    primaryMetric: { label: "Output", value: "84%", sub: "this week" },
   },
   photographer_vendor: {
     label: "Photographer (Vendor)",
