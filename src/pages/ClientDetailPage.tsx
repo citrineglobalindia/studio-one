@@ -7,6 +7,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog as EvtDialog,
+  DialogContent as EvtDialogContent,
+  DialogHeader as EvtDialogHeader,
+  DialogTitle as EvtDialogTitle,
+  DialogFooter as EvtDialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select as EvtSelect,
+  SelectContent as EvtSelectContent,
+  SelectItem as EvtSelectItem,
+  SelectTrigger as EvtSelectTrigger,
+  SelectValue as EvtSelectValue,
+} from "@/components/ui/select";
+import { useEvents as useEventsForDialog } from "@/hooks/useEvents";
+
+import {
   Users, Phone, Mail, MapPin, Crown, ArrowLeft, CalendarDays, Sparkles, Heart,
   Briefcase, Receipt, PartyPopper, Plus, MoreHorizontal, Edit, Trash2, Copy,
   Share2, Loader2, Camera, Video, ClipboardList, FileText, UsersRound,
@@ -87,7 +103,7 @@ export default function ClientDetailPage() {
   const { clients, isLoading, updateClient, deleteClient } = useClients();
   const { invoices } = useInvoices();
   const { projects, updateProject } = useProjects();
-  const { events: dbEvents, updateEvent } = useEvents();
+  const { events: dbEvents, updateEvent, addEvent, deleteEvent } = useEvents();
   const { byEvent: assignmentsByEvent } = useEventTeamAssignments();
   const { members: dbTeamMembers } = useTeamMembers();
 
@@ -162,6 +178,16 @@ export default function ClientDetailPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+
+  // ── Event add/edit dialog state ──
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const openAddEvent = () => { setEditingEvent(null); setEventDialogOpen(true); };
+  const openEditEvent = (eid: string) => {
+    const ev = (dbEvents as any[]).find((x) => x.id === eid);
+    setEditingEvent(ev || null);
+    setEventDialogOpen(true);
+  };
   const [videoUploading, setVideoUploading] = useState(false);
 
   async function uploadMedia(kind: "photo" | "video", file: File) {
@@ -548,7 +574,6 @@ export default function ClientDetailPage() {
           <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-1 h-auto p-0 px-3 overflow-x-auto">
             {[
               { value: "overview",  icon: Users,              label: "Overview" },
-              { value: "manage",    icon: SlidersHorizontal,  label: "Manage" },
               { value: "projects",  icon: Briefcase,          label: "Projects",  count: clientProjects.length },
               { value: "invoices",  icon: Receipt,            label: "Invoices",  count: clientInvoices.length },
               { value: "events",    icon: CalendarDays,       label: "Events",    count: clientEvents.length },
@@ -574,62 +599,6 @@ export default function ClientDetailPage() {
 
           <div className="p-5">
             {/* ───── MANAGE (hierarchy: client → project → events table) ───── */}
-            <TabsContent value="manage" className="mt-0 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-primary" /> Projects &amp; Events ({clientProjects.length} / {dbEvents.filter((e: any) => e.client_id === id).length})
-                </h3>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/events")}>
-                    <CalendarDays className="h-3.5 w-3.5" /> Add Event
-                  </Button>
-                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/projects")}>
-                    <Plus className="h-3.5 w-3.5" /> New Project
-                  </Button>
-                </div>
-              </div>
-
-              {clientProjects.length === 0 && dbEvents.filter((e: any) => e.client_id === id).length === 0 && (
-                <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  No projects or events for this client yet.
-                </div>
-              )}
-
-              {clientProjects.map((p: any) => (
-                <ProjectManageRow
-                  key={p.id}
-                  project={p}
-                  events={(dbEvents as any[]).filter((e) => e.client_id === id && (e.project_id === p.id || !e.project_id))}
-                  teamMembers={dbTeamMembers}
-                  assignmentsByEvent={assignmentsByEvent}
-                  onSave={(patch) => updateProject.mutate({ id: p.id, ...(patch as any) })}
-                  onSaveEvent={(eid, patch) => updateEvent.mutate({ id: eid, ...(patch as any) })}
-                />
-              ))}
-
-              {/* Orphan events: belong to this client but not linked to any listed project */}
-              {(() => {
-                const linkedEventIds = new Set<string>();
-                for (const p of clientProjects) {
-                  for (const e of dbEvents as any[]) {
-                    if (e.client_id === id && (e.project_id === p.id || !e.project_id)) linkedEventIds.add(e.id);
-                  }
-                }
-                const orphans = (dbEvents as any[]).filter((e) => e.client_id === id && !linkedEventIds.has(e.id));
-                if (orphans.length === 0) return null;
-                return (
-                  <div className="rounded-xl border border-dashed border-border p-4 mt-3">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Events not tied to any listed project</p>
-                    <EventsTable
-                      events={orphans}
-                      teamMembers={dbTeamMembers}
-                      assignmentsByEvent={assignmentsByEvent}
-                      onSaveEvent={(eid, patch) => updateEvent.mutate({ id: eid, ...(patch as any) })}
-                    />
-                  </div>
-                );
-              })()}
-            </TabsContent>
 
             {/* ───── OVERVIEW ───── */}
             <TabsContent value="overview" className="mt-0 space-y-4">
@@ -641,7 +610,7 @@ export default function ClientDetailPage() {
                 </DetailCard>
 
                 <DetailCard icon={<Heart className="h-4 w-4" />} title={`${client.partner_name?.split(" ")[0] || "Partner"} — Contact`}>
-                  <DetailField label="Name"  value={editing ? <Input value={form.partner_name}  onChange={(e) => setForm({ ...form, partner_name:  e.target.value })} placeholder="Partner's name" /> : (client.partner_name || "—")} />
+                  <DetailField label="Name"  value={(client.partner_name || "—")} />
                   <DetailField label="Phone" value={editing ? <Input value={form.partner_phone} onChange={(e) => setForm({ ...form, partner_phone: e.target.value })} placeholder="+91 …" /> : (client.partner_phone || "—")} />
                   <DetailField label="Email" value={editing ? <Input value={form.partner_email} onChange={(e) => setForm({ ...form, partner_email: e.target.value })} placeholder="…@…" /> : (client.partner_email || "—")} />
                   <DetailField label="Date of Birth" value={editing ? <Input type="date" value={form.partner_date_of_birth} onChange={(e) => setForm({ ...form, partner_date_of_birth: e.target.value })} /> : (fmtDate(client.partner_date_of_birth) || "—")} />
@@ -738,54 +707,60 @@ export default function ClientDetailPage() {
 
             {/* ───── EVENTS (from events table + projects with an event_date) ───── */}
             <TabsContent value="events" className="mt-0 space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-primary" /> Events ({clientEvents.length})
+                </h3>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openAddEvent()}>
+                  <Plus className="h-3.5 w-3.5" /> Add event
+                </Button>
+              </div>
+
               {clientEvents.length === 0 ? (
-                <EmptyState icon={<CalendarDays className="h-10 w-10" />} text="No scheduled events" subtext="Add events on the Events page — they'll appear here automatically." actionLabel="Go to Events" onAction={() => navigate("/events")} />
-              ) : clientEvents.map((e, i) => {
-                const assignedIds = assignmentsByEvent()[e.id] || [];
-                const assignedMembers = assignedIds
-                  .map((id) => dbTeamMembers.find((m: any) => m.id === id))
-                  .filter(Boolean) as any[];
-                return (
-                  <motion.div key={e.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                    className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-border p-4 bg-gradient-to-r from-primary/5 to-transparent">
-                    <div className="h-14 w-14 rounded-xl bg-primary/15 flex flex-col items-center justify-center text-primary shrink-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(e.date).toLocaleDateString("en-IN", { month: "short" })}</span>
-                      <span className="text-xl font-black leading-none">{new Date(e.date).getDate()}</span>
+                <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+                  <CalendarDays className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No events for this client yet</p>
+                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => openAddEvent()}>
+                    <Plus className="h-3.5 w-3.5" /> Add the first event
+                  </Button>
+                </div>
+              ) : (
+                clientEvents.map((e: any, i: number) => (
+                  <motion.div key={e.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="flex items-center gap-3 rounded-2xl border border-border p-4 bg-card">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-primary">{new Date(e.date).toLocaleDateString("en-IN", { month: "short" })}</span>
+                      <span className="text-lg font-bold text-primary leading-none">{new Date(e.date).getDate()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{e.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                        {e.type || "Event"} · {e.venue || "Venue TBD"}
-                        {(e as any).start_time && ` · ${String((e as any).start_time).slice(0, 5)}`}
+                      <p className="text-sm font-semibold text-foreground capitalize truncate">{e.type || "Event"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {e.venue || "Venue TBD"}{(e as any).start_time ? ` · ${String((e as any).start_time).slice(0, 5)}` : ""}
                       </p>
-                      {assignedMembers.length > 0 && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="flex -space-x-2">
-                            {assignedMembers.slice(0, 5).map((m: any) => (
-                              <div key={m.id} className="h-6 w-6 rounded-full bg-primary/15 border-2 border-background flex items-center justify-center text-[9px] font-bold text-primary" title={`${m.full_name} — ${m.role}`}>
-                                {String(m.full_name).split(" ").filter(Boolean).slice(0, 2).map((p: string) => p[0]?.toUpperCase()).join("")}
-                              </div>
-                            ))}
-                            {assignedMembers.length > 5 && (
-                              <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[9px] font-medium text-muted-foreground">
-                                +{assignedMembers.length - 5}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-muted-foreground">
-                            {assignedMembers.map((m: any) => m.full_name).join(", ")}
-                          </span>
-                        </div>
-                      )}
                     </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Badge variant="outline" className="text-[10px] capitalize">{e.status}</Badge>
-                      {e.source === "event" && <Badge variant="secondary" className="text-[9px]">event</Badge>}
-                      {e.source === "project" && <Badge variant="secondary" className="text-[9px]">project</Badge>}
+                    <Badge variant="outline" className="text-[10px] capitalize shrink-0">{e.status}</Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditEvent(e.id)} title="Edit">
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500" onClick={() => {
+                        if (window.confirm("Delete this event?")) deleteEvent.mutate(e.id);
+                      }} title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </motion.div>
-                );
-              })}
+                ))
+              )}
+
+              <ClientEventDialog
+                open={eventDialogOpen}
+                onOpenChange={setEventDialogOpen}
+                clientId={id!}
+                clientName={client.name || ""}
+                defaultVenue={(client as any).venue_name || ""}
+                editing={editingEvent}
+              />
             </TabsContent>
 
             {/* ───── ALBUMS ───── */}
@@ -1659,3 +1634,126 @@ function EventManageRow({
     </div>
   );
 }
+
+const EVT_TYPES = ["Wedding", "Pre-Wedding", "Engagement", "Reception", "Sangeet", "Haldi", "Birthday", "Corporate", "Other"];
+
+function ClientEventDialog({
+  open, onOpenChange, clientId, clientName, defaultVenue, editing,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  clientId: string;
+  clientName: string;
+  defaultVenue: string;
+  editing: any | null;
+}) {
+  const { addEvent, updateEvent } = useEventsForDialog();
+  const [form, setForm] = useState({
+    event_type: "Wedding",
+    event_date: "",
+    start_time: "",
+    end_time: "",
+    venue: "",
+    notes: "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setForm({
+        event_type: editing.event_type || "Wedding",
+        event_date: editing.event_date || "",
+        start_time: editing.start_time ? String(editing.start_time).slice(0, 5) : "",
+        end_time: editing.end_time ? String(editing.end_time).slice(0, 5) : "",
+        venue: editing.venue || "",
+        notes: editing.notes || "",
+      });
+    } else {
+      setForm({ event_type: "Wedding", event_date: "", start_time: "", end_time: "", venue: "", notes: "" });
+    }
+  }, [open, editing]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const payload: any = {
+        event_type: form.event_type || null,
+        event_date: form.event_date || new Date().toISOString().slice(0, 10),
+        start_time: form.start_time || null,
+        end_time: form.end_time || null,
+        venue: form.venue.trim() || defaultVenue || null,
+        notes: form.notes.trim() || null,
+      };
+      if (editing) {
+        await updateEvent.mutateAsync({ id: editing.id, ...payload });
+      } else {
+        await addEvent.mutateAsync({
+          ...payload,
+          client_id: clientId,
+          project_id: null,
+          name: `${form.event_type || "Event"} — ${clientName || "Client"}`,
+          status: "upcoming",
+        } as any);
+      }
+      onOpenChange(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <EvtDialog open={open} onOpenChange={onOpenChange}>
+      <EvtDialogContent className="max-w-lg">
+        <EvtDialogHeader>
+          <EvtDialogTitle>{editing ? "Edit event" : "Add event"}</EvtDialogTitle>
+        </EvtDialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Event type</Label>
+              <EvtSelect value={form.event_type} onValueChange={(v) => setForm((p) => ({ ...p, event_type: v }))}>
+                <EvtSelectTrigger><EvtSelectValue /></EvtSelectTrigger>
+                <EvtSelectContent>
+                  {EVT_TYPES.map((t) => <EvtSelectItem key={t} value={t}>{t}</EvtSelectItem>)}
+                </EvtSelectContent>
+              </EvtSelect>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Event date</Label>
+              <Input type="date" value={form.event_date} onChange={(e) => setForm((p) => ({ ...p, event_date: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Start time</Label>
+              <Input type="time" value={form.start_time} onChange={(e) => setForm((p) => ({ ...p, start_time: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">End time</Label>
+              <Input type="time" value={form.end_time} onChange={(e) => setForm((p) => ({ ...p, end_time: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Venue (blank = primary venue)</Label>
+            <Input value={form.venue} onChange={(e) => setForm((p) => ({ ...p, venue: e.target.value }))} placeholder={defaultVenue || "Same as primary venue"} />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Notes</Label>
+            <Textarea rows={3} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} />
+          </div>
+        </div>
+        <EvtDialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {editing ? "Save changes" : "Add event"}
+          </Button>
+        </EvtDialogFooter>
+      </EvtDialogContent>
+    </EvtDialog>
+  );
+}
+
