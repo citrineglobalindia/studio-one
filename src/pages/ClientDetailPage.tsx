@@ -199,6 +199,8 @@ export default function ClientDetailPage() {
 
       </div>
 
+      {/* VENUE + NOTES side-by-side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
       {/* VENUE */}
       <EditableSection
         accentClass="border-l-violet-500"
@@ -295,6 +297,8 @@ export default function ClientDetailPage() {
         )}
       />
 
+      </div>
+
       {/* EVENTS */}
       <EventsTimeline clientId={client.id} defaultVenue={client.venue_name} />
     </div>
@@ -346,7 +350,7 @@ function EditableSection({
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 h-full flex flex-col">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="h-7 w-7 rounded-lg bg-muted/40 flex items-center justify-center">{icon}</div>
@@ -370,7 +374,7 @@ function EditableSection({
           )}
         </div>
       </div>
-      <div className={"rounded-xl border border-border/80 bg-card p-4 md:p-5 space-y-3.5 border-l-[3px] " + (accentClass || "border-l-primary/40") + " h-full transition-colors hover:border-border"}>
+      <div className={"rounded-xl border border-border/80 bg-card p-4 md:p-5 space-y-3.5 border-l-[3px] " + (accentClass || "border-l-primary/40") + " transition-colors hover:border-border"}>
         {editing ? renderEdit(values, set) : renderView()}
       </div>
     </motion.div>
