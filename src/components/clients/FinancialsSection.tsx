@@ -16,12 +16,24 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useRole } from "@/contexts/RoleContext";
+import { useClientEvents } from "@/hooks/useEvents";
 import {
   useClientQuotations, useClientContracts, useClientInvoices,
   type DbQuotation, type DbContract, type DbInvoice, type LineItem,
 } from "@/hooks/useFinancials";
 
 type Tab = "estimations" | "proposals" | "invoices";
+
+const REQ_LABEL: Record<string, string> = {
+  traditional_photographer: "Traditional Photographer",
+  traditional_videographer: "Traditional Videographer",
+  candid_photographer: "Candid Photographer",
+  candid_videographer: "Candid Videographer",
+  drone_shoot: "Drone Shoot",
+  led_wall: "LED Wall",
+};
+
+const GST_PERCENT = 18; // Indian standard GST rate for photography services
 
 const QUOTE_STATUSES = ["draft", "sent", "viewed", "approved", "rejected"];
 const PROPOSAL_STATUSES = ["draft", "sent", "signed", "cancelled"];
@@ -152,6 +164,7 @@ function EstimationsPanel({ clientId, clientName }: { clientId: string; clientNa
           title={editing ? "Edit estimation" : "Add estimation"}
           editing={editing}
           clientName={clientName}
+          clientId={clientId}
           statuses={QUOTE_STATUSES}
           numberLabel="Estimation #"
           dateLabel="Valid until"
@@ -216,6 +229,7 @@ function ProposalsPanel({ clientId, clientName }: { clientId: string; clientName
           open onOpenChange={close}
           editing={editing}
           clientName={clientName}
+          clientId={clientId}
           onSubmit={async (payload) => {
             if (editing) await update.mutateAsync({ id: editing.id, ...payload });
             else await add.mutateAsync({ ...payload, client_name: clientName });
@@ -288,6 +302,7 @@ function InvoicesPanel({ clientId, clientName }: { clientId: string; clientName:
           title={editing ? "Edit invoice" : "Add invoice"}
           editing={editing}
           clientName={clientName}
+          clientId={clientId}
           statuses={INVOICE_STATUSES}
           numberLabel="Invoice #"
           dateLabel="Due date"
@@ -358,7 +373,7 @@ function blankItem(): LineItem {
 }
 
 function ItemsDocDialog({
-  open, onOpenChange, title, editing, clientName, statuses, numberLabel, dateLabel,
+  open, onOpenChange, title, editing, clientName, clientId, statuses, numberLabel, dateLabel,
   dateField, numberField, extraAmountField, onSubmit,
 }: {
   open: boolean;
@@ -366,6 +381,7 @@ function ItemsDocDialog({
   title: string;
   editing: (DbQuotation | DbInvoice) | null;
   clientName: string;
+  clientId: string;
   statuses: string[];
   numberLabel: string;
   dateLabel: string;
@@ -374,13 +390,16 @@ function ItemsDocDialog({
   extraAmountField?: { key: "amount_paid"; label: string };
   onSubmit: (payload: any) => Promise<void>;
 }) {
+  const { events: clientEvents } = useClientEvents(clientId);
   const [form, setForm] = useState<any>({
+    event_id: (editing as any)?.event_id || "",
+    gst_applicable: Boolean((editing as any)?.gst_applicable ?? false),
     [numberField]: (editing as any)?.[numberField] || "",
     items: Array.isArray((editing as any)?.items) && (editing as any).items.length
       ? (editing as any).items
       : [blankItem()],
     discount_value: Number((editing as any)?.discount_value || 0),
-    tax_percent: Number((editing as any)?.tax_percent || 0),
+    tax_percent: Number((editing as any)?.tax_percent || ((editing as any)?.gst_applicable ? GST_PERCENT : 0)),
     [dateField]: (editing as any)?.[dateField] || "",
     status: (editing as any)?.status || statuses[0],
     notes: (editing as any)?.notes || "",
@@ -410,10 +429,29 @@ function ItemsDocDialog({
   const removeItem = (idx: number) =>
     setForm((p: any) => ({ ...p, items: p.items.length <= 1 ? [blankItem()] : p.items.filter((_: LineItem, i: number) => i !== idx) }));
 
+  // When user picks an event, prefill line items from its requirements
+  const pickEvent = (eventId: string) => {
+    setForm((p: any) => {
+      const ev = clientEvents.find((e) => e.id === eventId);
+      if (!ev) return { ...p, event_id: eventId };
+      const reqItems: LineItem[] = Array.isArray(ev.requirements) && ev.requirements.length
+        ? ev.requirements.map((r) => ({
+            description: `${REQ_LABEL[r] || r} — ${ev.event_type || "Event"}`,
+            quantity: 1,
+            rate: 0,
+            amount: 0,
+          }))
+        : p.items;
+      return { ...p, event_id: eventId, items: reqItems };
+    });
+  };
+
   const save = async () => {
     setSaving(true);
     try {
       const payload: any = {
+        event_id: form.event_id || null,
+        gst_applicable: !!form.gst_applicable,
         [numberField]: form[numberField] || null,
         items: form.items,
         subtotal,
@@ -443,6 +481,46 @@ function ItemsDocDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 -mr-1">
+          {/* Link to an event (auto-fills line items from its requirements) */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Link to event</Label>
+            <Select value={form.event_id || "__none__"} onValueChange={(v) => v === "__none__" ? setForm((p: any) => ({ ...p, event_id: "" })) : pickEvent(v)}>
+              <SelectTrigger><SelectValue placeholder="Optional — pick an event" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— No event —</SelectItem>
+                {clientEvents.map((ev) => (
+                  <SelectItem key={ev.id} value={ev.id}>
+                    {(ev.event_type || "Event")}
+                    {ev.event_date ? " • " + new Date(ev.event_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : ""}
+                    {Array.isArray(ev.requirements) && ev.requirements.length > 0 ? `  (${ev.requirements.length} reqs)` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.event_id && (
+              <p className="text-[10px] text-muted-foreground">
+                Picking an event auto-fills line items from its requirements. You can still edit them below.
+              </p>
+            )}
+          </div>
+
+          {/* GST toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-border p-3 bg-muted/20">
+            <div className="flex flex-col gap-0.5">
+              <Label className="text-sm font-medium text-foreground">GST applicable</Label>
+              <p className="text-[11px] text-muted-foreground">Adds 18% GST on the taxable amount</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm((p: any) => ({ ...p, gst_applicable: !p.gst_applicable, tax_percent: !p.gst_applicable ? GST_PERCENT : 0 }))}
+              className={"relative inline-flex h-6 w-11 items-center rounded-full transition " + (form.gst_applicable ? "bg-primary" : "bg-muted")}
+              role="switch"
+              aria-checked={!!form.gst_applicable}
+            >
+              <span className={"inline-block h-5 w-5 transform rounded-full bg-white shadow transition " + (form.gst_applicable ? "translate-x-5" : "translate-x-0.5")} />
+            </button>
+          </div>
+
           {/* Top row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -483,16 +561,10 @@ function ItemsDocDialog({
             </div>
           </div>
 
-          {/* Totals row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Discount (₹)</Label>
-              <Input type="number" value={form.discount_value || ""} onChange={(e) => setForm((p: any) => ({ ...p, discount_value: Number(e.target.value || 0) }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tax %</Label>
-              <Input type="number" value={form.tax_percent || ""} onChange={(e) => setForm((p: any) => ({ ...p, tax_percent: Number(e.target.value || 0) }))} />
-            </div>
+          {/* Discount */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Discount (₹)</Label>
+            <Input type="number" value={form.discount_value || ""} onChange={(e) => setForm((p: any) => ({ ...p, discount_value: Number(e.target.value || 0) }))} />
           </div>
 
           {extraAmountField && (
@@ -524,7 +596,7 @@ function ItemsDocDialog({
           <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{inr(subtotal)}</span></div>
             {discount > 0 && <div className="flex justify-between text-muted-foreground"><span>Discount</span><span className="tabular-nums">-{inr(discount)}</span></div>}
-            {tax > 0 && <div className="flex justify-between text-muted-foreground"><span>Tax</span><span className="tabular-nums">+{inr(tax)}</span></div>}
+            {tax > 0 && <div className="flex justify-between text-muted-foreground"><span>{form.gst_applicable ? `GST @ ${form.tax_percent}%` : `Tax @ ${form.tax_percent}%`}</span><span className="tabular-nums">+{inr(tax)}</span></div>}
             <div className="flex justify-between font-semibold pt-1 border-t border-border"><span>Total</span><span className="tabular-nums text-base">{inr(total)}</span></div>
           </div>
         </div>
@@ -546,15 +618,19 @@ function ItemsDocDialog({
 // ============================================================================
 
 function ProposalDialog({
-  open, onOpenChange, editing, clientName, onSubmit,
+  open, onOpenChange, editing, clientName, clientId, onSubmit,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   editing: DbContract | null;
   clientName: string;
+  clientId: string;
   onSubmit: (payload: any) => Promise<void>;
 }) {
+  const { events: clientEvents } = useClientEvents(clientId);
   const [form, setForm] = useState({
+    event_id: editing?.event_id || "",
+    gst_applicable: Boolean(editing?.gst_applicable ?? false),
     contract_number: editing?.contract_number || "",
     title: editing?.title || "",
     contract_amount: Number(editing?.contract_amount || 0),
@@ -565,10 +641,29 @@ function ProposalDialog({
   });
   const [saving, setSaving] = useState(false);
 
+  // When user picks an event, prefill line items from its requirements
+  const pickEvent = (eventId: string) => {
+    setForm((p: any) => {
+      const ev = clientEvents.find((e) => e.id === eventId);
+      if (!ev) return { ...p, event_id: eventId };
+      const reqItems: LineItem[] = Array.isArray(ev.requirements) && ev.requirements.length
+        ? ev.requirements.map((r) => ({
+            description: `${REQ_LABEL[r] || r} — ${ev.event_type || "Event"}`,
+            quantity: 1,
+            rate: 0,
+            amount: 0,
+          }))
+        : p.items;
+      return { ...p, event_id: eventId, items: reqItems };
+    });
+  };
+
   const save = async () => {
     setSaving(true);
     try {
       await onSubmit({
+        event_id: form.event_id || null,
+        gst_applicable: !!form.gst_applicable,
         contract_number: form.contract_number || null,
         title: form.title || null,
         contract_amount: form.contract_amount,
@@ -593,6 +688,39 @@ function ProposalDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          {/* Link to event */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Link to event</Label>
+            <Select value={form.event_id || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, event_id: v === "__none__" ? "" : v, title: p.title || (v !== "__none__" ? `Proposal — ${clientEvents.find((e) => e.id === v)?.event_type || "Event"}` : p.title) }))}>
+              <SelectTrigger><SelectValue placeholder="Optional — pick an event" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— No event —</SelectItem>
+                {clientEvents.map((ev) => (
+                  <SelectItem key={ev.id} value={ev.id}>
+                    {(ev.event_type || "Event")}{ev.event_date ? " • " + new Date(ev.event_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* GST toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-border p-3 bg-muted/20">
+            <div className="flex flex-col gap-0.5">
+              <Label className="text-sm font-medium text-foreground">GST applicable</Label>
+              <p className="text-[11px] text-muted-foreground">Marks this proposal as GST inclusive (18%)</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, gst_applicable: !p.gst_applicable }))}
+              className={"relative inline-flex h-6 w-11 items-center rounded-full transition " + (form.gst_applicable ? "bg-primary" : "bg-muted")}
+              role="switch"
+              aria-checked={!!form.gst_applicable}
+            >
+              <span className={"inline-block h-5 w-5 transform rounded-full bg-white shadow transition " + (form.gst_applicable ? "translate-x-5" : "translate-x-0.5")} />
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Proposal #</Label>

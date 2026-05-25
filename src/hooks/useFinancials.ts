@@ -13,6 +13,8 @@ export interface LineItem {
 
 // ───── Quotations (Estimations) ─────
 export interface DbQuotation {
+  event_id: string | null;
+  gst_applicable: boolean | null;
   id: string;
   organization_id: string;
   client_id: string | null;
@@ -89,6 +91,8 @@ export function useClientQuotations(clientId: string | undefined) {
 
 // ───── Contracts (Proposals) ─────
 export interface DbContract {
+  event_id: string | null;
+  gst_applicable: boolean | null;
   id: string;
   organization_id: string;
   client_id: string | null;
@@ -163,6 +167,8 @@ export function useClientContracts(clientId: string | undefined) {
 
 // ───── Invoices ─────
 export interface DbInvoice {
+  event_id: string | null;
+  gst_applicable: boolean | null;
   id: string;
   organization_id: string;
   client_id: string | null;
