@@ -63,7 +63,11 @@ export function useClientQuotations(clientId: string | undefined) {
       if (error) throw error;
       return data as DbQuotation;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-quotations", orgId, clientId] }); toast.success("Estimation added"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-quotations"] });
+      qc.invalidateQueries({ queryKey: ["all-quotations"] });
+      toast.success("Estimation added");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -73,7 +77,11 @@ export function useClientQuotations(clientId: string | undefined) {
       if (error) throw error;
       return data as DbQuotation;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-quotations", orgId, clientId] }); toast.success("Estimation updated"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-quotations"] });
+      qc.invalidateQueries({ queryKey: ["all-quotations"] });
+      toast.success("Estimation updated");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -82,7 +90,11 @@ export function useClientQuotations(clientId: string | undefined) {
       const { error } = await (supabase as any).from("quotations").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-quotations", orgId, clientId] }); toast.success("Estimation deleted"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-quotations"] });
+      qc.invalidateQueries({ queryKey: ["all-quotations"] });
+      toast.success("Estimation deleted");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -139,7 +151,11 @@ export function useClientContracts(clientId: string | undefined) {
       if (error) throw error;
       return data as DbContract;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-contracts", orgId, clientId] }); toast.success("Proposal added"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-contracts"] });
+      qc.invalidateQueries({ queryKey: ["all-contracts"] });
+      toast.success("Proposal added");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -149,7 +165,11 @@ export function useClientContracts(clientId: string | undefined) {
       if (error) throw error;
       return data as DbContract;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-contracts", orgId, clientId] }); toast.success("Proposal updated"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-contracts"] });
+      qc.invalidateQueries({ queryKey: ["all-contracts"] });
+      toast.success("Proposal updated");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -158,7 +178,11 @@ export function useClientContracts(clientId: string | undefined) {
       const { error } = await (supabase as any).from("contracts").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-contracts", orgId, clientId] }); toast.success("Proposal deleted"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-contracts"] });
+      qc.invalidateQueries({ queryKey: ["all-contracts"] });
+      toast.success("Proposal deleted");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -219,7 +243,12 @@ export function useClientInvoices(clientId: string | undefined) {
       if (error) throw error;
       return data as DbInvoice;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-invoices", orgId, clientId] }); toast.success("Invoice added"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-invoices"] });
+      qc.invalidateQueries({ queryKey: ["all-invoices"] });
+      qc.invalidateQueries({ queryKey: ["ledger"] });
+      toast.success("Invoice added");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -229,7 +258,12 @@ export function useClientInvoices(clientId: string | undefined) {
       if (error) throw error;
       return data as DbInvoice;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-invoices", orgId, clientId] }); toast.success("Invoice updated"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-invoices"] });
+      qc.invalidateQueries({ queryKey: ["all-invoices"] });
+      qc.invalidateQueries({ queryKey: ["ledger"] });
+      toast.success("Invoice updated");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -238,7 +272,12 @@ export function useClientInvoices(clientId: string | undefined) {
       const { error } = await (supabase as any).from("invoices").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-invoices", orgId, clientId] }); toast.success("Invoice deleted"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-invoices"] });
+      qc.invalidateQueries({ queryKey: ["all-invoices"] });
+      qc.invalidateQueries({ queryKey: ["ledger"] });
+      toast.success("Invoice deleted");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -253,6 +292,8 @@ export function useAllQuotations() {
   const query = useQuery({
     queryKey: ["all-quotations", orgId],
     enabled: !!orgId,
+    refetchOnWindowFocus: true,
+    staleTime: 10_000,
     queryFn: async () => {
       if (!orgId) return [] as DbQuotation[];
       const { data, error } = await (supabase as any)
@@ -273,6 +314,8 @@ export function useAllContracts() {
   const query = useQuery({
     queryKey: ["all-contracts", orgId],
     enabled: !!orgId,
+    refetchOnWindowFocus: true,
+    staleTime: 10_000,
     queryFn: async () => {
       if (!orgId) return [] as DbContract[];
       const { data, error } = await (supabase as any)
@@ -293,6 +336,8 @@ export function useAllInvoices() {
   const query = useQuery({
     queryKey: ["all-invoices", orgId],
     enabled: !!orgId,
+    refetchOnWindowFocus: true,
+    staleTime: 10_000,
     queryFn: async () => {
       if (!orgId) return [] as DbInvoice[];
       const { data, error } = await (supabase as any)
