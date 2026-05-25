@@ -36,6 +36,11 @@ import AccountsPage from "./pages/AccountsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import LedgerPage from "./pages/LedgerPage";
 import PnLPage from "./pages/PnLPage";
+import HREmployeesPage from "./pages/hr/HREmployeesPage";
+import HRSalaryPage from "./pages/hr/HRSalaryPage";
+import HRPayslipsPage from "./pages/hr/HRPayslipsPage";
+import HRAttendancePage from "./pages/hr/HRAttendancePage";
+import HRLeavesPage from "./pages/hr/HRLeavesPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import AccessControlPage from "./pages/AccessControlPage";
@@ -87,6 +92,11 @@ function ProtectedRoutes() {
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/ledger" element={<LedgerPage />} />
         <Route path="/pnl" element={<PnLPage />} />
+        <Route path="/hr" element={<HREmployeesPage />} />
+        <Route path="/hr/salary" element={<HRSalaryPage />} />
+        <Route path="/hr/payslips" element={<HRPayslipsPage />} />
+        <Route path="/hr/attendance" element={<HRAttendancePage />} />
+        <Route path="/hr/leaves" element={<HRLeavesPage />} />
         <Route path="/members" element={<Navigate to="/team" replace />} />
         <Route path="/access-control" element={<AccessControlPage />} />
         <Route path="/profile" element={<ProfilePage />} />

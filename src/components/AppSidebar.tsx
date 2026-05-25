@@ -59,6 +59,10 @@ const financeItems: SidebarItem[] = [
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
 ];
 
+const hrItems: SidebarItem[] = [
+  { title: "HR", url: "/hr", icon: Users, module: "hr-employees" },
+];
+
 const systemItems: SidebarItem[] = [
   { title: "Users", url: "/team", icon: UsersRound, module: "team" },
   { title: "Access Control", url: "/access-control", icon: Shield, module: "settings" },
@@ -68,6 +72,7 @@ const systemItems: SidebarItem[] = [
 const groups = [
   { label: "Sales CRM", items: salesItems },
   { label: "Finance", items: financeItems },
+  { label: "HR", items: hrItems },
   { label: "Core", items: systemItems },
 ];
 
