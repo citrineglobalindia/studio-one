@@ -346,7 +346,7 @@ function EventsDocDialog({
   // Reconstruct rates + custom items from saved items
   const reconstructState = (items: LineItem[] | null | undefined) => {
     const rates: Record<string, number> = {};
-    const customs: Record<string, Array<{ description: string; rate: number }>> = {};
+    const customs: Record<string, Array<{ description: string; quantity: number; rate: number }>> = {};
     if (!Array.isArray(items)) return { rates, customs };
     for (const it of items) {
       const reqMatch = /#evt:([0-9a-f-]+)#req:([a-z_]+)/.exec(it.description || "");
@@ -359,7 +359,11 @@ function EventsDocDialog({
         const eid = customMatch[1];
         const cleanDesc = (it.description || "").replace(/\s*#evt:[0-9a-f-]+#custom\s*$/, "").trim();
         if (!customs[eid]) customs[eid] = [];
-        customs[eid].push({ description: cleanDesc, rate: Number(it.rate || it.amount || 0) });
+        customs[eid].push({
+          description: cleanDesc,
+          quantity: Number(it.quantity || 1),
+          rate: Number(it.rate || (Number(it.amount || 0) / Math.max(1, Number(it.quantity || 1)))),
+        });
       }
     }
     return { rates, customs };
@@ -367,7 +371,7 @@ function EventsDocDialog({
 
   const reconstructed = reconstructState(editing?.items);
   const [rates, setRates] = useState<Record<string, number>>(() => reconstructed.rates);
-  const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; rate: number }>>>(() => reconstructed.customs);
+  const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
   const [status, setStatus] = useState<string>(editing?.status || statuses[0]);
   const [gst, setGst] = useState<boolean>(Boolean(editing?.gst_applicable ?? false));
@@ -393,7 +397,8 @@ function EventsDocDialog({
       }
       const customs = customByEvent[ev.id] || [];
       customs.forEach((c, idx) => {
-        rows.push({ event: ev, req: `__custom_${idx}__`, rate: c.rate, label: c.description || "Custom item", isCustom: true });
+        const amount = (c.quantity || 1) * (c.rate || 0);
+        rows.push({ event: ev, req: `__custom_${idx}__`, rate: amount, label: c.description || "Custom item", isCustom: true });
       });
     }
     return rows;
@@ -413,16 +418,33 @@ function EventsDocDialog({
     setRates((p) => ({ ...p, [itemKey(eventId, req)]: value }));
 
   const buildItems = (): LineItem[] => {
-    return lineRows
-      .filter((r) => r.rate > 0)
-      .map((r) => ({
-        description: r.isCustom
-          ? `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#custom`
-          : `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#req:${r.req}`,
+    const items: LineItem[] = [];
+    // Standard requirement rows (qty=1)
+    for (const r of lineRows) {
+      if (r.isCustom) continue;
+      if (r.rate <= 0) continue;
+      items.push({
+        description: `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#req:${r.req}`,
         quantity: 1,
         rate: r.rate,
         amount: r.rate,
-      }));
+      });
+    }
+    // Custom items with their own quantity
+    for (const ev of clientEvents) {
+      const customs = customByEvent[ev.id] || [];
+      customs.forEach((c) => {
+        const amount = (c.quantity || 1) * (c.rate || 0);
+        if (amount <= 0) return;
+        items.push({
+          description: `${ev.event_type || "Event"} — ${c.description || "Custom item"}  #evt:${ev.id}#custom`,
+          quantity: c.quantity || 1,
+          rate: c.rate || 0,
+          amount,
+        });
+      });
+    }
+    return items;
   };
 
   const save = async () => {
@@ -548,45 +570,82 @@ function EventsDocDialog({
                               </div>
                             </div>
                           ))}
-                          {(customByEvent[ev.id] ?? []).map((ci, idx) => (
-                            <div key={`custom-${idx}`} className="grid grid-cols-[1fr,140px,28px] gap-2 items-center px-3 py-2">
-                              <Input
-                                value={ci.description}
-                                onChange={(e) => setCustomByEvent((p) => {
-                                  const list = [...(p[ev.id] || [])];
-                                  list[idx] = { ...list[idx], description: e.target.value };
-                                  return { ...p, [ev.id]: list };
-                                })}
-                                placeholder="Custom item (e.g. Coffee table book)"
-                                className="h-8 text-sm"
-                              />
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">₹</span>
+                          {(customByEvent[ev.id] ?? []).map((ci, idx) => {
+                            const amount = (ci.quantity || 1) * (ci.rate || 0);
+                            return (
+                              <div key={`custom-${idx}`} className="grid grid-cols-[1fr,60px,90px,90px,28px] gap-2 items-center px-3 py-2">
                                 <Input
-                                  type="number"
-                                  value={ci.rate || ""}
+                                  value={ci.description}
                                   onChange={(e) => setCustomByEvent((p) => {
                                     const list = [...(p[ev.id] || [])];
-                                    list[idx] = { ...list[idx], rate: Number(e.target.value || 0) };
+                                    list[idx] = { ...list[idx], description: e.target.value };
                                     return { ...p, [ev.id]: list };
                                   })}
-                                  placeholder="0"
-                                  className="text-right tabular-nums h-8"
+                                  placeholder="Description"
+                                  className="h-8 text-sm"
                                 />
+                                <Input
+                                  type="number"
+                                  value={ci.quantity || ""}
+                                  onChange={(e) => setCustomByEvent((p) => {
+                                    const list = [...(p[ev.id] || [])];
+                                    list[idx] = { ...list[idx], quantity: Number(e.target.value || 0) };
+                                    return { ...p, [ev.id]: list };
+                                  })}
+                                  placeholder="Qty"
+                                  className="text-center tabular-nums h-8"
+                                />
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-muted-foreground">₹</span>
+                                  <Input
+                                    type="number"
+                                    value={ci.rate || ""}
+                                    onChange={(e) => setCustomByEvent((p) => {
+                                      const list = [...(p[ev.id] || [])];
+                                      list[idx] = { ...list[idx], rate: Number(e.target.value || 0) };
+                                      return { ...p, [ev.id]: list };
+                                    })}
+                                    placeholder="Rate"
+                                    className="text-right tabular-nums h-8"
+                                  />
+                                </div>
+                                <Input value={amount ? `₹${amount}` : ""} disabled className="h-8 text-right tabular-nums" />
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => setCustomByEvent((p) => {
+                                  const list = (p[ev.id] || []).filter((_, i) => i !== idx);
+                                  return { ...p, [ev.id]: list };
+                                })}>
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
                               </div>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => setCustomByEvent((p) => {
-                                const list = (p[ev.id] || []).filter((_, i) => i !== idx);
-                                return { ...p, [ev.id]: list };
-                              })}>
-                                <X className="h-3.5 w-3.5" />
+                            );
+                          })}
+
+                          {/* Quick-add requirement chips + custom */}
+                          <div className="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-border/50 bg-muted/10">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mr-1">Quick add:</span>
+                            {(Object.entries(REQ_LABEL) as Array<[string, string]>).map(([key, label]) => (
+                              <Button
+                                key={key}
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1.5 text-xs"
+                                onClick={() => setCustomByEvent((p) => ({
+                                  ...p,
+                                  [ev.id]: [...(p[ev.id] || []), { description: label, quantity: 1, rate: 0 }],
+                                }))}
+                              >
+                                <Plus className="h-3 w-3" /> {label}
                               </Button>
-                            </div>
-                          ))}
-                          <div className="px-3 py-2">
-                            <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={() => setCustomByEvent((p) => ({
-                              ...p, [ev.id]: [...(p[ev.id] || []), { description: "", rate: 0 }]
-                            }))}>
-                              <Plus className="h-3 w-3" /> Add line item
+                            ))}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 gap-1.5 text-xs"
+                              onClick={() => setCustomByEvent((p) => ({
+                                ...p, [ev.id]: [...(p[ev.id] || []), { description: "", quantity: 1, rate: 0 }]
+                              }))}
+                            >
+                              <Plus className="h-3 w-3" /> Custom
                             </Button>
                           </div>
                         </div>
