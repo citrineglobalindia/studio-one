@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, User, Phone, Mail, MapPin, Heart, Building2, Pencil,
-  Save, X, Loader2, Trash2, MoreHorizontal, ExternalLink, Sparkles,
-  Eraser,
+  ArrowLeft, Phone, MapPin, Heart, Building2,
+  Loader2, Trash2, MoreHorizontal, ExternalLink, Sparkles,
+  Eraser, Mail, Lock, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useClients, type DbClient } from "@/hooks/useClients";
 import { toast } from "sonner";
@@ -57,13 +57,13 @@ export default function ClientDetailPage() {
   const initials = (client.name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
   const couple = client.partner_name ? `${client.name} & ${client.partner_name}` : client.name;
 
-  const saveSection = async (fields: (keyof DbClient)[], values: Record<string, any>) => {
-    const patch: Record<string, any> = { id: client.id };
-    for (const f of fields) {
-      const v = values[f as string];
-      patch[f as string] = (typeof v === "string" && v.trim() === "") ? null : (v ?? null);
-    }
-    await updateClient.mutateAsync(patch as any);
+  // Save a single field. Empty strings → null.
+  const saveField = async (key: keyof DbClient, raw: any) => {
+    const value =
+      raw === "" || raw === undefined ? null :
+      key === "budget" ? (raw === null ? null : Number(raw)) :
+      raw;
+    await updateClient.mutateAsync({ id: client.id, [key]: value } as any);
   };
 
   const clearSection = async (sectionKey: SectionKey, sectionLabel: string) => {
@@ -119,302 +119,94 @@ export default function ClientDetailPage() {
         </div>
       </motion.div>
 
-      {/* ── COUPLE ── */}
-      <CoupleSection
-        client={client}
-        onSave={(values) => saveSection(SECTION_FIELDS.couple, values)}
-        onClear={() => clearSection("couple", "Couple dates")}
-      />
+      {/* COUPLE */}
+      <SectionShell title="Couple" icon={<Heart className="h-4 w-4 text-rose-500" />} onClear={() => clearSection("couple", "Couple dates")}>
+        <Row>
+          <LockedField label="Primary contact name" value={client.name} />
+          <LockedField label="Partner name" value={client.partner_name} />
+        </Row>
+        <Row>
+          <InlineField label="Marriage / event date" value={client.marriage_date} type="date" onSave={(v) => saveField("marriage_date", v)} />
+          <InlineField label="Engagement date" value={client.engagement_date} type="date" onSave={(v) => saveField("engagement_date", v)} />
+        </Row>
+        <Row>
+          <InlineField label="Primary DOB" value={client.date_of_birth} type="date" onSave={(v) => saveField("date_of_birth", v)} />
+          <InlineField label="Partner DOB" value={client.partner_date_of_birth} type="date" onSave={(v) => saveField("partner_date_of_birth", v)} />
+        </Row>
+      </SectionShell>
 
-      {/* ── CONTACT ── */}
-      <ContactSection
-        client={client}
-        onSave={(values) => saveSection(SECTION_FIELDS.contact, values)}
-        onClear={() => clearSection("contact", "Contact")}
-      />
+      {/* CONTACT */}
+      <SectionShell title="Contact" icon={<Phone className="h-4 w-4 text-emerald-500" />} onClear={() => clearSection("contact", "Contact")}>
+        <Row>
+          <InlineField label="Primary phone" value={client.phone} type="text" placeholder="+91 98765 43210" onSave={(v) => saveField("phone", v)} />
+          <InlineField label="Primary email" value={client.email} type="email" placeholder="couple@email.com" onSave={(v) => saveField("email", v)} />
+        </Row>
+        <Row>
+          <InlineField label="Partner phone" value={client.partner_phone} type="text" onSave={(v) => saveField("partner_phone", v)} />
+          <InlineField label="Partner email" value={client.partner_email} type="email" onSave={(v) => saveField("partner_email", v)} />
+        </Row>
+        <Row>
+          <InlineField label="Address" value={client.address} type="textarea" placeholder="Street, area" onSave={(v) => saveField("address", v)} />
+          <InlineField label="City" value={client.city} type="text" placeholder="Mumbai" onSave={(v) => saveField("city", v)} />
+        </Row>
+      </SectionShell>
 
-      {/* ── VENUE ── */}
-      <VenueSection
-        client={client}
-        onSave={(values) => saveSection(SECTION_FIELDS.venue, values)}
-        onClear={() => clearSection("venue", "Venue")}
-      />
+      {/* VENUE */}
+      <SectionShell title="Venue" icon={<Building2 className="h-4 w-4 text-violet-500" />} onClear={() => clearSection("venue", "Venue")}>
+        <Row>
+          <InlineField label="Venue name" value={client.venue_name} type="text" placeholder="Taj Banquet Hall" onSave={(v) => saveField("venue_name", v)} />
+          <InlineField label="City" value={client.venue_city} type="text" onSave={(v) => saveField("venue_city", v)} />
+        </Row>
+        <Row>
+          <InlineField label="Address" value={client.venue_address} type="textarea" placeholder="Full street address" onSave={(v) => saveField("venue_address", v)} />
+          <InlineField label="Pincode" value={client.venue_pincode} type="text" placeholder="400001" onSave={(v) => saveField("venue_pincode", v)} />
+        </Row>
+        <Row>
+          <InlineField label="Landmark" value={client.venue_landmark} type="text" placeholder="Near Gateway of India" onSave={(v) => saveField("venue_landmark", v)} />
+          <InlineField
+            label="Google Maps URL"
+            value={client.venue_map_url}
+            type="text"
+            placeholder="https://maps.app.goo.gl/…"
+            onSave={(v) => saveField("venue_map_url", v)}
+            displayView={client.venue_map_url ? (
+              <a href={client.venue_map_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                Open in Google Maps <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : null}
+          />
+        </Row>
+        <Row>
+          <InlineField label="Contact person" value={client.venue_contact_person} type="text" placeholder="Mr Sharma — Events Manager" onSave={(v) => saveField("venue_contact_person", v)} />
+          <InlineField label="Contact phone" value={client.venue_contact_phone} type="text" onSave={(v) => saveField("venue_contact_phone", v)} />
+        </Row>
+        <InlineField label="Venue notes" value={client.venue_notes} type="textarea" placeholder="Parking, power, restrictions, AV setup…" onSave={(v) => saveField("venue_notes", v)} />
+      </SectionShell>
 
-      {/* ── BASIC ── */}
-      <BasicSection
-        client={client}
-        onSave={(values) => saveSection(SECTION_FIELDS.basic, values)}
-        onClear={() => clearSection("basic", "Notes & basic")}
-      />
+      {/* BASIC */}
+      <SectionShell title="Notes & basic" icon={<Sparkles className="h-4 w-4 text-amber-500" />} onClear={() => clearSection("basic", "Notes & basic")}>
+        <Row>
+          <InlineField label="Source" value={client.source} type="text" placeholder="Instagram / Referral / …" onSave={(v) => saveField("source", v)} />
+          <InlineField label="Budget (₹)" value={client.budget} type="number" placeholder="150000" onSave={(v) => saveField("budget", v)} />
+        </Row>
+        <InlineField label="Notes" value={client.notes} type="textarea" placeholder="Tap to add notes…" onSave={(v) => saveField("notes", v)} />
+      </SectionShell>
     </div>
   );
 }
 
 // ============================================================================
-// SECTION COMPONENTS
+// SECTION SHELL — header with title + clear-section action
 // ============================================================================
 
-type SectionProps = {
-  client: DbClient;
-  onSave: (values: Record<string, any>) => Promise<void>;
-  onClear: () => Promise<void>;
-};
-
-function CoupleSection({ client, onSave, onClear }: SectionProps) {
-  return (
-    <EditableSection
-      title="Couple"
-      icon={<Heart className="h-4 w-4 text-rose-500" />}
-      onSave={onSave}
-      onClear={onClear}
-      initialValues={{
-        marriage_date: client.marriage_date,
-        engagement_date: client.engagement_date,
-        date_of_birth: client.date_of_birth,
-        partner_date_of_birth: client.partner_date_of_birth,
-      }}
-      renderView={() => (
-        <>
-          <Row>
-            <ReadField label="Primary contact name (locked)" value={client.name} />
-            <ReadField label="Partner name (locked)" value={client.partner_name} />
-          </Row>
-          <Row>
-            <ReadField label="Marriage / event date" value={client.marriage_date} type="date" />
-            <ReadField label="Engagement date" value={client.engagement_date} type="date" />
-          </Row>
-          <Row>
-            <ReadField label="Primary DOB" value={client.date_of_birth} type="date" />
-            <ReadField label="Partner DOB" value={client.partner_date_of_birth} type="date" />
-          </Row>
-        </>
-      )}
-      renderEdit={(values, set) => (
-        <>
-          <Row>
-            <Field label="Primary contact name (locked)">
-              <Input value={client.name || ""} disabled />
-            </Field>
-            <Field label="Partner name (locked)">
-              <Input value={client.partner_name || ""} disabled />
-            </Field>
-          </Row>
-          <Row>
-            <Field label="Marriage / event date">
-              <Input type="date" value={values.marriage_date || ""} onChange={(e) => set("marriage_date", e.target.value)} />
-            </Field>
-            <Field label="Engagement date">
-              <Input type="date" value={values.engagement_date || ""} onChange={(e) => set("engagement_date", e.target.value)} />
-            </Field>
-          </Row>
-          <Row>
-            <Field label="Primary DOB">
-              <Input type="date" value={values.date_of_birth || ""} onChange={(e) => set("date_of_birth", e.target.value)} />
-            </Field>
-            <Field label="Partner DOB">
-              <Input type="date" value={values.partner_date_of_birth || ""} onChange={(e) => set("partner_date_of_birth", e.target.value)} />
-            </Field>
-          </Row>
-        </>
-      )}
-    />
-  );
-}
-
-function ContactSection({ client, onSave, onClear }: SectionProps) {
-  return (
-    <EditableSection
-      title="Contact"
-      icon={<Phone className="h-4 w-4 text-emerald-500" />}
-      onSave={onSave}
-      onClear={onClear}
-      initialValues={{
-        phone: client.phone, email: client.email,
-        partner_phone: client.partner_phone, partner_email: client.partner_email,
-        address: client.address, city: client.city,
-      }}
-      renderView={() => (
-        <>
-          <Row>
-            <ReadField label="Primary phone" value={client.phone} />
-            <ReadField label="Primary email" value={client.email} />
-          </Row>
-          <Row>
-            <ReadField label="Partner phone" value={client.partner_phone} />
-            <ReadField label="Partner email" value={client.partner_email} />
-          </Row>
-          <Row>
-            <ReadField label="Address" value={client.address} />
-            <ReadField label="City" value={client.city} />
-          </Row>
-        </>
-      )}
-      renderEdit={(v, set) => (
-        <>
-          <Row>
-            <Field label="Primary phone"><Input value={v.phone || ""} onChange={(e) => set("phone", e.target.value)} /></Field>
-            <Field label="Primary email"><Input type="email" value={v.email || ""} onChange={(e) => set("email", e.target.value)} /></Field>
-          </Row>
-          <Row>
-            <Field label="Partner phone"><Input value={v.partner_phone || ""} onChange={(e) => set("partner_phone", e.target.value)} /></Field>
-            <Field label="Partner email"><Input type="email" value={v.partner_email || ""} onChange={(e) => set("partner_email", e.target.value)} /></Field>
-          </Row>
-          <Row>
-            <Field label="Address"><Textarea rows={2} value={v.address || ""} onChange={(e) => set("address", e.target.value)} /></Field>
-            <Field label="City"><Input value={v.city || ""} onChange={(e) => set("city", e.target.value)} /></Field>
-          </Row>
-        </>
-      )}
-    />
-  );
-}
-
-function VenueSection({ client, onSave, onClear }: SectionProps) {
-  return (
-    <EditableSection
-      title="Venue"
-      icon={<Building2 className="h-4 w-4 text-violet-500" />}
-      onSave={onSave}
-      onClear={onClear}
-      initialValues={{
-        venue_name: client.venue_name, venue_address: client.venue_address,
-        venue_city: client.venue_city, venue_pincode: client.venue_pincode,
-        venue_landmark: client.venue_landmark, venue_map_url: client.venue_map_url,
-        venue_contact_person: client.venue_contact_person,
-        venue_contact_phone: client.venue_contact_phone,
-        venue_notes: client.venue_notes,
-      }}
-      renderView={() => (
-        <>
-          <Row>
-            <ReadField label="Venue name" value={client.venue_name} />
-            <ReadField label="City" value={client.venue_city} />
-          </Row>
-          <Row>
-            <ReadField label="Address" value={client.venue_address} />
-            <ReadField label="Pincode" value={client.venue_pincode} />
-          </Row>
-          <Row>
-            <ReadField label="Landmark" value={client.venue_landmark} />
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Google Maps URL</Label>
-              {client.venue_map_url ? (
-                <a href={client.venue_map_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                  Open in Google Maps <ExternalLink className="h-3 w-3" />
-                </a>
-              ) : <p className="text-sm text-muted-foreground">—</p>}
-            </div>
-          </Row>
-          <Row>
-            <ReadField label="Contact person" value={client.venue_contact_person} />
-            <ReadField label="Contact phone" value={client.venue_contact_phone} />
-          </Row>
-          <ReadField label="Venue notes" value={client.venue_notes} />
-        </>
-      )}
-      renderEdit={(v, set) => (
-        <>
-          <Row>
-            <Field label="Venue name"><Input value={v.venue_name || ""} onChange={(e) => set("venue_name", e.target.value)} /></Field>
-            <Field label="City"><Input value={v.venue_city || ""} onChange={(e) => set("venue_city", e.target.value)} /></Field>
-          </Row>
-          <Row>
-            <Field label="Address"><Textarea rows={2} value={v.venue_address || ""} onChange={(e) => set("venue_address", e.target.value)} /></Field>
-            <Field label="Pincode"><Input value={v.venue_pincode || ""} onChange={(e) => set("venue_pincode", e.target.value)} /></Field>
-          </Row>
-          <Row>
-            <Field label="Landmark"><Input value={v.venue_landmark || ""} onChange={(e) => set("venue_landmark", e.target.value)} /></Field>
-            <Field label="Google Maps URL"><Input value={v.venue_map_url || ""} onChange={(e) => set("venue_map_url", e.target.value)} placeholder="https://maps.app.goo.gl/…" /></Field>
-          </Row>
-          <Row>
-            <Field label="Contact person"><Input value={v.venue_contact_person || ""} onChange={(e) => set("venue_contact_person", e.target.value)} /></Field>
-            <Field label="Contact phone"><Input value={v.venue_contact_phone || ""} onChange={(e) => set("venue_contact_phone", e.target.value)} /></Field>
-          </Row>
-          <Field label="Venue notes"><Textarea rows={3} value={v.venue_notes || ""} onChange={(e) => set("venue_notes", e.target.value)} /></Field>
-        </>
-      )}
-    />
-  );
-}
-
-function BasicSection({ client, onSave, onClear }: SectionProps) {
-  return (
-    <EditableSection
-      title="Notes & basic"
-      icon={<Sparkles className="h-4 w-4 text-amber-500" />}
-      onSave={onSave}
-      onClear={onClear}
-      initialValues={{
-        source: client.source,
-        budget: client.budget,
-        notes: client.notes,
-      }}
-      renderView={() => (
-        <>
-          <Row>
-            <ReadField label="Source" value={client.source} />
-            <ReadField label="Budget (₹)" value={client.budget != null ? `₹${client.budget}` : null} />
-          </Row>
-          <ReadField label="Notes" value={client.notes} />
-        </>
-      )}
-      renderEdit={(v, set) => (
-        <>
-          <Row>
-            <Field label="Source"><Input value={v.source || ""} onChange={(e) => set("source", e.target.value)} placeholder="Instagram / Referral / …" /></Field>
-            <Field label="Budget (₹)"><Input type="number" value={v.budget ?? ""} onChange={(e) => set("budget", e.target.value ? Number(e.target.value) : null)} /></Field>
-          </Row>
-          <Field label="Notes"><Textarea rows={3} value={v.notes || ""} onChange={(e) => set("notes", e.target.value)} /></Field>
-        </>
-      )}
-    />
-  );
-}
-
-// ============================================================================
-// EDITABLE SECTION WRAPPER
-// ============================================================================
-
-function EditableSection({
-  title, icon, initialValues, renderView, renderEdit, onSave, onClear,
+function SectionShell({
+  title, icon, onClear, children,
 }: {
   title: string;
   icon: React.ReactNode;
-  initialValues: Record<string, any>;
-  renderView: () => React.ReactNode;
-  renderEdit: (values: Record<string, any>, set: (k: string, v: any) => void) => React.ReactNode;
-  onSave: (values: Record<string, any>) => Promise<void>;
   onClear: () => Promise<void>;
+  children: React.ReactNode;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [values, setValues] = useState<Record<string, any>>(initialValues);
-  const [saving, setSaving] = useState(false);
-
-  // Sync incoming changes (e.g. after a save) when not editing
-  useEffect(() => {
-    if (!editing) setValues(initialValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(initialValues), editing]);
-
-  const set = (k: string, v: any) => setValues((p) => ({ ...p, [k]: v }));
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await onSave(values);
-      setEditing(false);
-    } catch (e: any) {
-      toast.error(e?.message || "Could not save");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const cancel = () => {
-    setValues(initialValues);
-    setEditing(false);
-  };
-
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
       <div className="flex items-center justify-between gap-2">
@@ -422,82 +214,189 @@ function EditableSection({
           <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center">{icon}</div>
           <h4 className="text-sm font-semibold text-foreground">{title}</h4>
         </div>
-        <div className="flex items-center gap-1.5">
-          {!editing ? (
-            <>
-              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setEditing(true)}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={onClear}
-                  >
-                    <Eraser className="h-3.5 w-3.5 mr-2" /> Clear section
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" className="gap-1.5 h-8" onClick={cancel} disabled={saving}>
-                <X className="h-3.5 w-3.5" /> Cancel
-              </Button>
-              <Button size="sm" className="gap-1.5 h-8" onClick={save} disabled={saving}>
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Save
-              </Button>
-            </>
-          )}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem className="text-destructive" onClick={onClear}>
+              <Eraser className="h-3.5 w-3.5 mr-2" /> Clear section
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-        {editing ? renderEdit(values, set) : renderView()}
-      </div>
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">{children}</div>
     </motion.div>
   );
 }
 
 // ============================================================================
-// SMALL HELPERS
+// INLINE FIELD — click to edit, blur/Enter saves, Esc cancels
 // ============================================================================
+
+type InlineFieldType = "text" | "email" | "date" | "textarea" | "number";
+
+function InlineField({
+  label, value, type, placeholder, onSave, displayView,
+}: {
+  label: string;
+  value: any;
+  type: InlineFieldType;
+  placeholder?: string;
+  onSave: (next: any) => Promise<void>;
+  /** Optional custom render for read mode (e.g. a clickable link). */
+  displayView?: React.ReactNode;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string>(value == null ? "" : String(value));
+  const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  // Re-sync draft when value changes from outside (e.g. after a clear-section)
+  useEffect(() => {
+    if (!editing) setDraft(value == null ? "" : String(value));
+  }, [value, editing]);
+
+  const startEdit = () => {
+    setDraft(value == null ? "" : String(value));
+    setEditing(true);
+    // focus on next tick
+    setTimeout(() => {
+      inputRef.current?.focus();
+      if (inputRef.current && "select" in inputRef.current && typeof inputRef.current.select === "function") {
+        try { inputRef.current.select(); } catch { /* ignore */ }
+      }
+    }, 0);
+  };
+
+  const commit = async () => {
+    const original = value == null ? "" : String(value);
+    if (draft === original) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      // type=number: convert empty to null, otherwise to number
+      let toSave: any = draft;
+      if (type === "number") toSave = draft === "" ? null : Number(draft);
+      await onSave(toSave);
+      setJustSaved(true);
+      window.setTimeout(() => setJustSaved(false), 1200);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save");
+      setDraft(original);
+    } finally {
+      setSaving(false);
+      setEditing(false);
+    }
+  };
+
+  const cancel = () => {
+    setDraft(value == null ? "" : String(value));
+    setEditing(false);
+  };
+
+  // Display formatting
+  const hasValue = value != null && value !== "";
+  let display: React.ReactNode;
+  if (displayView) {
+    display = displayView;
+  } else if (!hasValue) {
+    display = (
+      <p className="text-sm text-muted-foreground italic">
+        {placeholder ? `Click to add — ${placeholder}` : "Click to add"}
+      </p>
+    );
+  } else if (type === "date") {
+    try {
+      display = (
+        <p className="text-sm text-foreground">
+          {new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+        </p>
+      );
+    } catch {
+      display = <p className="text-sm text-foreground">{String(value)}</p>;
+    }
+  } else if (type === "number" && label.toLowerCase().includes("budget")) {
+    const n = Number(value);
+    display = <p className="text-sm text-foreground tabular-nums">₹{isNaN(n) ? value : n.toLocaleString("en-IN")}</p>;
+  } else {
+    display = (
+      <p className="text-sm text-foreground break-words whitespace-pre-wrap">{String(value)}</p>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+        {justSaved && !saving && <Check className="h-3 w-3 text-emerald-500" />}
+      </div>
+
+      {editing ? (
+        type === "textarea" ? (
+          <Textarea
+            ref={(el) => { inputRef.current = el; }}
+            rows={3}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") cancel();
+              // Enter inside textarea creates new line — Cmd/Ctrl+Enter saves
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
+            }}
+            placeholder={placeholder}
+            disabled={saving}
+          />
+        ) : (
+          <Input
+            ref={(el) => { inputRef.current = el; }}
+            type={type === "email" ? "email" : type === "date" ? "date" : type === "number" ? "number" : "text"}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") cancel();
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+            }}
+            placeholder={placeholder}
+            disabled={saving}
+          />
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={startEdit}
+          className="w-full text-left min-h-[36px] rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/40 hover:ring-1 hover:ring-border transition cursor-text group"
+        >
+          {display}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Couple names are locked — display only, no click handler
+function LockedField({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        <Lock className="h-3 w-3 text-muted-foreground" />
+      </div>
+      <div className="min-h-[36px] rounded-md px-2 py-1.5 -mx-2 bg-muted/20">
+        <p className={"text-sm " + (value ? "text-foreground" : "text-muted-foreground")}>
+          {value || "—"}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-function ReadField({ label, value, type }: { label: string; value: any; type?: "date" }) {
-  let display: React.ReactNode = "—";
-  if (value != null && value !== "") {
-    if (type === "date") {
-      try {
-        display = new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-      } catch {
-        display = String(value);
-      }
-    } else {
-      display = String(value);
-    }
-  }
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <p className={"text-sm break-words " + (display === "—" ? "text-muted-foreground" : "text-foreground")}>
-        {display}
-      </p>
-    </div>
-  );
 }
