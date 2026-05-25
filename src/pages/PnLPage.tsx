@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useRole } from "@/contexts/RoleContext";
 import { useLedger } from "@/hooks/useLedger";
+import { MonthAreaChart, MiniPieRows } from "@/components/accounts/FinanceCharts";
 
 function inr(n: number | null | undefined) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(n ?? 0));
@@ -108,38 +109,35 @@ export default function PnLPage() {
 
           {byMonth.length > 0 && (
             <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="text-sm font-semibold text-foreground tracking-tight mb-4">Month-by-month</h3>
-              <div className="space-y-3">
-                {byMonth.map(([month, v]) => {
-                  const incomeW = (v.income / maxMonth) * 100;
-                  const expenseW = (v.expense / maxMonth) * 100;
-                  const monthLabel = new Date(month + "-01").toLocaleDateString("en-IN", { month: "short", year: "numeric" });
-                  return (
-                    <div key={month} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-foreground w-20">{monthLabel}</span>
-                        <div className="flex gap-3 text-[11px] tabular-nums">
-                          <span className="text-emerald-600">{inr(v.income)}</span>
-                          <span className="text-rose-600">{inr(v.expense)}</span>
-                          <span className={"font-semibold " + ((v.income - v.expense) >= 0 ? "text-emerald-700" : "text-rose-700")}>
-                            {inr(v.income - v.expense)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted/40 overflow-hidden flex">
-                        <div className="bg-emerald-500" style={{ width: `${incomeW}%` }} />
-                        <div className="bg-rose-500" style={{ width: `${expenseW}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <h3 className="text-sm font-semibold text-foreground tracking-tight mb-2">Month-by-month trend</h3>
+              <MonthAreaChart
+                data={byMonth.map(([month, v]) => ({
+                  month: new Date(month + "-01").toLocaleDateString("en-IN", { month: "short" }),
+                  income: v.income,
+                  expense: v.expense,
+                  net: v.income - v.expense,
+                }))}
+              />
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <BreakdownCard title="Income by category" rows={incomeByCategory} total={income} color="emerald" />
-            <BreakdownCard title="Expense by category" rows={expenseByCategory} total={expense} color="rose" />
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="text-sm font-semibold text-foreground tracking-tight mb-3">Income by category</h3>
+              {incomeByCategory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No income</p>
+              ) : (
+                <MiniPieRows data={incomeByCategory.map(([name, value]) => ({ name, value }))} color="emerald" />
+              )}
+            </div>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="text-sm font-semibold text-foreground tracking-tight mb-3">Expense by category</h3>
+              {expenseByCategory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No expenses</p>
+              ) : (
+                <MiniPieRows data={expenseByCategory.map(([name, value]) => ({ name, value }))} color="rose" />
+              )}
+            </div>
           </div>
         </>
       )}

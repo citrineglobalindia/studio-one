@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/contexts/RoleContext";
 import { useAllQuotations, useAllContracts, useAllInvoices } from "@/hooks/useFinancials";
+import { DonutCard, StatusBarChart } from "@/components/accounts/FinanceCharts";
 
 type Tab = "estimations" | "proposals" | "invoices";
 
@@ -98,6 +99,37 @@ export default function AccountsPage() {
         <KpiCard label="Invoiced" value={inr(kpis.invTotal)} count={invoices.length} icon={Receipt} color="text-emerald-500 bg-emerald-500/10" />
         <KpiCard label="Collected" value={inr(kpis.invPaid)} icon={CheckCircle2} color="text-emerald-500 bg-emerald-500/10" />
         <KpiCard label="Outstanding" value={inr(kpis.invDue)} icon={AlertCircle} color="text-rose-500 bg-rose-500/10" />
+      </div>
+
+      {/* CHARTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <DonutCard
+          title="Invoices by status"
+          subtitle={`${invoices.length} invoices`}
+          total={invoices.reduce((s, r) => s + Number(r.total_amount || 0), 0)}
+          data={["draft","sent","partially_paid","paid","overdue","cancelled"].map((st) => ({
+            name: st.replace("_", " "),
+            value: invoices.filter((r) => (r.status || "draft") === st).reduce((s, r) => s + Number(r.total_amount || 0), 0),
+          }))}
+        />
+        <DonutCard
+          title="Estimations by status"
+          subtitle={`${quotations.length} estimations`}
+          total={quotations.reduce((s, r) => s + Number(r.total_amount || 0), 0)}
+          data={["draft","sent","viewed","approved","rejected"].map((st) => ({
+            name: st,
+            value: quotations.filter((r) => (r.status || "draft") === st).reduce((s, r) => s + Number(r.total_amount || 0), 0),
+          }))}
+        />
+        <DonutCard
+          title="Proposals by status"
+          subtitle={`${contracts.length} proposals`}
+          total={contracts.reduce((s, r) => s + Number(r.contract_amount || 0), 0)}
+          data={["draft","sent","signed","cancelled"].map((st) => ({
+            name: st,
+            value: contracts.filter((r) => (r.status || "draft") === st).reduce((s, r) => s + Number(r.contract_amount || 0), 0),
+          }))}
+        />
       </div>
 
       {/* Tabs */}

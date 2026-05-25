@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, CalendarDays, Loader2, Clock,
-  MapPin, Users, X, Lock, CheckCircle2,
+  MapPin, Users, X, Lock, CheckCircle2, Filter, Search, FilterX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCalendarEvents, type CalendarEventRow } from "@/hooks/useCalendarEvents";
 import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
@@ -51,10 +53,45 @@ function fmtTime(t: string | null | undefined) {
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const EVENT_TYPE_OPTIONS = [
+  "Wedding", "Pre-Wedding", "Engagement", "Reception",
+  "Sangeet", "Haldi", "Mehendi", "Roka",
+  "Birthday", "Anniversary", "Corporate", "Other",
+];
+
+const STATUS_OPTIONS = ["upcoming", "in-progress", "completed", "cancelled"];
+
+const FINALIZE_OPTIONS = [
+  { v: "all", label: "All events" },
+  { v: "finalized", label: "Finalized only" },
+  { v: "draft", label: "Draft only" },
+];
+
 export default function CalendarPage() {
   const navigate = useNavigate();
   const { currentRole } = useRole();
   const seesAll = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts";
+
+  // Filters (admin/administrator only)
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");        // event_type
+  const [filterStatus, setFilterStatus] = useState<string>("all");    // status
+  const [filterFinalize, setFilterFinalize] = useState<string>("all"); // is_finalized
+  const [filterAssignee, setFilterAssignee] = useState<string>("all"); // team_member_id
+  const [filterRequirement, setFilterRequirement] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const activeFilterCount = [
+    search.trim() && "search",
+    filterType !== "all" && "type",
+    filterStatus !== "all" && "status",
+    filterFinalize !== "all" && "finalize",
+    filterAssignee !== "all" && "assignee",
+    filterRequirement !== "all" && "requirement",
+  ].filter(Boolean).length;
+  const clearFilters = () => {
+    setSearch(""); setFilterType("all"); setFilterStatus("all");
+    setFilterFinalize("all"); setFilterAssignee("all"); setFilterRequirement("all");
+  };
 
   const [month, setMonth] = useState<Date>(() => {
     const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1);
@@ -68,10 +105,31 @@ export default function CalendarPage() {
   const { members } = useTeamMembers();
   const memberById = new Map(members.map((m) => [m.id, m]));
 
+  // Apply filters first (admin/administrator only see filter UI)
+  const filteredEvents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return events.filter((e) => {
+      if (q) {
+        const hay = [
+          e.event_type, e.name, e.client_name, e.venue, e.notes,
+          ...(Array.isArray(e.requirements) ? e.requirements : []),
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filterType !== "all" && e.event_type !== filterType) return false;
+      if (filterStatus !== "all" && String(e.status || "") !== filterStatus) return false;
+      if (filterFinalize === "finalized" && !e.is_finalized) return false;
+      if (filterFinalize === "draft" && e.is_finalized) return false;
+      if (filterAssignee !== "all" && !(e.assigned_member_ids ?? []).includes(filterAssignee)) return false;
+      if (filterRequirement !== "all" && !(Array.isArray(e.requirements) && e.requirements.includes(filterRequirement))) return false;
+      return true;
+    });
+  }, [events, search, filterType, filterStatus, filterFinalize, filterAssignee, filterRequirement]);
+
   // Index events by ISO date
   const eventsByDay = useMemo(() => {
     const m = new Map<string, CalendarEventRow[]>();
-    for (const e of events) {
+    for (const e of filteredEvents) {
       if (!e.event_date) continue;
       if (!m.has(e.event_date)) m.set(e.event_date, []);
       m.get(e.event_date)!.push(e);
@@ -86,8 +144,8 @@ export default function CalendarPage() {
   const monthLabel = month.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   const totalThisMonth = useMemo(
-    () => events.filter((e) => e.event_date && e.event_date.startsWith(isoDate(month).slice(0, 7))).length,
-    [events, month]
+    () => filteredEvents.filter((e) => e.event_date && e.event_date.startsWith(isoDate(month).slice(0, 7))).length,
+    [filteredEvents, month]
   );
 
   return (
@@ -119,6 +177,98 @@ export default function CalendarPage() {
           </Button>
         </div>
       </motion.div>
+
+      {/* FILTER BAR — admin / administrator only */}
+      {seesAll && (
+        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setShowFilters((v) => !v)}>
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <Badge variant="default" className="ml-1 h-4 px-1 text-[10px]">{activeFilterCount}</Badge>
+                )}
+              </Button>
+              {activeFilterCount > 0 && (
+                <Button variant="ghost" size="sm" className="gap-1 h-8 text-xs" onClick={clearFilters}>
+                  <FilterX className="h-3.5 w-3.5" /> Clear all
+                </Button>
+              )}
+            </div>
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search event, client, venue…" className="pl-9 h-8" />
+            </div>
+          </div>
+
+          {showFilters && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              className="rounded-xl border border-border bg-card p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <FilterField label="Event type">
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All types</SelectItem>
+                    {EVENT_TYPE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <FilterField label="Status">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <FilterField label="Finalize state">
+                <Select value={filterFinalize} onValueChange={setFilterFinalize}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FINALIZE_OPTIONS.map((o) => <SelectItem key={o.v} value={o.v}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <FilterField label="Assigned user">
+                <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All members</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.full_name}{m.role ? ` (${m.role.replace(/_/g, " ")})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <FilterField label="Requirement">
+                <Select value={filterRequirement} onValueChange={setFilterRequirement}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any requirement</SelectItem>
+                    {[
+                      ["traditional_photographer", "Traditional Photographer"],
+                      ["traditional_videographer", "Traditional Videographer"],
+                      ["candid_photographer",     "Candid Photographer"],
+                      ["candid_videographer",     "Candid Videographer"],
+                      ["drone_shoot",             "Drone Shoot"],
+                      ["led_wall",                "LED Wall"],
+                    ].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+            </motion.div>
+          )}
+          {activeFilterCount > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              Showing <span className="text-foreground font-medium">{filteredEvents.length}</span> of {events.length} events
+            </p>
+          )}
+        </motion.div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {/* Weekday header */}
@@ -276,6 +426,15 @@ export default function CalendarPage() {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" />
         </div>
       )}
+    </div>
+  );
+}
+
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
+      {children}
     </div>
   );
 }

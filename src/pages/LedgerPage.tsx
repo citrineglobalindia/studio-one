@@ -87,6 +87,8 @@ export default function LedgerPage() {
         </div>
       </motion.div>
 
+      <FinanceTabs />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KpiCard label="Income" value={inr(totals.income)} icon={TrendingUp} color="text-emerald-600 bg-emerald-500/10" />
         <KpiCard label="Expense" value={inr(totals.expense)} icon={TrendingDown} color="text-rose-600 bg-rose-500/10" />
