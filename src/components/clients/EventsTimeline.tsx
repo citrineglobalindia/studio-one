@@ -2,13 +2,18 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays, Plus, Pencil, Trash2, ArrowUp, ArrowDown,
-  Clock, MapPin, Loader2, CalendarX,
+  Clock, MapPin, Loader2, CalendarX, CheckCircle2, Users, Lock, Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { useRole } from "@/contexts/RoleContext";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/contexts/OrgContext";
+import { useQuery } from "@tanstack/react-query";
 import { EventDialog } from "./EventDialog";
+import { AssignTeamDialog } from "./AssignTeamDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   upcoming: "bg-blue-500/15 text-blue-600 border-blue-500/30",
@@ -53,17 +58,48 @@ function fmtTime(t: string | null) {
   return String(t).slice(0, 5);
 }
 
+function useClientEventAssignments(clientId: string, eventIds: string[]) {
+  const { organization } = useOrg();
+  const orgId = organization?.id ?? null;
+  return useQuery({
+    queryKey: ["client-event-assignments", orgId, clientId, eventIds.join(",")],
+    enabled: !!orgId && eventIds.length > 0,
+    queryFn: async () => {
+      if (!orgId || eventIds.length === 0) return [] as { event_id: string; team_member_id: string }[];
+      const { data, error } = await supabase
+        .from("event_team_assignments")
+        .select("event_id, team_member_id")
+        .eq("organization_id", orgId)
+        .in("event_id", eventIds);
+      if (error) throw error;
+      return (data ?? []) as { event_id: string; team_member_id: string }[];
+    },
+  });
+}
+
 export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; defaultVenue: string | null }) {
   const { currentRole } = useRole();
   const canManage = currentRole === "admin" || currentRole === "administrator";
 
-  const { events, isLoading, addEvent, updateEvent, deleteEvent, swapOrder } = useClientEvents(clientId);
+  const { events, isLoading, addEvent, updateEvent, deleteEvent, swapOrder, finalizeEvent } = useClientEvents(clientId);
+  const { members } = useTeamMembers();
+  const memberById = new Map(members.map((m) => [m.id, m]));
+  const eventIds = events.map((e) => e.id);
+  const { data: assignmentRows = [] } = useClientEventAssignments(clientId, eventIds);
+  const assignmentsByEvent = new Map<string, string[]>();
+  for (const row of assignmentRows) {
+    if (!assignmentsByEvent.has(row.event_id)) assignmentsByEvent.set(row.event_id, []);
+    assignmentsByEvent.get(row.event_id)!.push(row.team_member_id);
+  }
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DbEvent | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignFor, setAssignFor] = useState<DbEvent | null>(null);
 
   const openAdd = () => { setEditing(null); setDialogOpen(true); };
   const openEdit = (e: DbEvent) => { setEditing(e); setDialogOpen(true); };
+  const openAssign = (e: DbEvent) => { setAssignFor(e); setAssignOpen(true); };
 
   const onSubmit = async (payload: Partial<DbEvent>) => {
     if (editing) await updateEvent.mutateAsync({ id: editing.id, ...payload });
@@ -182,48 +218,84 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                           {e.notes && (
                             <p className="text-xs text-foreground/80 mt-2 whitespace-pre-wrap">{e.notes}</p>
                           )}
+
+                          {/* Assigned team avatars + finalize/assign bar */}
+                          <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-border/60">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              {(assignmentsByEvent.get(e.id) ?? []).length > 0 ? (
+                                <>
+                                  <div className="flex -space-x-1.5">
+                                    {(assignmentsByEvent.get(e.id) ?? []).slice(0, 6).map((mid) => {
+                                      const m = memberById.get(mid);
+                                      if (!m) return null;
+                                      const init = (m.full_name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+                                      return (
+                                        <div key={mid} title={`${m.full_name}${m.role ? " — " + m.role.replace(/_/g, " ") : ""}`} className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-background flex items-center justify-center text-[9px] font-bold text-primary">
+                                          {init}
+                                        </div>
+                                      );
+                                    })}
+                                    {(assignmentsByEvent.get(e.id) ?? []).length > 6 && (
+                                      <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[9px] font-medium text-muted-foreground">
+                                        +{(assignmentsByEvent.get(e.id) ?? []).length - 6}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">{(assignmentsByEvent.get(e.id) ?? []).length} assigned</span>
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground italic">
+                                  {e.is_finalized ? "No team assigned yet" : "Finalize the event first to assign team"}
+                                </span>
+                              )}
+                            </div>
+
+                            {canManage && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {e.is_finalized ? (
+                                  <>
+                                    <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                                      <CheckCircle2 className="h-3 w-3" /> Finalized
+                                    </Badge>
+                                    <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => openAssign(e)}>
+                                      <Users className="h-3 w-3" /> Assign team
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => finalizeEvent.mutate({ id: e.id, finalize: true })}>
+                                    <Lock className="h-3 w-3" /> Finalize
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {canManage && (
                           <div className="flex items-center gap-0.5 shrink-0">
-                            <Button
-                              size="icon" variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => move(idx, -1)}
-                              disabled={idx === 0 || swapOrder.isPending}
-                              title="Move up"
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              size="icon" variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => move(idx, 1)}
-                              disabled={idx === events.length - 1 || swapOrder.isPending}
-                              title="Move down"
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              size="icon" variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => openEdit(e)}
-                              title="Edit"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              size="icon" variant="ghost"
-                              className="h-7 w-7 text-rose-500"
-                              onClick={() => {
-                                if (window.confirm(`Delete "${e.event_type || "this event"}"? This cannot be undone.`)) {
-                                  deleteEvent.mutate(e.id);
-                                }
-                              }}
-                              title="Delete"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {!e.is_finalized && (
+                              <>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => move(idx, -1)} disabled={idx === 0 || swapOrder.isPending} title="Move up">
+                                  <ArrowUp className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => move(idx, 1)} disabled={idx === events.length - 1 || swapOrder.isPending} title="Move down">
+                                  <ArrowDown className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)} title="Edit">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => {
+                                  if (window.confirm(`Delete "${e.event_type || "this event"}"? This cannot be undone.`)) deleteEvent.mutate(e.id);
+                                }} title="Delete">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                            {e.is_finalized && (
+                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => finalizeEvent.mutate({ id: e.id, finalize: false })} title="Reopen (un-finalize)">
+                                <Unlock className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -242,6 +314,11 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
         editing={editing}
         defaultVenue={defaultVenue}
         onSubmit={onSubmit}
+      />
+      <AssignTeamDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        event={assignFor}
       />
     </motion.div>
   );

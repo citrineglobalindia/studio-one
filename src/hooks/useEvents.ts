@@ -20,6 +20,9 @@ export interface DbEvent {
   status: EventStatus | string | null;
   display_order: number | null;
   requirements: string[] | null;
+  is_finalized: boolean;
+  finalized_at: string | null;
+  finalized_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +105,29 @@ export function useClientEvents(clientId: string | undefined) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const finalizeEvent = useMutation({
+    mutationFn: async ({ id, finalize }: { id: string; finalize: boolean }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("events")
+        .update({
+          is_finalized: finalize,
+          finalized_at: finalize ? new Date().toISOString() : null,
+          finalized_by: finalize ? (u.user?.id ?? null) : null,
+        } as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return (data as unknown) as DbEvent;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["client-events", orgId, clientId] });
+      toast.success(vars.finalize ? "Event finalized — ready to assign team" : "Event reopened");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // Swap display_order of two events (used by Up/Down arrows)
   const swapOrder = useMutation({
     mutationFn: async ({ a, b }: { a: DbEvent; b: DbEvent }) => {
@@ -129,5 +155,6 @@ export function useClientEvents(clientId: string | undefined) {
     updateEvent,
     deleteEvent,
     swapOrder,
+    finalizeEvent,
   };
 }
