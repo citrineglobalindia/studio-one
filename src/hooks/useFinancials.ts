@@ -244,3 +244,65 @@ export function useClientInvoices(clientId: string | undefined) {
 
   return { invoices: query.data ?? [], isLoading: query.isLoading, add, update, remove };
 }
+
+
+// ───── Org-scoped queries for the Accounts dashboard ─────
+export function useAllQuotations() {
+  const { organization } = useOrg();
+  const orgId = organization?.id ?? null;
+  const query = useQuery({
+    queryKey: ["all-quotations", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      if (!orgId) return [] as DbQuotation[];
+      const { data, error } = await (supabase as any)
+        .from("quotations")
+        .select("*, client:clients(id,name,partner_name)")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<DbQuotation & { client?: { id: string; name: string; partner_name: string | null } | null }>;
+    },
+  });
+  return { rows: query.data ?? [], isLoading: query.isLoading };
+}
+
+export function useAllContracts() {
+  const { organization } = useOrg();
+  const orgId = organization?.id ?? null;
+  const query = useQuery({
+    queryKey: ["all-contracts", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      if (!orgId) return [] as DbContract[];
+      const { data, error } = await (supabase as any)
+        .from("contracts")
+        .select("*, client:clients(id,name,partner_name)")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<DbContract & { client?: { id: string; name: string; partner_name: string | null } | null }>;
+    },
+  });
+  return { rows: query.data ?? [], isLoading: query.isLoading };
+}
+
+export function useAllInvoices() {
+  const { organization } = useOrg();
+  const orgId = organization?.id ?? null;
+  const query = useQuery({
+    queryKey: ["all-invoices", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      if (!orgId) return [] as DbInvoice[];
+      const { data, error } = await (supabase as any)
+        .from("invoices")
+        .select("*, client:clients(id,name,partner_name)")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<DbInvoice & { client?: { id: string; name: string; partner_name: string | null } | null }>;
+    },
+  });
+  return { rows: query.data ?? [], isLoading: query.isLoading };
+}

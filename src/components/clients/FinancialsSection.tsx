@@ -598,9 +598,10 @@ function Panel({
           <Plus className="h-3.5 w-3.5" /> Add {label.slice(0, -1).toLowerCase()}
         </Button>
       </div>
-      {isLoading ? (
+      {isLoading && (
         <div className="py-6 text-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" /></div>
-      ) : count === 0 ? (
+      )}
+      {!isLoading && count === 0 && (
         <div className="py-8 text-center">
           <Receipt className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No {label.toLowerCase()} yet</p>
@@ -608,7 +609,9 @@ function Panel({
             <Plus className="h-3.5 w-3.5" /> Add
           </Button>
         </div>
-      ) : children}
+      )}
+      {/* Always render children so dialogs work even when list is empty */}
+      {children}
     </div>
   );
 }

@@ -54,6 +54,10 @@ const salesItems: SidebarItem[] = [
   { title: "Calendar", url: "/calendar", icon: CalendarDays, module: "calendar" },
 ];
 
+const financeItems: SidebarItem[] = [
+  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
+];
+
 const systemItems: SidebarItem[] = [
   { title: "Users", url: "/team", icon: UsersRound, module: "team" },
   { title: "Access Control", url: "/access-control", icon: Shield, module: "settings" },
@@ -62,6 +66,7 @@ const systemItems: SidebarItem[] = [
 
 const groups = [
   { label: "Sales CRM", items: salesItems },
+  { label: "Finance", items: financeItems },
   { label: "Core", items: systemItems },
 ];
 
