@@ -1013,6 +1013,7 @@ function EditUserForm({ user, onSave, saving, onCancel }: {
   saving: boolean;
   onCancel: () => void;
 }) {
+  const { isAdmin, currentRole } = useRole();
   const [form, setForm] = useState<UserForm>({
     email: user.email || "",
     display_name: user.full_name,

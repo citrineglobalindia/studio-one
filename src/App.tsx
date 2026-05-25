@@ -32,7 +32,6 @@ import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import AccessControlPage from "./pages/AccessControlPage";
 import OnboardingPage from "./pages/OnboardingPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
 
 // Super Admin
 import SuperAdminPage from "./pages/SuperAdminPage";
