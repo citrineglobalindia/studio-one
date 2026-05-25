@@ -74,7 +74,7 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
           <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center">
             <CalendarDays className="h-4 w-4 text-primary" />
           </div>
-          <h4 className="text-sm font-semibold text-foreground">Events</h4>
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">Events</h4>
           {events.length > 0 && (
             <Badge variant="secondary" className="text-[10px]">{events.length}</Badge>
           )}
@@ -86,7 +86,7 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border/80 bg-card p-4 md:p-5">
         {isLoading ? (
           <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" /></div>
         ) : events.length === 0 ? (

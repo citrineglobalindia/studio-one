@@ -56,15 +56,15 @@ export default function ClientDetailPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-5 pb-10">
+    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-4 pb-10">
       {/* Top bar */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold">Client</p>
-          <h1 className="text-lg font-bold text-foreground truncate">{couple}</h1>
+          <p className="text-[10px] text-muted-foreground/70 uppercase tracking-[0.2em] font-medium">Client profile</p>
+          <h1 className="text-base font-semibold text-foreground truncate tracking-tight">{couple}</h1>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -85,18 +85,22 @@ export default function ClientDetailPage() {
       </motion.div>
 
       {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-rose-400/10 to-amber-200/10 p-6 flex items-center gap-4">
-        <div className="h-16 w-16 rounded-2xl bg-card border border-border flex items-center justify-center text-xl font-bold text-primary shrink-0">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.06] via-rose-500/[0.04] to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="relative p-5 md:p-6 flex items-center gap-4">
+        <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border border-border flex items-center justify-center text-lg md:text-xl font-bold text-primary shrink-0 tracking-tight">
           {initials || "C"}
         </div>
         <div className="min-w-0">
-          <p className="text-xl font-bold text-foreground truncate">{couple}</p>
+          <p className="text-xl md:text-2xl font-semibold text-foreground truncate tracking-tight">{couple}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
             {client.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{client.phone}</span>}
             {client.email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{client.email}</span>}
             {client.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{client.city}</span>}
             {client.source && <Badge variant="secondary" className="text-[10px]">{client.source}</Badge>}
           </div>
+        </div>
         </div>
       </motion.div>
 
@@ -222,7 +226,7 @@ export default function ClientDetailPage() {
             <Row>
               <ReadField label="Landmark" value={client.venue_landmark} />
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Google Maps URL</Label>
+                <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Google Maps URL</Label>
                 {client.venue_map_url ? (
                   <a href={client.venue_map_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
                     Open in Google Maps <ExternalLink className="h-3 w-3" />
@@ -344,9 +348,9 @@ function EditableSection({
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 h-full flex flex-col">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center">{icon}</div>
-          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+        <div className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-lg bg-muted/40 flex items-center justify-center">{icon}</div>
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">{title}</h4>
         </div>
         <div className="flex items-center gap-1.5">
           {!editing ? (
@@ -366,7 +370,7 @@ function EditableSection({
           )}
         </div>
       </div>
-      <div className={"rounded-2xl border border-border bg-card p-5 space-y-4 border-l-4 " + (accentClass || "border-l-primary/30") + " h-full"}>
+      <div className={"rounded-xl border border-border/80 bg-card p-4 md:p-5 space-y-3.5 border-l-[3px] " + (accentClass || "border-l-primary/40") + " h-full transition-colors hover:border-border"}>
         {editing ? renderEdit(values, set) : renderView()}
       </div>
     </motion.div>
@@ -384,7 +388,7 @@ function Row({ children }: { children: React.ReactNode }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</Label>
       {children}
     </div>
   );
@@ -405,8 +409,8 @@ function ReadField({ label, value, type }: { label: string; value: any; type?: "
   }
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <p className={"text-sm break-words whitespace-pre-wrap " + (display === "—" ? "text-muted-foreground" : "text-foreground")}>
+      <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</Label>
+      <p className={"text-sm break-words whitespace-pre-wrap " + (display === "—" ? "text-muted-foreground/60" : "text-foreground")}>
         {display}
       </p>
     </div>
@@ -417,7 +421,7 @@ function LockedField({ label, value }: { label: string; value: any }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground">{label}</Label>
+        <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</Label>
         <Lock className="h-3 w-3 text-muted-foreground" />
       </div>
       <p className={"text-sm " + (value ? "text-foreground" : "text-muted-foreground")}>
