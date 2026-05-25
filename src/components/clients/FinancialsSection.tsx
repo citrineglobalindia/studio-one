@@ -52,7 +52,7 @@ function fmtDate(d: string | null | undefined) {
 
 export function FinancialsSection({ clientId, clientName }: { clientId: string; clientName: string }) {
   const { currentRole } = useRole();
-  const allowed = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts";
+  const allowed = currentRole === "admin" || currentRole === "accounts";
 
   const [tab, setTab] = useState<Tab>("estimations");
 
