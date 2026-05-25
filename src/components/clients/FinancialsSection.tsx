@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Receipt, FileText, Briefcase, Plus, Pencil, Trash2, Loader2,
-  CalendarDays, Check, FileSignature,
+  CalendarDays, Check, FileSignature, X, FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select";
 import { useRole } from "@/contexts/RoleContext";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
+import { useOrg } from "@/contexts/OrgContext";
+import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
 import {
   useClientQuotations, useClientContracts, useClientInvoices,
   type DbQuotation, type DbContract, type DbInvoice, type LineItem,
@@ -66,7 +68,46 @@ function fmtDate(d?: string | null) {
   try { return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); } catch { return d; }
 }
 
+// Build the payload sent to generateDocPdf from a stored doc
+function buildPdfPayload(opts: {
+  kind: DocPdfKind;
+  doc: any;
+  clientName: string;
+  studioName: string;
+}) {
+  const { kind, doc, clientName, studioName } = opts;
+  const isProposal = kind === "proposal";
+  const items = isProposal ? [] : (Array.isArray(doc.items) ? doc.items : []);
+  const subtotal = isProposal ? Number(doc.contract_amount || 0) : Number(doc.subtotal || 0);
+  const taxPercent = Number(doc.tax_percent || (doc.gst_applicable ? 18 : 0));
+  const discount = Number(doc.discount_value || 0);
+  const taxable = Math.max(0, subtotal - discount);
+  const tax = (taxable * taxPercent) / 100;
+  const total = isProposal ? Number(doc.contract_amount || 0) : Number(doc.total_amount || (taxable + tax));
+  return {
+    kind,
+    studioName,
+    number: doc.quotation_number || doc.contract_number || doc.invoice_number || null,
+    clientName,
+    status: doc.status || "draft",
+    date: doc.valid_until || doc.due_date || null,
+    dateLabel: kind === "invoice" ? "Due date" : "Valid until",
+    items,
+    subtotal,
+    discount,
+    taxLabel: doc.gst_applicable ? `GST @ ${taxPercent}%` : (taxPercent > 0 ? `Tax @ ${taxPercent}%` : undefined),
+    tax,
+    total,
+    amountPaid: kind === "invoice" ? Number(doc.amount_paid || 0) : undefined,
+    body: doc.body || undefined,
+    terms: doc.terms || undefined,
+    notes: doc.notes || undefined,
+  };
+}
+
 export function FinancialsSection({ clientId, clientName }: { clientId: string; clientName: string }) {
+  const { organization } = useOrg();
+  const studioName = organization?.name || "Studio";
   const { currentRole } = useRole();
   const allowed = currentRole === "admin" || currentRole === "accounts";
   const [tab, setTab] = useState<Tab>("estimations");
@@ -102,9 +143,9 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
       </div>
 
       <div className="rounded-xl border border-border/80 bg-card p-4 md:p-5 border-l-[3px] border-l-amber-500">
-        {tab === "estimations" && <EstimationsPanel clientId={clientId} clientName={clientName} />}
-        {tab === "proposals" && <ProposalsPanel clientId={clientId} clientName={clientName} />}
-        {tab === "invoices" && <InvoicesPanel clientId={clientId} clientName={clientName} />}
+        {tab === "estimations" && <EstimationsPanel clientId={clientId} clientName={clientName} studioName={studioName} />}
+        {tab === "proposals" && <ProposalsPanel clientId={clientId} clientName={clientName} studioName={studioName} />}
+        {tab === "invoices" && <InvoicesPanel clientId={clientId} clientName={clientName} studioName={studioName} />}
       </div>
     </motion.div>
   );
@@ -114,7 +155,7 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
 // PANELS
 // ============================================================================
 
-function EstimationsPanel({ clientId, clientName }: { clientId: string; clientName: string }) {
+function EstimationsPanel({ clientId, clientName, studioName }: { clientId: string; clientName: string; studioName: string }) {
   const { quotations, isLoading, add, update, remove } = useClientQuotations(clientId);
   const [editing, setEditing] = useState<DbQuotation | null | undefined>(undefined);
   return (
@@ -137,6 +178,7 @@ function EstimationsPanel({ clientId, clientName }: { clientId: string; clientNa
               status={q.status || "draft"}
               onEdit={() => setEditing(q)}
               onDelete={() => { if (window.confirm("Delete this estimation?")) remove.mutate(q.id); }}
+              onPdf={() => generateDocPdf(buildPdfPayload({ kind: "estimation", doc: q, clientName, studioName }))}
             />
           );
         })}
@@ -163,7 +205,7 @@ function EstimationsPanel({ clientId, clientName }: { clientId: string; clientNa
   );
 }
 
-function ProposalsPanel({ clientId, clientName }: { clientId: string; clientName: string }) {
+function ProposalsPanel({ clientId, clientName, studioName }: { clientId: string; clientName: string; studioName: string }) {
   const { contracts, isLoading, add, update, remove } = useClientContracts(clientId);
   const [editing, setEditing] = useState<DbContract | null | undefined>(undefined);
   return (
@@ -184,6 +226,7 @@ function ProposalsPanel({ clientId, clientName }: { clientId: string; clientName
             status={cn.status || "draft"}
             onEdit={() => setEditing(cn)}
             onDelete={() => { if (window.confirm("Delete this proposal?")) remove.mutate(cn.id); }}
+            onPdf={() => generateDocPdf(buildPdfPayload({ kind: "proposal", doc: cn, clientName, studioName }))}
           />
         ))}
       </div>
@@ -209,7 +252,7 @@ function ProposalsPanel({ clientId, clientName }: { clientId: string; clientName
   );
 }
 
-function InvoicesPanel({ clientId, clientName }: { clientId: string; clientName: string }) {
+function InvoicesPanel({ clientId, clientName, studioName }: { clientId: string; clientName: string; studioName: string }) {
   const { invoices, isLoading, add, update, remove } = useClientInvoices(clientId);
   const [editing, setEditing] = useState<DbInvoice | null | undefined>(undefined);
   return (
@@ -240,6 +283,7 @@ function InvoicesPanel({ clientId, clientName }: { clientId: string; clientName:
               status={i.status || "draft"}
               onEdit={() => setEditing(i)}
               onDelete={() => { if (window.confirm("Delete this invoice?")) remove.mutate(i.id); }}
+              onPdf={() => generateDocPdf(buildPdfPayload({ kind: "invoice", doc: i, clientName, studioName }))}
             />
           );
         })}
@@ -291,6 +335,7 @@ interface EventsDocDialogProps {
 
 // Rate key = `${eventId}::${requirement}` ; value = number (₹)
 function itemKey(eventId: string, req: string) { return `${eventId}::${req}`; }
+function customKey(eventId: string, idx: number) { return `${eventId}::custom::${idx}`; }
 
 function EventsDocDialog({
   open, onOpenChange, docKind, editing, clientId, statuses,
@@ -298,20 +343,31 @@ function EventsDocDialog({
 }: EventsDocDialogProps) {
   const { events: clientEvents } = useClientEvents(clientId);
 
-  // Reconstruct rates map from saved items (if editing)
-  const reconstructRates = (items: LineItem[] | null | undefined) => {
-    const map: Record<string, number> = {};
-    if (!Array.isArray(items)) return map;
+  // Reconstruct rates + custom items from saved items
+  const reconstructState = (items: LineItem[] | null | undefined) => {
+    const rates: Record<string, number> = {};
+    const customs: Record<string, Array<{ description: string; rate: number }>> = {};
+    if (!Array.isArray(items)) return { rates, customs };
     for (const it of items) {
-      // metadata is stored in description: "<EventType> [event_id] — <REQ_KEY>"
-      // We use a structured marker (`#evt:<id>#req:<key>`) so it round-trips reliably.
-      const m = /#evt:([0-9a-f-]+)#req:([a-z_]+)/.exec(it.description || "");
-      if (m) map[itemKey(m[1], m[2])] = Number(it.rate || it.amount || 0);
+      const reqMatch = /#evt:([0-9a-f-]+)#req:([a-z_]+)/.exec(it.description || "");
+      if (reqMatch) {
+        rates[itemKey(reqMatch[1], reqMatch[2])] = Number(it.rate || it.amount || 0);
+        continue;
+      }
+      const customMatch = /#evt:([0-9a-f-]+)#custom/.exec(it.description || "");
+      if (customMatch) {
+        const eid = customMatch[1];
+        const cleanDesc = (it.description || "").replace(/\s*#evt:[0-9a-f-]+#custom\s*$/, "").trim();
+        if (!customs[eid]) customs[eid] = [];
+        customs[eid].push({ description: cleanDesc, rate: Number(it.rate || it.amount || 0) });
+      }
     }
-    return map;
+    return { rates, customs };
   };
 
-  const [rates, setRates] = useState<Record<string, number>>(() => reconstructRates(editing?.items));
+  const reconstructed = reconstructState(editing?.items);
+  const [rates, setRates] = useState<Record<string, number>>(() => reconstructed.rates);
+  const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; rate: number }>>>(() => reconstructed.customs);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
   const [status, setStatus] = useState<string>(editing?.status || statuses[0]);
   const [gst, setGst] = useState<boolean>(Boolean(editing?.gst_applicable ?? false));
@@ -328,16 +384,20 @@ function EventsDocDialog({
 
   // Compute totals from rates map
   const lineRows = useMemo(() => {
-    const rows: Array<{ event: DbEvent; req: string; rate: number; label: string }> = [];
+    const rows: Array<{ event: DbEvent; req: string; rate: number; label: string; isCustom?: boolean }> = [];
     for (const ev of clientEvents) {
       const reqs = Array.isArray(ev.requirements) ? ev.requirements : [];
       for (const r of reqs) {
         const rate = rates[itemKey(ev.id, r)] || 0;
         rows.push({ event: ev, req: r, rate, label: REQ_LABEL[r] || r });
       }
+      const customs = customByEvent[ev.id] || [];
+      customs.forEach((c, idx) => {
+        rows.push({ event: ev, req: `__custom_${idx}__`, rate: c.rate, label: c.description || "Custom item", isCustom: true });
+      });
     }
     return rows;
-  }, [clientEvents, rates]);
+  }, [clientEvents, rates, customByEvent]);
 
   const subtotal = useMemo(
     () => (docKind === "proposal" ? proposalAmount : lineRows.reduce((s, r) => s + (r.rate || 0), 0)),
@@ -356,7 +416,9 @@ function EventsDocDialog({
     return lineRows
       .filter((r) => r.rate > 0)
       .map((r) => ({
-        description: `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#req:${r.req}`,
+        description: r.isCustom
+          ? `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#custom`
+          : `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#req:${r.req}`,
         quantity: 1,
         rate: r.rate,
         amount: r.rate,
@@ -465,27 +527,69 @@ function EventsDocDialog({
                             <Badge variant="secondary" className="text-[10px]">{reqs.length} req</Badge>
                           )}
                         </div>
-                        {reqs.length === 0 ? (
-                          <p className="px-3 py-3 text-[11px] text-muted-foreground italic">No requirements set on this event</p>
-                        ) : (
-                          <div className="divide-y divide-border">
-                            {reqs.map((r) => (
-                              <div key={r} className="grid grid-cols-[1fr,140px] gap-2 items-center px-3 py-2">
-                                <span className="text-sm text-foreground">{REQ_LABEL[r] || r}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-muted-foreground">₹</span>
-                                  <Input
-                                    type="number"
-                                    value={rates[itemKey(ev.id, r)] || ""}
-                                    onChange={(e) => updateRate(ev.id, r, Number(e.target.value || 0))}
-                                    placeholder="0"
-                                    className="text-right tabular-nums h-8"
-                                  />
-                                </div>
+                        <div className="divide-y divide-border">
+                          {reqs.length === 0 && (customByEvent[ev.id] ?? []).length === 0 && (
+                            <p className="px-3 py-3 text-[11px] text-muted-foreground italic">
+                              No requirements selected on this event. Use “+ Add line item” below to bill anyway.
+                            </p>
+                          )}
+                          {reqs.map((r) => (
+                            <div key={r} className="grid grid-cols-[1fr,140px] gap-2 items-center px-3 py-2">
+                              <span className="text-sm text-foreground">{REQ_LABEL[r] || r}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">₹</span>
+                                <Input
+                                  type="number"
+                                  value={rates[itemKey(ev.id, r)] || ""}
+                                  onChange={(e) => updateRate(ev.id, r, Number(e.target.value || 0))}
+                                  placeholder="0"
+                                  className="text-right tabular-nums h-8"
+                                />
                               </div>
-                            ))}
+                            </div>
+                          ))}
+                          {(customByEvent[ev.id] ?? []).map((ci, idx) => (
+                            <div key={`custom-${idx}`} className="grid grid-cols-[1fr,140px,28px] gap-2 items-center px-3 py-2">
+                              <Input
+                                value={ci.description}
+                                onChange={(e) => setCustomByEvent((p) => {
+                                  const list = [...(p[ev.id] || [])];
+                                  list[idx] = { ...list[idx], description: e.target.value };
+                                  return { ...p, [ev.id]: list };
+                                })}
+                                placeholder="Custom item (e.g. Coffee table book)"
+                                className="h-8 text-sm"
+                              />
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">₹</span>
+                                <Input
+                                  type="number"
+                                  value={ci.rate || ""}
+                                  onChange={(e) => setCustomByEvent((p) => {
+                                    const list = [...(p[ev.id] || [])];
+                                    list[idx] = { ...list[idx], rate: Number(e.target.value || 0) };
+                                    return { ...p, [ev.id]: list };
+                                  })}
+                                  placeholder="0"
+                                  className="text-right tabular-nums h-8"
+                                />
+                              </div>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => setCustomByEvent((p) => {
+                                const list = (p[ev.id] || []).filter((_, i) => i !== idx);
+                                return { ...p, [ev.id]: list };
+                              })}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                          <div className="px-3 py-2">
+                            <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={() => setCustomByEvent((p) => ({
+                              ...p, [ev.id]: [...(p[ev.id] || []), { description: "", rate: 0 }]
+                            }))}>
+                              <Plus className="h-3 w-3" /> Add line item
+                            </Button>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
@@ -617,10 +721,10 @@ function Panel({
 }
 
 function DocRow({
-  title, subtitle, amount, status, onEdit, onDelete,
+  title, subtitle, amount, status, onEdit, onDelete, onPdf,
 }: {
   title: string; subtitle: string; amount: number; status: string;
-  onEdit: () => void; onDelete: () => void;
+  onEdit: () => void; onDelete: () => void; onPdf?: () => void;
 }) {
   const colorClass = STATUS_COLOR[status] || STATUS_COLOR.draft;
   return (
@@ -638,6 +742,7 @@ function DocRow({
         <p className="text-sm font-semibold text-foreground tabular-nums">{inr(amount)}</p>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
+        {onPdf && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onPdf} title="Download PDF"><FileDown className="h-3.5 w-3.5" /></Button>}
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
         <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={onDelete} title="Delete"><Trash2 className="h-3.5 w-3.5" /></Button>
       </div>
