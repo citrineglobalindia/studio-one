@@ -1,466 +1,194 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  User, Mail, Phone, MapPin, Calendar, Shield, Edit3,
+  Save, X, Loader2, Camera, Building2, BadgeCheck, LogOut,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Camera, Bell, BellOff, MapPin, MapPinOff, Shield, User, Mail, Phone, Building,
-  Pencil, Save, ChevronRight, Lock, Globe, Volume2, Vibrate, Loader2,
-} from "lucide-react";
-import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
-import { useRole } from "@/contexts/RoleContext";
+import { useRole, ALL_ROLES } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
-const formatRoleLabel = (role: string) => {
-  if (!role) return "Admin";
-  return role
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-};
+function initials(name: string) {
+  return (name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+}
 
-const ProfilePage = () => {
-  const { user } = useAuth();
+export default function ProfilePage() {
+  const { user, signOut } = useAuth();
   const { organization } = useOrg();
   const { currentRole } = useRole();
+  const navigate = useNavigate();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Live data from Supabase
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({ display_name: "", phone: "", bio: "" });
 
-  // Editable fields
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-
-  // Read-only (editing these needs other flows)
-  const email = user?.email ?? "";
-  const role = formatRoleLabel(currentRole);
-  const company = organization?.name ?? "";
-
-  // Local UI toggles (not persisted yet — wire up later if needed)
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
-  const [soundAlerts, setSoundAlerts] = useState(true);
-  const [vibration, setVibration] = useState(true);
-  const [gpsTracker, setGpsTracker] = useState(false);
-  const [locationSharing, setLocationSharing] = useState(false);
-
-  // Load real profile data on mount
   useEffect(() => {
-    let active = true;
-
-    const fetchProfile = async () => {
-      if (!user?.id) {
-        if (active) {
-          setName("");
-          setPhone("");
-          setProfileImage(null);
-          setLoading(false);
-        }
-        return;
-      }
-
-      setLoading(true);
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, phone, avatar_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!active) return;
-
-      setName(
-        (data?.display_name as string | undefined) ??
-        (user.user_metadata?.full_name as string | undefined) ??
-        user.email?.split("@")[0] ??
-        ""
-      );
-      setPhone(((data as any)?.phone as string | undefined) ?? "");
-      setProfileImage(((data as any)?.avatar_url as string | undefined) ?? null);
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+      setProfile(data);
+      setForm({
+        display_name: (data as any)?.display_name || "",
+        phone: (data as any)?.phone || "",
+        bio: (data as any)?.bio || "",
+      });
       setLoading(false);
-    };
+    })();
+  }, [user]);
 
-    fetchProfile();
-    return () => { active = false; };
-  }, [user?.id]);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (e.target) e.target.value = "";
-    if (!file || !user?.id) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be under 2 MB");
-      return;
-    }
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file");
-      return;
-    }
-
-    setUploading(true);
-    const ext = (file.name.split(".").pop() || "png").toLowerCase();
-    const path = `${user.id}/avatar.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { cacheControl: "3600", upsert: true });
-
-    if (uploadError) {
-      setUploading(false);
-      toast.error(`Upload failed: ${uploadError.message}`);
-      return;
-    }
-
-    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ avatar_url: publicUrl })
-      .eq("user_id", user.id);
-
-    setUploading(false);
-
-    if (updateError) {
-      toast.error(`Saved image but couldn't update profile: ${updateError.message}`);
-      return;
-    }
-
-    setProfileImage(publicUrl);
-    toast.success("Profile photo updated");
-  };
-
-  const handleSave = async () => {
-    if (!user?.id) {
-      toast.error("Not signed in");
-      return;
-    }
-    if (!name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
-
+  const save = async () => {
+    if (!user) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        display_name: name.trim(),
-        phone: phone || null,
-      })
-      .eq("user_id", user.id);
-    setSaving(false);
-
-    if (error) {
-      toast.error(`Failed to save: ${error.message}`);
-      return;
+    try {
+      const { error } = await supabase.from("profiles").update({
+        display_name: form.display_name.trim() || null,
+        phone: form.phone.trim() || null,
+      } as any).eq("user_id", user.id);
+      if (error) throw error;
+      setProfile((p: any) => ({ ...p, display_name: form.display_name, phone: form.phone }));
+      setEditing(false);
+      toast.success("Profile updated");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
     }
-
-    setIsEditing(false);
-    toast.success("Profile updated");
   };
 
-  const toggleItem = (label: string, value: boolean, setter: (v: boolean) => void) => {
-    setter(!value);
-    toast.success(`${label} ${!value ? "enabled" : "disabled"}`);
-  };
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
 
-  const initials =
-    (name || email || "S U")
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p.charAt(0).toUpperCase())
-      .join("") || "SU";
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "User";
+  const roleLabel = ALL_ROLES.find((r) => r.value === currentRole)?.label || currentRole;
 
   return (
-    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-4">
-      {/* Profile Header Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden"
-        style={{ background: "linear-gradient(135deg, hsl(var(--sidebar-background)) 0%, hsl(var(--primary) / 0.9) 100%)" }}
-      >
-        <div className="absolute -top-10 -right-10 size-36 rounded-full bg-white/[0.04]" />
-        <div className="absolute -bottom-8 -left-8 size-28 rounded-full bg-white/[0.03]" />
-        <div className="absolute top-1/2 right-1/4 size-48 rounded-full bg-white/[0.02]" />
+    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
+      {/* HERO */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-3xl overflow-hidden border border-border">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-rose-400/10 to-amber-300/10" />
+        <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-rose-400/15 blur-3xl" />
 
-        <div className="p-5 md:p-8 flex flex-col md:flex-row items-center gap-5">
+        <div className="relative p-6 md:p-8 grid grid-cols-1 md:grid-cols-[auto,1fr,auto] gap-6 items-center">
           {/* Avatar */}
-          <div className="relative group">
-            <Avatar className="size-24 md:size-28 border-4 border-white/20 shadow-lg">
-              <AvatarImage src={profileImage || undefined} />
-              <AvatarFallback className="bg-white/10 text-white text-2xl md:text-3xl font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer disabled:cursor-wait"
-            >
-              {uploading ? <Loader2 size={24} className="text-white animate-spin" /> : <Camera size={24} className="text-white" />}
+          <div className="relative shrink-0 mx-auto md:mx-0">
+            <div className="h-24 w-24 md:h-28 md:w-28 rounded-3xl bg-background/70 backdrop-blur border-4 border-background shadow-2xl flex items-center justify-center">
+              <span className="text-3xl md:text-4xl font-bold text-primary tracking-tight">{initials(displayName)}</span>
+            </div>
+            <button className="absolute -bottom-1 -right-1 h-9 w-9 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg border-4 border-background hover:scale-105 transition-transform">
+              <Camera className="h-3.5 w-3.5" />
             </button>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            <div className="absolute -bottom-1 -right-1 size-8 rounded-full bg-primary flex items-center justify-center border-2 border-white/20">
-              {uploading ? (
-                <Loader2 size={12} className="text-primary-foreground animate-spin" />
-              ) : (
-                <Camera size={12} className="text-primary-foreground" />
+          </div>
+          {/* Identity */}
+          <div className="min-w-0 text-center md:text-left">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-medium">My profile</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mt-1">{displayName}</h1>
+            <div className="flex flex-wrap items-center gap-2 mt-2 justify-center md:justify-start">
+              <Badge variant="outline" className="text-xs gap-1 bg-primary/10 border-primary/30 text-primary capitalize">
+                <BadgeCheck className="h-3 w-3" /> {roleLabel}
+              </Badge>
+              {organization?.name && (
+                <Badge variant="outline" className="text-xs gap-1 bg-card">
+                  <Building2 className="h-3 w-3" /> {organization.name}
+                </Badge>
               )}
             </div>
-          </div>
-
-          {/* Info */}
-          <div className="text-center md:text-left flex-1">
-            <h2 className="text-xl md:text-2xl font-bold text-white">
-              {loading ? "Loading..." : (name || "Unnamed")}
-            </h2>
-            <p className="text-sm text-white/60 mt-0.5">{role}</p>
-            <p className="text-xs text-white/40 mt-1">{email}</p>
-            <div className="flex items-center gap-2 mt-3 justify-center md:justify-start">
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-semibold">Active</span>
-              <span className="px-3 py-1 rounded-full bg-white/10 text-white/60 text-[11px] font-medium">{role}</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-xs text-muted-foreground justify-center md:justify-start">
+              {user?.email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>}
+              {profile?.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{profile.phone}</span>}
             </div>
           </div>
-
-          {/* Edit / Save button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-            disabled={saving || loading}
-            className="border-white/20 text-white bg-white/10 hover:bg-white/20"
-          >
-            {saving ? (
-              <><Loader2 size={14} className="mr-1.5 animate-spin" /> Saving</>
-            ) : isEditing ? (
-              <><Save size={14} className="mr-1.5" /> Save</>
+          {/* Edit toggle */}
+          <div className="flex md:flex-col items-center md:items-end gap-2 shrink-0">
+            {!editing ? (
+              <Button onClick={() => setEditing(true)} variant="outline" className="gap-2"><Edit3 className="h-3.5 w-3.5" /> Edit profile</Button>
             ) : (
-              <><Pencil size={14} className="mr-1.5" /> Edit</>
+              <div className="flex gap-1.5">
+                <Button onClick={() => setEditing(false)} variant="ghost" size="sm"><X className="h-3.5 w-3.5" /></Button>
+                <Button onClick={save} size="sm" className="gap-1.5" disabled={saving}>
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save
+                </Button>
+              </div>
             )}
-          </Button>
+            <Button onClick={async () => { await signOut(); navigate("/auth"); }} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 gap-1.5">
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Personal Details */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-3 bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-6"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <User size={16} className="text-primary" />
+      {/* DETAILS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-border/80 bg-card p-5 space-y-3.5 border-l-[3px] border-l-primary">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-muted/40 flex items-center justify-center">
+              <User className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-base font-bold text-foreground">Personal Details</h3>
+            <h4 className="text-sm font-semibold text-foreground tracking-tight">Personal details</h4>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Full Name</Label>
-              {isEditing ? (
-                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10" />
-              ) : (
-                <p className="text-sm font-medium text-foreground py-2">{name || "—"}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Email</Label>
-              <div className="flex items-center gap-2 py-2">
-                <Mail size={14} className="text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">{email || "—"}</p>
-              </div>
-              {isEditing && (
-                <p className="text-[10px] text-muted-foreground">Email changes require verification — not editable here.</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Phone</Label>
-              {isEditing ? (
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className="h-10"
-                />
-              ) : (
-                <div className="flex items-center gap-2 py-2">
-                  <Phone size={14} className="text-muted-foreground" />
-                  <p className="text-sm font-medium text-foreground">{phone || "—"}</p>
-                </div>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Role</Label>
-              <p className="text-sm font-medium text-foreground py-2">{role}</p>
-              {isEditing && (
-                <p className="text-[10px] text-muted-foreground">Role is managed by your admin.</p>
-              )}
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-xs text-muted-foreground">Company</Label>
-              <div className="flex items-center gap-2 py-2">
-                <Building size={14} className="text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">{company || "—"}</p>
-              </div>
-              {isEditing && (
-                <p className="text-[10px] text-muted-foreground">Change studio name in Settings → Studio.</p>
-              )}
-            </div>
-          </div>
+          <Field label="Display name">
+            {editing
+              ? <Input value={form.display_name} onChange={(e) => setForm((p) => ({ ...p, display_name: e.target.value }))} />
+              : <ReadValue v={profile?.display_name} />
+            }
+          </Field>
+
+          <Field label="Email">
+            <ReadValue v={user?.email} />
+            <p className="text-[10px] text-muted-foreground mt-1">Email cannot be changed here</p>
+          </Field>
+
+          <Field label="Phone">
+            {editing
+              ? <Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" />
+              : <ReadValue v={profile?.phone} />
+            }
+          </Field>
         </motion.div>
 
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="lg:col-span-2 bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-6 space-y-1"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Shield size={16} className="text-primary" />
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          className="rounded-xl border border-border/80 bg-card p-5 space-y-3.5 border-l-[3px] border-l-emerald-500">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-muted/40 flex items-center justify-center">
+              <Shield className="h-4 w-4 text-emerald-500" />
             </div>
-            <h3 className="text-base font-bold text-foreground">Account</h3>
+            <h4 className="text-sm font-semibold text-foreground tracking-tight">Role &amp; access</h4>
           </div>
-          {[
-            { label: "Change Password", icon: Lock, desc: "Update your password" },
-            { label: "Two-Factor Auth", icon: Shield, desc: "Extra security layer" },
-            { label: "Language", icon: Globe, desc: "English (US)" },
-          ].map((item, i) => (
-            <button
-              key={i}
-              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
-            >
-              <div className="size-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                <item.icon size={16} className="text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{item.label}</p>
-                <p className="text-[11px] text-muted-foreground">{item.desc}</p>
-              </div>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </button>
-          ))}
+
+          <Field label="Current role"><ReadValue v={roleLabel} /></Field>
+          <Field label="Studio"><ReadValue v={organization?.name || "—"} /></Field>
+          <Field label="Member since">
+            <ReadValue v={profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }) : "—"} />
+          </Field>
         </motion.div>
       </div>
-
-      {/* Notification Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-6"
-      >
-        <div className="flex items-center gap-2 mb-5">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            {pushNotifications ? <Bell size={16} className="text-primary" /> : <BellOff size={16} className="text-muted-foreground" />}
-          </div>
-          <h3 className="text-base font-bold text-foreground">Notifications</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[
-            { label: "Push Notifications", desc: "Receive push alerts on your device", icon: Bell, value: pushNotifications, setter: setPushNotifications },
-            { label: "Email Notifications", desc: "Get notified via email", icon: Mail, value: emailNotifications, setter: setEmailNotifications },
-            { label: "SMS Alerts", desc: "Receive text message alerts", icon: Phone, value: smsNotifications, setter: setSmsNotifications },
-            { label: "Sound Alerts", desc: "Play sound for new notifications", icon: Volume2, value: soundAlerts, setter: setSoundAlerts },
-            { label: "Vibration", desc: "Vibrate on notification", icon: Vibrate, value: vibration, setter: setVibration },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className={`size-9 rounded-lg flex items-center justify-center ${item.value ? "bg-primary/10" : "bg-muted"}`}>
-                  <item.icon size={16} className={item.value ? "text-primary" : "text-muted-foreground"} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
-                  <p className="text-[11px] text-muted-foreground">{item.desc}</p>
-                </div>
-              </div>
-              <Switch checked={item.value} onCheckedChange={() => toggleItem(item.label, item.value, item.setter)} />
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* GPS & Location */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="bg-card rounded-2xl shadow-sm border border-border/50 p-4 md:p-6"
-      >
-        <div className="flex items-center gap-2 mb-5">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            {gpsTracker ? <MapPin size={16} className="text-primary" /> : <MapPinOff size={16} className="text-muted-foreground" />}
-          </div>
-          <h3 className="text-base font-bold text-foreground">GPS & Location</h3>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className={`size-10 rounded-xl flex items-center justify-center ${gpsTracker ? "bg-emerald-500/10" : "bg-muted"}`}>
-                <MapPin size={18} className={gpsTracker ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">GPS Tracker</p>
-                <p className="text-[11px] text-muted-foreground">Track employee location during work hours</p>
-              </div>
-            </div>
-            <Switch checked={gpsTracker} onCheckedChange={() => toggleItem("GPS Tracker", gpsTracker, setGpsTracker)} />
-          </div>
-
-          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className={`size-10 rounded-xl flex items-center justify-center ${locationSharing ? "bg-blue-500/10" : "bg-muted"}`}>
-                <Globe size={18} className={locationSharing ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Location Sharing</p>
-                <p className="text-[11px] text-muted-foreground">Share your live location with team leads</p>
-              </div>
-            </div>
-            <Switch checked={locationSharing} onCheckedChange={() => toggleItem("Location Sharing", locationSharing, setLocationSharing)} />
-          </div>
-
-          {gpsTracker && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">GPS Active</p>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
-                <div><p className="text-[10px] text-muted-foreground">Status</p><p className="text-xs font-bold text-foreground">Connected</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Accuracy</p><p className="text-xs font-bold text-foreground">High</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Last Update</p><p className="text-xs font-bold text-foreground">Just now</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Battery Impact</p><p className="text-xs font-bold text-foreground">Low</p></div>
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
     </div>
   );
-};
+}
 
-export default ProfilePage;
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function ReadValue({ v }: { v: any }) {
+  if (!v) return <p className="text-sm text-muted-foreground/60">—</p>;
+  return <p className="text-sm text-foreground break-words">{String(v)}</p>;
+}

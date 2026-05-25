@@ -107,6 +107,8 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["event-assignments", orgId, eventId] });
       qc.invalidateQueries({ queryKey: ["event-time-conflicts", orgId, eventDate] });
+      qc.invalidateQueries({ queryKey: ["client-event-assignments"] });
+      qc.invalidateQueries({ queryKey: ["calendar-events"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -125,6 +127,8 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["event-assignments", orgId, eventId] });
       qc.invalidateQueries({ queryKey: ["event-time-conflicts", orgId, eventDate] });
+      qc.invalidateQueries({ queryKey: ["client-event-assignments"] });
+      qc.invalidateQueries({ queryKey: ["calendar-events"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

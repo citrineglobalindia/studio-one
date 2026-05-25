@@ -246,17 +246,21 @@ export default function AccessControlPage() {
 
   return (
     <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
-      {/* ═══ HEADER ═══ */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-primary" />
+      {/* HERO HEADER */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-3xl overflow-hidden border border-border">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-emerald-400/5 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="relative p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/30 flex items-center justify-center shadow-sm">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Permissions</p>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Access Control</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Toggle which modules each role can access</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Access Control</h1>
-            <p className="text-sm text-muted-foreground">Configure module permissions for each team role</p>
-          </div>
-        </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-muted rounded-lg p-0.5">
             <button
@@ -288,8 +292,9 @@ export default function AccessControlPage() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ═══ ROLE SELECTOR ═══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">

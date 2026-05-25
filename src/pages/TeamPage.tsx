@@ -459,23 +459,28 @@ export default function TeamPage() {
 
   return (
     <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
-            <Users className="h-6 w-6 text-primary" />
+      {/* HERO HEADER */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-3xl overflow-hidden border border-border">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-blue-400/5 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="relative p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/30 flex items-center justify-center shadow-sm">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Team</p>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Studio Users</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Invite teammates, pick their role, decide where they sign in.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Studio Users</h1>
-            <p className="text-sm text-muted-foreground">
-              Everyone in your studio. Invite by email, pick their role and decide where they sign in.
-            </p>
-          </div>
+          <Button onClick={() => setAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
+            <UserPlus className="h-4 w-4" /> Add User
+          </Button>
         </div>
-        <Button onClick={() => setAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
-          <UserPlus className="h-4 w-4" /> Add User
-        </Button>
-      </div>
+      </motion.div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
