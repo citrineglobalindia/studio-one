@@ -245,7 +245,7 @@ export default function AccessControlPage() {
   const RoleIcon = roleMeta?.icon ?? Shield;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

@@ -130,7 +130,7 @@ export default function AddClientPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-4">
+        <div className="w-full px-3 md:px-5 lg:px-6 py-3 md:py-4">
           <div className="flex items-center gap-3 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate("/clients")} aria-label="Back">
               <ArrowLeft className="h-5 w-5" />
@@ -153,7 +153,7 @@ export default function AddClientPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-32">
+      <main className="w-full px-3 md:px-5 lg:px-6 py-5 md:py-6 pb-32">
         <AnimatePresence mode="wait">
           {step === 1 ? (
             <motion.div key="s1" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.2 }} className="space-y-6">
@@ -232,7 +232,7 @@ export default function AddClientPage() {
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-2">
+        <div className="w-full px-3 md:px-5 lg:px-6 py-3 flex items-center justify-between gap-2">
           {step === 1 ? (
             <>
               <Button variant="ghost" onClick={() => navigate("/clients")} disabled={saving}>Cancel</Button>

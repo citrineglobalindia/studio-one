@@ -79,17 +79,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-black text-xs tracking-tight">S</span>
+      <SidebarHeader className="p-3 border-b border-border/60">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-sm">
+            <span className="text-primary-foreground font-bold text-sm tracking-tight">S</span>
           </div>
           {!collapsed && (
-            <div>
-              <h1 className="text-sm font-bold text-foreground tracking-tight">
+            <div className="min-w-0">
+              <h1 className="text-sm font-semibold text-foreground tracking-tight">
                 Studio<span className="text-primary">Ai</span>
               </h1>
-              <p className="text-[10px] text-muted-foreground">Photography Studio</p>
+              <p className="text-[10px] text-muted-foreground truncate">Photography studio</p>
             </div>
           )}
         </div>
@@ -104,7 +104,7 @@ export function AppSidebar() {
           return (
             <SidebarGroup key={group.label}>
               {!collapsed && (
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/60 px-4 mb-1">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50 px-3 mb-1 font-medium">
                   {group.label}
                 </SidebarGroupLabel>
               )}
@@ -117,7 +117,7 @@ export function AppSidebar() {
                           to={item.url}
                           end={item.url === "/"}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors"
-                          activeClassName="bg-sidebar-accent text-primary font-medium"
+                          activeClassName="bg-primary/[0.08] text-primary border-l-2 border-primary"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
                           {!collapsed && <span>{item.title}</span>}
@@ -139,7 +139,7 @@ export function AppSidebar() {
                   <NavLink
                     to="/profile"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors"
-                    activeClassName="bg-sidebar-accent text-primary font-medium"
+                    activeClassName="bg-primary/[0.08] text-primary border-l-2 border-primary"
                   >
                     <UserCog className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>Profile</span>}
@@ -151,7 +151,7 @@ export function AppSidebar() {
                   <NavLink
                     to="/settings"
                     className="flex items-center gap-3 px-4 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors"
-                    activeClassName="bg-sidebar-accent text-primary font-medium"
+                    activeClassName="bg-primary/[0.08] text-primary border-l-2 border-primary"
                   >
                     <Settings className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>Settings</span>}

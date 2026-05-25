@@ -21,7 +21,7 @@ export default function ClientsPage() {
   }, [clients, search]);
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
+    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center">

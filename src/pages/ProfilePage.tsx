@@ -185,7 +185,7 @@ const ProfilePage = () => {
       .join("") || "SU";
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
+    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-4">
       {/* Profile Header Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

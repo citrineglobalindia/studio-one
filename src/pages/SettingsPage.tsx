@@ -303,7 +303,7 @@ export default function SettingsPage() {
   // ----------------------------------------------------------------------
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
       <div className="flex items-center gap-3">
         <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-primary/20">
           <Settings className="h-5 w-5 text-primary" />

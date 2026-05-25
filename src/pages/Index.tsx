@@ -48,7 +48,7 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-[80vh] max-w-5xl mx-auto px-4 md:px-8 py-10">
+    <div className="min-h-[80vh] w-full px-3 md:px-5 lg:px-6 py-6 md:py-8">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
