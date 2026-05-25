@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useRole } from "@/contexts/RoleContext";
+import { toast } from "sonner";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { useOrg } from "@/contexts/OrgContext";
 import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
@@ -419,10 +420,9 @@ function EventsDocDialog({
 
   const buildItems = (): LineItem[] => {
     const items: LineItem[] = [];
-    // Standard requirement rows (qty=1)
+    // Standard requirement rows (qty=1). Keep even at rate=0 so they round-trip.
     for (const r of lineRows) {
       if (r.isCustom) continue;
-      if (r.rate <= 0) continue;
       items.push({
         description: `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#req:${r.req}`,
         quantity: 1,
@@ -430,15 +430,17 @@ function EventsDocDialog({
         amount: r.rate,
       });
     }
-    // Custom items with their own quantity
+    // Custom items. Keep at zero rate too — user may price later.
     for (const ev of clientEvents) {
       const customs = customByEvent[ev.id] || [];
       customs.forEach((c) => {
-        const amount = (c.quantity || 1) * (c.rate || 0);
-        if (amount <= 0) return;
+        // Skip completely empty rows (no description AND no rate AND default qty)
+        if (!c.description.trim() && !c.rate && (c.quantity ?? 1) <= 1) return;
+        const qty = c.quantity || 1;
+        const amount = qty * (c.rate || 0);
         items.push({
           description: `${ev.event_type || "Event"} — ${c.description || "Custom item"}  #evt:${ev.id}#custom`,
-          quantity: c.quantity || 1,
+          quantity: qty,
           rate: c.rate || 0,
           amount,
         });
@@ -450,6 +452,15 @@ function EventsDocDialog({
   const save = async () => {
     setSaving(true);
     try {
+      const builtItems = buildItems();
+      if (docKind !== "proposal" && builtItems.length === 0 && total === 0) {
+        toast.warning("Nothing to save — add at least one line item.");
+        setSaving(false);
+        return;
+      }
+      if (docKind !== "proposal" && total === 0) {
+        toast.info("Saved as draft — total is ₹0. Add rates to bill.");
+      }
       const base: any = {
         gst_applicable: gst,
         status,
@@ -469,7 +480,7 @@ function EventsDocDialog({
         await onSubmit({
           ...base,
           [numberField]: docNumber || null,
-          items: buildItems(),
+          items: builtItems,
           subtotal,
           discount_type: "amount",
           discount_value: discountVal,
