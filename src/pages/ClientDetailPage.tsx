@@ -100,8 +100,11 @@ export default function ClientDetailPage() {
         </div>
       </motion.div>
 
+      {/* COUPLE + CONTACT side-by-side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* COUPLE */}
       <EditableSection
+        accentClass="border-l-rose-500"
         title="Couple"
         icon={<Heart className="h-4 w-4 text-rose-500" />}
         initialValues={{
@@ -147,6 +150,7 @@ export default function ClientDetailPage() {
 
       {/* CONTACT */}
       <EditableSection
+        accentClass="border-l-emerald-500"
         title="Contact"
         icon={<Phone className="h-4 w-4 text-emerald-500" />}
         initialValues={{
@@ -189,8 +193,11 @@ export default function ClientDetailPage() {
         )}
       />
 
+      </div>
+
       {/* VENUE */}
       <EditableSection
+        accentClass="border-l-violet-500"
         title="Venue"
         icon={<Building2 className="h-4 w-4 text-violet-500" />}
         initialValues={{
@@ -255,6 +262,7 @@ export default function ClientDetailPage() {
 
       {/* BASIC */}
       <EditableSection
+        accentClass="border-l-amber-500"
         title="Notes & basic"
         icon={<Sparkles className="h-4 w-4 text-amber-500" />}
         initialValues={{
@@ -294,7 +302,7 @@ export default function ClientDetailPage() {
 // ============================================================================
 
 function EditableSection({
-  title, icon, initialValues, renderView, renderEdit, onSave,
+  title, icon, initialValues, renderView, renderEdit, onSave, accentClass,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -302,6 +310,7 @@ function EditableSection({
   renderView: () => React.ReactNode;
   renderEdit: (values: Record<string, any>, set: (k: string, v: any) => void) => React.ReactNode;
   onSave: (values: Record<string, any>) => Promise<void>;
+  accentClass?: string; // tailwind class like "border-l-rose-500"
 }) {
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState<Record<string, any>>(initialValues);
@@ -333,7 +342,7 @@ function EditableSection({
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 h-full flex flex-col">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center">{icon}</div>
@@ -357,7 +366,7 @@ function EditableSection({
           )}
         </div>
       </div>
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+      <div className={"rounded-2xl border border-border bg-card p-5 space-y-4 border-l-4 " + (accentClass || "border-l-primary/30") + " h-full"}>
         {editing ? renderEdit(values, set) : renderView()}
       </div>
     </motion.div>
