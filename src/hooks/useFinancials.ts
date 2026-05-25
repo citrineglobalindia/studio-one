@@ -169,6 +169,7 @@ export function useClientContracts(clientId: string | undefined) {
 export interface DbInvoice {
   event_id: string | null;
   gst_applicable: boolean | null;
+  terms: string | null;
   id: string;
   organization_id: string;
   client_id: string | null;
