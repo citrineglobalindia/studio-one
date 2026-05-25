@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useClients, type DbClient } from "@/hooks/useClients";
 import { EventsTimeline } from "@/components/clients/EventsTimeline";
+import { FinancialsSection } from "@/components/clients/FinancialsSection";
 import { toast } from "sonner";
 
 export default function ClientDetailPage() {
@@ -301,6 +302,7 @@ export default function ClientDetailPage() {
 
       {/* EVENTS */}
       <EventsTimeline clientId={client.id} defaultVenue={client.venue_name} />
+      <FinancialsSection clientId={client.id} clientName={couple || ""} />
     </div>
   );
 }

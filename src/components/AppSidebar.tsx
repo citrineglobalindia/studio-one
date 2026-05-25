@@ -51,6 +51,7 @@ type SidebarItem = { title: string; url: string; icon: typeof LayoutDashboard; m
 const salesItems: SidebarItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
   { title: "Clients", url: "/clients", icon: Users, module: "clients" },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays, module: "calendar" },
 ];
 
 const systemItems: SidebarItem[] = [

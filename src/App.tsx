@@ -31,6 +31,7 @@ import TeamPage from "./pages/TeamPage";
 import ClientsPage from "./pages/ClientsPage";
 import AddClientPage from "./pages/AddClientPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
+import CalendarPage from "./pages/CalendarPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import AccessControlPage from "./pages/AccessControlPage";
@@ -77,6 +78,7 @@ function ProtectedRoutes() {
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/new" element={<AddClientPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/members" element={<Navigate to="/team" replace />} />
         <Route path="/access-control" element={<AccessControlPage />} />
         <Route path="/profile" element={<ProfilePage />} />

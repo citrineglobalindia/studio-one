@@ -177,7 +177,8 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
 
                     {/* Card */}
                     <div className="flex-1 min-w-0 rounded-xl border border-border bg-background p-3.5">
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col md:flex-row md:items-stretch gap-3">
+                       <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-semibold text-foreground">{e.event_type || "Event"}</p>
@@ -219,57 +220,71 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                             <p className="text-xs text-foreground/80 mt-2 whitespace-pre-wrap">{e.notes}</p>
                           )}
 
-                          {/* Assigned team avatars + finalize/assign bar */}
-                          <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-border/60">
-                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                              {(assignmentsByEvent.get(e.id) ?? []).length > 0 ? (
+                          {canManage && (
+                            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/60">
+                              {e.is_finalized ? (
                                 <>
-                                  <div className="flex -space-x-1.5">
-                                    {(assignmentsByEvent.get(e.id) ?? []).slice(0, 6).map((mid) => {
-                                      const m = memberById.get(mid);
-                                      if (!m) return null;
-                                      const init = (m.full_name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
-                                      return (
-                                        <div key={mid} title={`${m.full_name}${m.role ? " — " + m.role.replace(/_/g, " ") : ""}`} className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-background flex items-center justify-center text-[9px] font-bold text-primary">
-                                          {init}
-                                        </div>
-                                      );
-                                    })}
-                                    {(assignmentsByEvent.get(e.id) ?? []).length > 6 && (
-                                      <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[9px] font-medium text-muted-foreground">
-                                        +{(assignmentsByEvent.get(e.id) ?? []).length - 6}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className="text-[10px] text-muted-foreground">{(assignmentsByEvent.get(e.id) ?? []).length} assigned</span>
+                                  <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                                    <CheckCircle2 className="h-3 w-3" /> Finalized
+                                  </Badge>
+                                  <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => openAssign(e)}>
+                                    <Users className="h-3 w-3" /> Assign team
+                                  </Button>
                                 </>
                               ) : (
-                                <span className="text-[10px] text-muted-foreground italic">
-                                  {e.is_finalized ? "No team assigned yet" : "Finalize the event first to assign team"}
-                                </span>
+                                <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => finalizeEvent.mutate({ id: e.id, finalize: true })}>
+                                  <Lock className="h-3 w-3" /> Finalize first
+                                </Button>
                               )}
                             </div>
-
-                            {canManage && (
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {e.is_finalized ? (
-                                  <>
-                                    <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                                      <CheckCircle2 className="h-3 w-3" /> Finalized
-                                    </Badge>
-                                    <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => openAssign(e)}>
-                                      <Users className="h-3 w-3" /> Assign team
-                                    </Button>
-                                  </>
-                                ) : (
-                                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => finalizeEvent.mutate({ id: e.id, finalize: true })}>
-                                    <Lock className="h-3 w-3" /> Finalize
-                                  </Button>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
+
+                        {/* RIGHT-SIDE ASSIGNED MEMBERS — horizontal cards */}
+                        <div className="md:border-l md:border-border/60 md:pl-3 flex flex-col min-w-0 md:max-w-[60%]">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+                            Assigned team ({(assignmentsByEvent.get(e.id) ?? []).length})
+                          </p>
+                          {(assignmentsByEvent.get(e.id) ?? []).length === 0 ? (
+                            <p className="text-[11px] text-muted-foreground italic">
+                              {e.is_finalized ? "No one assigned yet" : "Finalize the event first to assign team"}
+                            </p>
+                          ) : (
+                            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                              {(assignmentsByEvent.get(e.id) ?? []).map((mid) => {
+                                const m = memberById.get(mid);
+                                if (!m) return null;
+                                const init = (m.full_name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+                                const roleColor = (m.role || "").includes("photog")
+                                  ? "from-blue-500/25 to-blue-500/5 border-blue-500/30 text-blue-600"
+                                  : (m.role || "").includes("videog")
+                                  ? "from-purple-500/25 to-purple-500/5 border-purple-500/30 text-purple-600"
+                                  : (m.role || "").includes("editor")
+                                  ? "from-emerald-500/25 to-emerald-500/5 border-emerald-500/30 text-emerald-600"
+                                  : "from-primary/25 to-primary/5 border-primary/20 text-primary";
+                                return (
+                                  <div key={mid} title={`${m.full_name}${m.role ? " — " + m.role.replace(/_/g, " ") : ""}`}
+                                       className={"shrink-0 w-32 rounded-lg border bg-gradient-to-br " + roleColor + " p-2"}>
+                                    <div className="flex items-center gap-1.5">
+                                      <div className={"h-7 w-7 rounded-full bg-background/60 border border-border flex items-center justify-center text-[10px] font-bold shrink-0"}>
+                                        {init}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-[11px] font-semibold text-foreground truncate leading-tight">{m.full_name}</p>
+                                        {m.role && (
+                                          <p className="text-[9px] capitalize truncate opacity-80 leading-tight">
+                                            {m.role.replace(/_/g, " ").replace("vendor", "vndr")}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
                         {canManage && (
                           <div className="flex items-center gap-0.5 shrink-0">

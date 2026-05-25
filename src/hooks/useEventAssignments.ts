@@ -35,34 +35,58 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     },
   });
 
-  // Same-day busy set: team_members already booked on `eventDate`
-  // for other events in this org.
+  // Time-overlap conflict set: members booked on this date with overlapping times.
+  // If either event lacks times, treat as date conflict (safe default).
   const conflictsQ = useQuery({
-    queryKey: ["event-day-conflicts", orgId, eventDate, eventId],
+    queryKey: ["event-time-conflicts", orgId, eventDate, eventId],
     enabled: !!orgId && !!eventDate,
     queryFn: async () => {
       const map = new Map<string, string>();
       if (!orgId || !eventDate) return map;
-      // 1) find every event on this date in this org
+
+      // Self event times
+      let thisStart: string | null = null, thisEnd: string | null = null;
+      if (eventId) {
+        const selfRes = await (supabase as any)
+          .from("events").select("start_time, end_time").eq("id", eventId).single();
+        if (selfRes.data) {
+          thisStart = selfRes.data.start_time as string | null;
+          thisEnd = selfRes.data.end_time as string | null;
+        }
+      }
+
+      // Other events on this date
       const eventsRes = await (supabase as any)
         .from("events")
-        .select("id, name")
+        .select("id, name, start_time, end_time")
         .eq("organization_id", orgId)
         .eq("event_date", eventDate);
       if (eventsRes.error) throw eventsRes.error;
-      const sameDayEvents = (eventsRes.data ?? []) as Array<{ id: string; name: string | null }>;
-      const otherIds = sameDayEvents.filter((e) => e.id !== eventId).map((e) => e.id);
-      if (otherIds.length === 0) return map;
-      // 2) find all assignments to those events
+      const sameDayEvents = (eventsRes.data ?? []) as Array<{
+        id: string; name: string | null; start_time: string | null; end_time: string | null;
+      }>;
+      const others = sameDayEvents.filter((e) => e.id !== eventId);
+      if (others.length === 0) return map;
+
+      // Filter by time-overlap
+      const overlapping = others.filter((e) => {
+        if (!thisStart || !thisEnd || !e.start_time || !e.end_time) return true; // safe default
+        return thisStart < e.end_time && e.start_time < thisEnd;
+      });
+      if (overlapping.length === 0) return map;
+
       const assignRes = await (supabase as any)
         .from("event_team_assignments")
         .select("team_member_id, event_id")
         .eq("organization_id", orgId)
-        .in("event_id", otherIds);
+        .in("event_id", overlapping.map((e) => e.id));
       if (assignRes.error) throw assignRes.error;
-      const nameById = new Map(sameDayEvents.map((e) => [e.id, e.name || "another event"]));
+      const labelById = new Map(overlapping.map((e) => {
+        const t = (e.start_time && e.end_time) ? ` (${String(e.start_time).slice(0,5)}–${String(e.end_time).slice(0,5)})` : "";
+        return [e.id, (e.name || "another event") + t];
+      }));
       for (const row of (assignRes.data ?? []) as Array<{ team_member_id: string; event_id: string }>) {
-        map.set(row.team_member_id, nameById.get(row.event_id) || "another event");
+        map.set(row.team_member_id, labelById.get(row.event_id) || "another event");
       }
       return map;
     },
@@ -82,7 +106,7 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["event-assignments", orgId, eventId] });
-      qc.invalidateQueries({ queryKey: ["event-day-conflicts", orgId, eventDate] });
+      qc.invalidateQueries({ queryKey: ["event-time-conflicts", orgId, eventDate] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -100,7 +124,7 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["event-assignments", orgId, eventId] });
-      qc.invalidateQueries({ queryKey: ["event-day-conflicts", orgId, eventDate] });
+      qc.invalidateQueries({ queryKey: ["event-time-conflicts", orgId, eventDate] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
