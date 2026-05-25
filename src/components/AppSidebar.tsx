@@ -26,6 +26,7 @@ import {
   CalendarOff,
   LogOut,
   Package,
+  Receipt,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,6 +57,9 @@ const salesItems: SidebarItem[] = [
 
 const financeItems: SidebarItem[] = [
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
+  { title: "Expenses", url: "/expenses", icon: Receipt, module: "payment-requests" },
+  { title: "Ledger", url: "/ledger", icon: BookImage, module: "accounts-page" },
+  { title: "P&L", url: "/pnl", icon: BarChart3, module: "accounts-page" },
 ];
 
 const systemItems: SidebarItem[] = [

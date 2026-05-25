@@ -33,6 +33,9 @@ import AddClientPage from "./pages/AddClientPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import CalendarPage from "./pages/CalendarPage";
 import AccountsPage from "./pages/AccountsPage";
+import ExpensesPage from "./pages/ExpensesPage";
+import LedgerPage from "./pages/LedgerPage";
+import PnLPage from "./pages/PnLPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import AccessControlPage from "./pages/AccessControlPage";
@@ -81,6 +84,9 @@ function ProtectedRoutes() {
         <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/ledger" element={<LedgerPage />} />
+        <Route path="/pnl" element={<PnLPage />} />
         <Route path="/members" element={<Navigate to="/team" replace />} />
         <Route path="/access-control" element={<AccessControlPage />} />
         <Route path="/profile" element={<ProfilePage />} />
