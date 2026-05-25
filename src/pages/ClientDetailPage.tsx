@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Heart, Building2, Pencil,
-  Save, X, Loader2, Trash2, MoreHorizontal, CalendarDays, ExternalLink,
+  Save, X, Loader2, Trash2, MoreHorizontal, ExternalLink, Sparkles,
+  Eraser,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,25 +12,30 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useClients, type DbClient } from "@/hooks/useClients";
 import { toast } from "sonner";
+
+type SectionKey = "couple" | "contact" | "venue" | "basic";
+
+const SECTION_FIELDS: Record<SectionKey, (keyof DbClient)[]> = {
+  couple: ["marriage_date", "engagement_date", "date_of_birth", "partner_date_of_birth"],
+  contact: ["phone", "email", "partner_phone", "partner_email", "address", "city"],
+  venue: [
+    "venue_name", "venue_address", "venue_city", "venue_pincode",
+    "venue_landmark", "venue_map_url",
+    "venue_contact_person", "venue_contact_phone", "venue_notes",
+  ],
+  basic: ["source", "budget", "notes"],
+};
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { clients, isLoading, updateClient, deleteClient } = useClients();
 
-  const client = clients.find((c) => c.id === id);
-
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<Partial<DbClient>>({});
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (client) setForm({ ...client });
-  }, [client?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const client = useMemo(() => clients.find((c) => c.id === id), [clients, id]);
 
   if (isLoading) {
     return (
@@ -48,22 +54,25 @@ export default function ClientDetailPage() {
     );
   }
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      // Lock couple-name fields: ignore form.name + form.partner_name
-      const { name, partner_name, ...editable } = form as any;
-      await updateClient.mutateAsync({ id: client.id, ...editable });
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const initials = (client.name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
   const couple = client.partner_name ? `${client.name} & ${client.partner_name}` : client.name;
 
-  const upd = (k: keyof DbClient, v: any) => setForm((p) => ({ ...p, [k]: v }));
+  const saveSection = async (fields: (keyof DbClient)[], values: Record<string, any>) => {
+    const patch: Record<string, any> = { id: client.id };
+    for (const f of fields) {
+      const v = values[f as string];
+      patch[f as string] = (typeof v === "string" && v.trim() === "") ? null : (v ?? null);
+    }
+    await updateClient.mutateAsync(patch as any);
+  };
+
+  const clearSection = async (sectionKey: SectionKey, sectionLabel: string) => {
+    if (!window.confirm(`Clear all fields in "${sectionLabel}"? Values will be set to empty.`)) return;
+    const patch: Record<string, any> = { id: client.id };
+    for (const f of SECTION_FIELDS[sectionKey]) patch[f as string] = null;
+    await updateClient.mutateAsync(patch as any);
+    toast.success(`${sectionLabel} cleared`);
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-5 pb-10">
@@ -76,39 +85,22 @@ export default function ClientDetailPage() {
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold">Client</p>
           <h1 className="text-lg font-bold text-foreground truncate">{couple}</h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {!editing ? (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </Button>
-          ) : (
-            <>
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setEditing(false); setForm(client); }} disabled={saving}>
-                <X className="h-3.5 w-3.5" /> Cancel
-              </Button>
-              <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Save
-              </Button>
-            </>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => {
-                  if (!window.confirm(`Delete ${couple}? This cannot be undone.`)) return;
-                  deleteClient.mutate(client.id, { onSuccess: () => navigate("/clients") });
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete client
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                if (!window.confirm(`Delete ${couple}? This cannot be undone.`)) return;
+                deleteClient.mutate(client.id, { onSuccess: () => navigate("/clients") });
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete client
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </motion.div>
 
       {/* Hero */}
@@ -127,136 +119,352 @@ export default function ClientDetailPage() {
         </div>
       </motion.div>
 
-      {/* Couple section — names locked */}
-      <Section title="Couple" icon={<Heart className="h-4 w-4 text-rose-500" />}>
-        <Row>
-          <Field label="Primary contact name (locked)">
-            <Input value={client.name || ""} disabled />
-          </Field>
-          <Field label="Partner name (locked)">
-            <Input value={client.partner_name || ""} disabled />
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Marriage / event date">
-            {editing ? <Input type="date" value={(form.marriage_date as string) || ""} onChange={(e) => upd("marriage_date", e.target.value || null)} /> : <ReadOnly v={client.marriage_date} type="date" />}
-          </Field>
-          <Field label="Engagement date">
-            {editing ? <Input type="date" value={(form.engagement_date as string) || ""} onChange={(e) => upd("engagement_date", e.target.value || null)} /> : <ReadOnly v={client.engagement_date} type="date" />}
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Primary DOB">
-            {editing ? <Input type="date" value={(form.date_of_birth as string) || ""} onChange={(e) => upd("date_of_birth", e.target.value || null)} /> : <ReadOnly v={client.date_of_birth} type="date" />}
-          </Field>
-          <Field label="Partner DOB">
-            {editing ? <Input type="date" value={(form.partner_date_of_birth as string) || ""} onChange={(e) => upd("partner_date_of_birth", e.target.value || null)} /> : <ReadOnly v={client.partner_date_of_birth} type="date" />}
-          </Field>
-        </Row>
-      </Section>
+      {/* ── COUPLE ── */}
+      <CoupleSection
+        client={client}
+        onSave={(values) => saveSection(SECTION_FIELDS.couple, values)}
+        onClear={() => clearSection("couple", "Couple dates")}
+      />
 
-      {/* Contact */}
-      <Section title="Contact" icon={<Phone className="h-4 w-4 text-emerald-500" />}>
-        <Row>
-          <Field label="Primary phone">
-            {editing ? <Input value={(form.phone as string) || ""} onChange={(e) => upd("phone", e.target.value)} /> : <ReadOnly v={client.phone} />}
-          </Field>
-          <Field label="Primary email">
-            {editing ? <Input type="email" value={(form.email as string) || ""} onChange={(e) => upd("email", e.target.value)} /> : <ReadOnly v={client.email} />}
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Partner phone">
-            {editing ? <Input value={(form.partner_phone as string) || ""} onChange={(e) => upd("partner_phone", e.target.value)} /> : <ReadOnly v={client.partner_phone} />}
-          </Field>
-          <Field label="Partner email">
-            {editing ? <Input type="email" value={(form.partner_email as string) || ""} onChange={(e) => upd("partner_email", e.target.value)} /> : <ReadOnly v={client.partner_email} />}
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Address">
-            {editing ? <Textarea rows={2} value={(form.address as string) || ""} onChange={(e) => upd("address", e.target.value)} /> : <ReadOnly v={client.address} />}
-          </Field>
-          <Field label="City">
-            {editing ? <Input value={(form.city as string) || ""} onChange={(e) => upd("city", e.target.value)} /> : <ReadOnly v={client.city} />}
-          </Field>
-        </Row>
-      </Section>
+      {/* ── CONTACT ── */}
+      <ContactSection
+        client={client}
+        onSave={(values) => saveSection(SECTION_FIELDS.contact, values)}
+        onClear={() => clearSection("contact", "Contact")}
+      />
 
-      {/* Venue */}
-      <Section title="Venue" icon={<Building2 className="h-4 w-4 text-violet-500" />}>
-        <Row>
-          <Field label="Venue name">
-            {editing ? <Input value={(form.venue_name as string) || ""} onChange={(e) => upd("venue_name", e.target.value)} /> : <ReadOnly v={client.venue_name} />}
-          </Field>
-          <Field label="City">
-            {editing ? <Input value={(form.venue_city as string) || ""} onChange={(e) => upd("venue_city", e.target.value)} /> : <ReadOnly v={client.venue_city} />}
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Address">
-            {editing ? <Textarea rows={2} value={(form.venue_address as string) || ""} onChange={(e) => upd("venue_address", e.target.value)} /> : <ReadOnly v={client.venue_address} />}
-          </Field>
-          <Field label="Pincode">
-            {editing ? <Input value={(form.venue_pincode as string) || ""} onChange={(e) => upd("venue_pincode", e.target.value)} /> : <ReadOnly v={client.venue_pincode} />}
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Landmark">
-            {editing ? <Input value={(form.venue_landmark as string) || ""} onChange={(e) => upd("venue_landmark", e.target.value)} /> : <ReadOnly v={client.venue_landmark} />}
-          </Field>
-          <Field label="Google Maps URL">
-            {editing ? (
-              <Input value={(form.venue_map_url as string) || ""} onChange={(e) => upd("venue_map_url", e.target.value)} />
-            ) : client.venue_map_url ? (
-              <a href={client.venue_map_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                Open in Google Maps <ExternalLink className="h-3 w-3" />
-              </a>
-            ) : <ReadOnly v={null} />}
-          </Field>
-        </Row>
-        <Row>
-          <Field label="Contact person">
-            {editing ? <Input value={(form.venue_contact_person as string) || ""} onChange={(e) => upd("venue_contact_person", e.target.value)} /> : <ReadOnly v={client.venue_contact_person} />}
-          </Field>
-          <Field label="Contact phone">
-            {editing ? <Input value={(form.venue_contact_phone as string) || ""} onChange={(e) => upd("venue_contact_phone", e.target.value)} /> : <ReadOnly v={client.venue_contact_phone} />}
-          </Field>
-        </Row>
-        <Field label="Venue notes">
-          {editing ? <Textarea rows={3} value={(form.venue_notes as string) || ""} onChange={(e) => upd("venue_notes", e.target.value)} /> : <ReadOnly v={client.venue_notes} />}
-        </Field>
-      </Section>
+      {/* ── VENUE ── */}
+      <VenueSection
+        client={client}
+        onSave={(values) => saveSection(SECTION_FIELDS.venue, values)}
+        onClear={() => clearSection("venue", "Venue")}
+      />
 
-      {/* Notes */}
-      <Section title="Notes & basic" icon={<User className="h-4 w-4 text-amber-500" />}>
-        <Row>
-          <Field label="Source">
-            {editing ? <Input value={(form.source as string) || ""} onChange={(e) => upd("source", e.target.value)} /> : <ReadOnly v={client.source} />}
-          </Field>
-          <Field label="Budget (₹)">
-            {editing ? <Input type="number" value={(form.budget as any) ?? ""} onChange={(e) => upd("budget", e.target.value ? Number(e.target.value) : null)} /> : <ReadOnly v={client.budget != null ? `₹${client.budget}` : null} />}
-          </Field>
-        </Row>
-        <Field label="Notes">
-          {editing ? <Textarea rows={3} value={(form.notes as string) || ""} onChange={(e) => upd("notes", e.target.value)} /> : <ReadOnly v={client.notes} />}
-        </Field>
-      </Section>
+      {/* ── BASIC ── */}
+      <BasicSection
+        client={client}
+        onSave={(values) => saveSection(SECTION_FIELDS.basic, values)}
+        onClear={() => clearSection("basic", "Notes & basic")}
+      />
     </div>
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+// ============================================================================
+// SECTION COMPONENTS
+// ============================================================================
+
+type SectionProps = {
+  client: DbClient;
+  onSave: (values: Record<string, any>) => Promise<void>;
+  onClear: () => Promise<void>;
+};
+
+function CoupleSection({ client, onSave, onClear }: SectionProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center">{icon}</div>
-        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-      </div>
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">{children}</div>
-    </div>
+    <EditableSection
+      title="Couple"
+      icon={<Heart className="h-4 w-4 text-rose-500" />}
+      onSave={onSave}
+      onClear={onClear}
+      initialValues={{
+        marriage_date: client.marriage_date,
+        engagement_date: client.engagement_date,
+        date_of_birth: client.date_of_birth,
+        partner_date_of_birth: client.partner_date_of_birth,
+      }}
+      renderView={() => (
+        <>
+          <Row>
+            <ReadField label="Primary contact name (locked)" value={client.name} />
+            <ReadField label="Partner name (locked)" value={client.partner_name} />
+          </Row>
+          <Row>
+            <ReadField label="Marriage / event date" value={client.marriage_date} type="date" />
+            <ReadField label="Engagement date" value={client.engagement_date} type="date" />
+          </Row>
+          <Row>
+            <ReadField label="Primary DOB" value={client.date_of_birth} type="date" />
+            <ReadField label="Partner DOB" value={client.partner_date_of_birth} type="date" />
+          </Row>
+        </>
+      )}
+      renderEdit={(values, set) => (
+        <>
+          <Row>
+            <Field label="Primary contact name (locked)">
+              <Input value={client.name || ""} disabled />
+            </Field>
+            <Field label="Partner name (locked)">
+              <Input value={client.partner_name || ""} disabled />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Marriage / event date">
+              <Input type="date" value={values.marriage_date || ""} onChange={(e) => set("marriage_date", e.target.value)} />
+            </Field>
+            <Field label="Engagement date">
+              <Input type="date" value={values.engagement_date || ""} onChange={(e) => set("engagement_date", e.target.value)} />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Primary DOB">
+              <Input type="date" value={values.date_of_birth || ""} onChange={(e) => set("date_of_birth", e.target.value)} />
+            </Field>
+            <Field label="Partner DOB">
+              <Input type="date" value={values.partner_date_of_birth || ""} onChange={(e) => set("partner_date_of_birth", e.target.value)} />
+            </Field>
+          </Row>
+        </>
+      )}
+    />
   );
 }
+
+function ContactSection({ client, onSave, onClear }: SectionProps) {
+  return (
+    <EditableSection
+      title="Contact"
+      icon={<Phone className="h-4 w-4 text-emerald-500" />}
+      onSave={onSave}
+      onClear={onClear}
+      initialValues={{
+        phone: client.phone, email: client.email,
+        partner_phone: client.partner_phone, partner_email: client.partner_email,
+        address: client.address, city: client.city,
+      }}
+      renderView={() => (
+        <>
+          <Row>
+            <ReadField label="Primary phone" value={client.phone} />
+            <ReadField label="Primary email" value={client.email} />
+          </Row>
+          <Row>
+            <ReadField label="Partner phone" value={client.partner_phone} />
+            <ReadField label="Partner email" value={client.partner_email} />
+          </Row>
+          <Row>
+            <ReadField label="Address" value={client.address} />
+            <ReadField label="City" value={client.city} />
+          </Row>
+        </>
+      )}
+      renderEdit={(v, set) => (
+        <>
+          <Row>
+            <Field label="Primary phone"><Input value={v.phone || ""} onChange={(e) => set("phone", e.target.value)} /></Field>
+            <Field label="Primary email"><Input type="email" value={v.email || ""} onChange={(e) => set("email", e.target.value)} /></Field>
+          </Row>
+          <Row>
+            <Field label="Partner phone"><Input value={v.partner_phone || ""} onChange={(e) => set("partner_phone", e.target.value)} /></Field>
+            <Field label="Partner email"><Input type="email" value={v.partner_email || ""} onChange={(e) => set("partner_email", e.target.value)} /></Field>
+          </Row>
+          <Row>
+            <Field label="Address"><Textarea rows={2} value={v.address || ""} onChange={(e) => set("address", e.target.value)} /></Field>
+            <Field label="City"><Input value={v.city || ""} onChange={(e) => set("city", e.target.value)} /></Field>
+          </Row>
+        </>
+      )}
+    />
+  );
+}
+
+function VenueSection({ client, onSave, onClear }: SectionProps) {
+  return (
+    <EditableSection
+      title="Venue"
+      icon={<Building2 className="h-4 w-4 text-violet-500" />}
+      onSave={onSave}
+      onClear={onClear}
+      initialValues={{
+        venue_name: client.venue_name, venue_address: client.venue_address,
+        venue_city: client.venue_city, venue_pincode: client.venue_pincode,
+        venue_landmark: client.venue_landmark, venue_map_url: client.venue_map_url,
+        venue_contact_person: client.venue_contact_person,
+        venue_contact_phone: client.venue_contact_phone,
+        venue_notes: client.venue_notes,
+      }}
+      renderView={() => (
+        <>
+          <Row>
+            <ReadField label="Venue name" value={client.venue_name} />
+            <ReadField label="City" value={client.venue_city} />
+          </Row>
+          <Row>
+            <ReadField label="Address" value={client.venue_address} />
+            <ReadField label="Pincode" value={client.venue_pincode} />
+          </Row>
+          <Row>
+            <ReadField label="Landmark" value={client.venue_landmark} />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Google Maps URL</Label>
+              {client.venue_map_url ? (
+                <a href={client.venue_map_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                  Open in Google Maps <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : <p className="text-sm text-muted-foreground">—</p>}
+            </div>
+          </Row>
+          <Row>
+            <ReadField label="Contact person" value={client.venue_contact_person} />
+            <ReadField label="Contact phone" value={client.venue_contact_phone} />
+          </Row>
+          <ReadField label="Venue notes" value={client.venue_notes} />
+        </>
+      )}
+      renderEdit={(v, set) => (
+        <>
+          <Row>
+            <Field label="Venue name"><Input value={v.venue_name || ""} onChange={(e) => set("venue_name", e.target.value)} /></Field>
+            <Field label="City"><Input value={v.venue_city || ""} onChange={(e) => set("venue_city", e.target.value)} /></Field>
+          </Row>
+          <Row>
+            <Field label="Address"><Textarea rows={2} value={v.venue_address || ""} onChange={(e) => set("venue_address", e.target.value)} /></Field>
+            <Field label="Pincode"><Input value={v.venue_pincode || ""} onChange={(e) => set("venue_pincode", e.target.value)} /></Field>
+          </Row>
+          <Row>
+            <Field label="Landmark"><Input value={v.venue_landmark || ""} onChange={(e) => set("venue_landmark", e.target.value)} /></Field>
+            <Field label="Google Maps URL"><Input value={v.venue_map_url || ""} onChange={(e) => set("venue_map_url", e.target.value)} placeholder="https://maps.app.goo.gl/…" /></Field>
+          </Row>
+          <Row>
+            <Field label="Contact person"><Input value={v.venue_contact_person || ""} onChange={(e) => set("venue_contact_person", e.target.value)} /></Field>
+            <Field label="Contact phone"><Input value={v.venue_contact_phone || ""} onChange={(e) => set("venue_contact_phone", e.target.value)} /></Field>
+          </Row>
+          <Field label="Venue notes"><Textarea rows={3} value={v.venue_notes || ""} onChange={(e) => set("venue_notes", e.target.value)} /></Field>
+        </>
+      )}
+    />
+  );
+}
+
+function BasicSection({ client, onSave, onClear }: SectionProps) {
+  return (
+    <EditableSection
+      title="Notes & basic"
+      icon={<Sparkles className="h-4 w-4 text-amber-500" />}
+      onSave={onSave}
+      onClear={onClear}
+      initialValues={{
+        source: client.source,
+        budget: client.budget,
+        notes: client.notes,
+      }}
+      renderView={() => (
+        <>
+          <Row>
+            <ReadField label="Source" value={client.source} />
+            <ReadField label="Budget (₹)" value={client.budget != null ? `₹${client.budget}` : null} />
+          </Row>
+          <ReadField label="Notes" value={client.notes} />
+        </>
+      )}
+      renderEdit={(v, set) => (
+        <>
+          <Row>
+            <Field label="Source"><Input value={v.source || ""} onChange={(e) => set("source", e.target.value)} placeholder="Instagram / Referral / …" /></Field>
+            <Field label="Budget (₹)"><Input type="number" value={v.budget ?? ""} onChange={(e) => set("budget", e.target.value ? Number(e.target.value) : null)} /></Field>
+          </Row>
+          <Field label="Notes"><Textarea rows={3} value={v.notes || ""} onChange={(e) => set("notes", e.target.value)} /></Field>
+        </>
+      )}
+    />
+  );
+}
+
+// ============================================================================
+// EDITABLE SECTION WRAPPER
+// ============================================================================
+
+function EditableSection({
+  title, icon, initialValues, renderView, renderEdit, onSave, onClear,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  initialValues: Record<string, any>;
+  renderView: () => React.ReactNode;
+  renderEdit: (values: Record<string, any>, set: (k: string, v: any) => void) => React.ReactNode;
+  onSave: (values: Record<string, any>) => Promise<void>;
+  onClear: () => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [values, setValues] = useState<Record<string, any>>(initialValues);
+  const [saving, setSaving] = useState(false);
+
+  // Sync incoming changes (e.g. after a save) when not editing
+  useEffect(() => {
+    if (!editing) setValues(initialValues);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(initialValues), editing]);
+
+  const set = (k: string, v: any) => setValues((p) => ({ ...p, [k]: v }));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(values);
+      setEditing(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancel = () => {
+    setValues(initialValues);
+    setEditing(false);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center">{icon}</div>
+          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {!editing ? (
+            <>
+              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setEditing(true)}>
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={onClear}
+                  >
+                    <Eraser className="h-3.5 w-3.5 mr-2" /> Clear section
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" className="gap-1.5 h-8" onClick={cancel} disabled={saving}>
+                <X className="h-3.5 w-3.5" /> Cancel
+              </Button>
+              <Button size="sm" className="gap-1.5 h-8" onClick={save} disabled={saving}>
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        {editing ? renderEdit(values, set) : renderView()}
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// SMALL HELPERS
+// ============================================================================
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>;
@@ -271,10 +479,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function ReadOnly({ v, type }: { v: any; type?: "date" }) {
-  if (!v) return <p className="text-sm text-muted-foreground">—</p>;
-  if (type === "date") {
-    try { return <p className="text-sm text-foreground">{new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</p>; } catch { return <p className="text-sm text-foreground">{String(v)}</p>; }
+function ReadField({ label, value, type }: { label: string; value: any; type?: "date" }) {
+  let display: React.ReactNode = "—";
+  if (value != null && value !== "") {
+    if (type === "date") {
+      try {
+        display = new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      } catch {
+        display = String(value);
+      }
+    } else {
+      display = String(value);
+    }
   }
-  return <p className="text-sm text-foreground break-words">{String(v)}</p>;
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className={"text-sm break-words " + (display === "—" ? "text-muted-foreground" : "text-foreground")}>
+        {display}
+      </p>
+    </div>
+  );
 }
