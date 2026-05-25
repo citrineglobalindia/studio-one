@@ -17,6 +17,15 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-rose-500/15 text-rose-600 border-rose-500/30",
 };
 
+const REQ_LABEL: Record<string, { short: string; full: string; color: string }> = {
+  traditional_photographer: { short: "Trad Photo", full: "Traditional Photographer", color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  traditional_videographer: { short: "Trad Video", full: "Traditional Videographer", color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
+  candid_photographer:     { short: "Candid Photo", full: "Candid Photographer",     color: "bg-rose-500/10 text-rose-600 border-rose-500/30" },
+  candid_videographer:     { short: "Candid Video", full: "Candid Videographer",     color: "bg-amber-500/10 text-amber-700 border-amber-500/30" },
+  drone_shoot:             { short: "Drone",        full: "Drone Shoot",             color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
+  led_wall:                { short: "LED Wall",     full: "LED Wall",                color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/30" },
+};
+
 const TYPE_COLORS: Record<string, string> = {
   Wedding: "from-rose-500 to-pink-500",
   "Pre-Wedding": "from-purple-500 to-fuchsia-500",
@@ -154,6 +163,22 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                               <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{e.venue}</span>
                             )}
                           </div>
+                          {Array.isArray(e.requirements) && e.requirements.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {e.requirements.map((r) => {
+                                const meta = REQ_LABEL[r];
+                                return (
+                                  <span
+                                    key={r}
+                                    title={meta?.full || r}
+                                    className={"inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border " + (meta?.color || "bg-muted text-foreground border-border")}
+                                  >
+                                    {meta?.short || r}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                           {e.notes && (
                             <p className="text-xs text-foreground/80 mt-2 whitespace-pre-wrap">{e.notes}</p>
                           )}

@@ -19,6 +19,7 @@ export interface DbEvent {
   notes: string | null;
   status: EventStatus | string | null;
   display_order: number | null;
+  requirements: string[] | null;
   created_at: string;
   updated_at: string;
 }

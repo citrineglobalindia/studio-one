@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Clock, Building2, FileText, Loader2, Tag, Check } from "lucide-react";
+import { CalendarDays, Clock, Building2, FileText, Loader2, Tag, Check, Camera, Video, Plane, Sparkles, Monitor } from "lucide-react";
 import type { DbEvent, EventStatus } from "@/hooks/useEvents";
 
 const EVENT_TYPES = [
@@ -19,6 +19,15 @@ const EVENT_TYPES = [
 ];
 
 const STATUSES: EventStatus[] = ["upcoming", "in-progress", "completed", "cancelled"];
+
+const REQUIREMENT_OPTIONS: { value: string; label: string; icon: typeof Camera; color: string }[] = [
+  { value: "traditional_photographer", label: "Traditional Photographer", icon: Camera, color: "from-blue-500 to-cyan-500" },
+  { value: "traditional_videographer", label: "Traditional Videographer", icon: Video, color: "from-purple-500 to-fuchsia-500" },
+  { value: "candid_photographer",     label: "Candid Photographer",     icon: Camera, color: "from-rose-500 to-pink-500" },
+  { value: "candid_videographer",     label: "Candid Videographer",     icon: Video,  color: "from-amber-500 to-orange-500" },
+  { value: "drone_shoot",             label: "Drone Shoot",             icon: Plane,  color: "from-emerald-500 to-teal-500" },
+  { value: "led_wall",                label: "LED Wall",                icon: Monitor, color: "from-indigo-500 to-violet-500" },
+];
 
 export function EventDialog({
   open, onOpenChange, editing, defaultVenue, onSubmit,
@@ -37,6 +46,7 @@ export function EventDialog({
     venue: "",
     status: "upcoming" as EventStatus,
     notes: "",
+    requirements: [] as string[],
   });
   const [saving, setSaving] = useState(false);
 
@@ -51,6 +61,7 @@ export function EventDialog({
         venue: editing.venue || "",
         status: (editing.status as EventStatus) || "upcoming",
         notes: editing.notes || "",
+        requirements: Array.isArray(editing.requirements) ? editing.requirements : [],
       });
     } else {
       setForm({
@@ -61,6 +72,7 @@ export function EventDialog({
         venue: "",
         status: "upcoming",
         notes: "",
+        requirements: [],
       });
     }
   }, [open, editing]);
@@ -77,6 +89,7 @@ export function EventDialog({
         status: form.status,
         notes: form.notes.trim() || null,
         name: form.event_type, // mirror type into name for display
+        requirements: form.requirements,
       });
       onOpenChange(false);
     } finally {
@@ -175,6 +188,49 @@ export function EventDialog({
                 Will save as: <span className="text-foreground">{defaultVenue}</span>
               </p>
             )}
+          </div>
+
+          {/* Requirements (multi-select) */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+              <Label className="text-xs text-muted-foreground">Requirements</Label>
+              {form.requirements.length > 0 && (
+                <span className="text-[10px] text-muted-foreground">({form.requirements.length} selected)</span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {REQUIREMENT_OPTIONS.map((opt) => {
+                const active = form.requirements.includes(opt.value);
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setForm((p) => ({
+                        ...p,
+                        requirements: active
+                          ? p.requirements.filter((r) => r !== opt.value)
+                          : [...p.requirements, opt.value],
+                      }))
+                    }
+                    className={
+                      "group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition " +
+                      (active
+                        ? "border-primary bg-primary/[0.08] ring-1 ring-primary/30"
+                        : "border-border bg-muted/20 hover:border-border/80 hover:bg-muted/40")
+                    }
+                  >
+                    <div className={"h-8 w-8 rounded-lg bg-gradient-to-br text-white flex items-center justify-center shrink-0 " + opt.color}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span className={"text-sm font-medium " + (active ? "text-foreground" : "text-foreground/90")}>{opt.label}</span>
+                    {active && <Check className="h-4 w-4 text-primary ml-auto shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Notes */}
