@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { FinanceTabs } from "@/components/accounts/FinanceTabs";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen, ArrowDownCircle, ArrowUpCircle, Loader2,

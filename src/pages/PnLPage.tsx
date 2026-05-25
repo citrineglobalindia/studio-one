@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { FinanceTabs } from "@/components/accounts/FinanceTabs";
 import {
   BarChart3, TrendingUp, TrendingDown, Wallet, Loader2,
 } from "lucide-react";
@@ -92,6 +93,8 @@ export default function PnLPage() {
           </div>
         </div>
       </motion.div>
+
+      <FinanceTabs />
 
       {isLoading ? (
         <div className="py-12 text-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" /></div>

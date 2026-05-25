@@ -42,7 +42,10 @@ export function useExpenses() {
   const { currentRole } = useRole();
   const qc = useQueryClient();
   const orgId = organization?.id ?? null;
-  const canApprove = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts";
+  // Per requirement: only Admin (studio owner) can approve/reject expenses.
+  // Accounts can still mark them paid (payment processing).
+  const canApprove = currentRole === "admin";
+  const canProcessPayment = currentRole === "admin" || currentRole === "accounts";
 
   const query = useQuery({
     queryKey: ["expenses", orgId, currentRole, user?.id],
@@ -170,6 +173,7 @@ export function useExpenses() {
     expenses: query.data ?? [],
     isLoading: query.isLoading,
     canApprove,
+    canProcessPayment,
     add, update, remove, approve, reject, markPaid,
   };
 }

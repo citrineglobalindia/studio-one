@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { FinanceTabs } from "@/components/accounts/FinanceTabs";
 import {
   Wallet, Plus, Check, X, Loader2, Search, Receipt,
   CheckCircle2, XCircle, Clock, BadgeIndianRupee,
@@ -33,7 +34,7 @@ function fmtDate(d?: string | null) {
 export default function ExpensesPage() {
   const { currentRole } = useRole();
   const { user } = useAuth();
-  const { expenses, isLoading, canApprove, add, update, remove, approve, reject, markPaid } = useExpenses();
+  const { expenses, isLoading, canApprove, canProcessPayment, add, update, remove, approve, reject, markPaid } = useExpenses();
 
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "paid" | "rejected" | "mine">("all");
   const [search, setSearch] = useState("");
@@ -86,6 +87,8 @@ export default function ExpensesPage() {
           </Button>
         </div>
       </motion.div>
+
+      <FinanceTabs />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -171,7 +174,7 @@ export default function ExpensesPage() {
                             </Button>
                           </>
                         )}
-                        {canApprove && e.status === "approved" && (
+                        {canProcessPayment && e.status === "approved" && (
                           <Button size="sm" className="h-7 gap-1 text-xs" onClick={() => {
                             const ref = window.prompt("Payment reference (UTR / cheque #) — optional") ?? undefined;
                             markPaid.mutate({ id: e.id, reference: ref });
@@ -179,10 +182,10 @@ export default function ExpensesPage() {
                             <BadgeIndianRupee className="h-3 w-3" /> Mark paid
                           </Button>
                         )}
-                        {(canApprove || e.requested_by === user?.id) && e.status === "pending" && (
+                        {(canProcessPayment || e.requested_by === user?.id) && e.status === "pending" && (
                           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(e)}>Edit</Button>
                         )}
-                        {canApprove && (
+                        {canProcessPayment && (
                           <Button size="sm" variant="ghost" className="h-7 text-xs text-rose-500" onClick={() => {
                             if (window.confirm("Delete this expense entry?")) remove.mutate(e.id);
                           }}>Delete</Button>

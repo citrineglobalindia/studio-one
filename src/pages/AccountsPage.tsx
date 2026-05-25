@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { FinanceTabs } from "@/components/accounts/FinanceTabs";
 import { useNavigate } from "react-router-dom";
 import {
   Receipt, FileText, Briefcase, Search, Loader2, IndianRupee,
@@ -87,6 +88,8 @@ export default function AccountsPage() {
           </div>
         </div>
       </motion.div>
+
+      <FinanceTabs />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
