@@ -48,14 +48,19 @@ import { NavLink } from "@/components/NavLink";
 // Map sidebar items to their AppModule keys for access filtering
 type SidebarItem = { title: string; url: string; icon: typeof LayoutDashboard; module: AppModule };
 
-const systemItems: SidebarItem[] = [
+const salesItems: SidebarItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
+  { title: "Clients", url: "/clients", icon: Users, module: "clients" },
+];
+
+const systemItems: SidebarItem[] = [
   { title: "Users", url: "/team", icon: UsersRound, module: "team" },
   { title: "Access Control", url: "/access-control", icon: Shield, module: "settings" },
   { title: "Settings", url: "/settings", icon: Settings, module: "settings" },
 ];
 
 const groups = [
+  { label: "Sales CRM", items: salesItems },
   { label: "Core", items: systemItems },
 ];
 

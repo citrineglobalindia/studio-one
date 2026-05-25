@@ -28,6 +28,9 @@ import TermsPage from "./pages/TermsPage";
 
 // Core (kept)
 import TeamPage from "./pages/TeamPage";
+import ClientsPage from "./pages/ClientsPage";
+import AddClientPage from "./pages/AddClientPage";
+import ClientDetailPage from "./pages/ClientDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import AccessControlPage from "./pages/AccessControlPage";
@@ -71,6 +74,9 @@ function ProtectedRoutes() {
       <Route element={<RoleLayoutWrapper />}>
         <Route path="/" element={<Index />} />
         <Route path="/team" element={<TeamPage />} />
+        <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/clients/new" element={<AddClientPage />} />
+        <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/members" element={<Navigate to="/team" replace />} />
         <Route path="/access-control" element={<AccessControlPage />} />
         <Route path="/profile" element={<ProfilePage />} />
