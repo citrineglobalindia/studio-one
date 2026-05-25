@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, CalendarDays, Loader2, Clock,
   MapPin, Users, X, Lock, CheckCircle2, Filter, Search, FilterX,
+  SlidersHorizontal, Tag, UserCheck, Sparkles, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCalendarEvents, type CalendarEventRow } from "@/hooks/useCalendarEvents";
 import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+
+const TYPE_DOT: Record<string, string> = {
+  Wedding:       "bg-rose-500",
+  "Pre-Wedding": "bg-purple-500",
+  Engagement:    "bg-amber-500",
+  Reception:     "bg-blue-500",
+  Sangeet:       "bg-fuchsia-500",
+  Haldi:         "bg-yellow-500",
+  Mehendi:       "bg-green-500",
+  Roka:          "bg-violet-500",
+  Birthday:      "bg-pink-500",
+  Anniversary:   "bg-red-500",
+  Corporate:     "bg-slate-500",
+  Other:         "bg-indigo-500",
+};
 
 const TYPE_GRADIENT: Record<string, string> = {
   Wedding: "from-rose-500 to-pink-500",
@@ -135,7 +151,7 @@ export default function CalendarPage() {
       m.get(e.event_date)!.push(e);
     }
     return m;
-  }, [events]);
+  }, [filteredEvents]);
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const dayEvents = selectedDay ? (eventsByDay.get(selectedDay) ?? []) : [];
@@ -178,95 +194,164 @@ export default function CalendarPage() {
         </div>
       </motion.div>
 
-      {/* FILTER BAR — admin / administrator only */}
+      {/* ADVANCED FILTER BAR — admin / administrator only */}
       {seesAll && (
-        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setShowFilters((v) => !v)}>
-                <Filter className="h-3.5 w-3.5" />
-                Filters
-                {activeFilterCount > 0 && (
-                  <Badge variant="default" className="ml-1 h-4 px-1 text-[10px]">{activeFilterCount}</Badge>
-                )}
-              </Button>
-              {activeFilterCount > 0 && (
-                <Button variant="ghost" size="sm" className="gap-1 h-8 text-xs" onClick={clearFilters}>
-                  <FilterX className="h-3.5 w-3.5" /> Clear all
-                </Button>
-              )}
-            </div>
-            <div className="relative w-full max-w-xs">
+        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card overflow-hidden">
+          {/* Top row: search + toggle + counter */}
+          <div className="flex items-center gap-2 p-3 border-b border-border/60">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search event, client, venue…" className="pl-9 h-8" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search event, client, venue, notes…" className="pl-9 h-9" />
             </div>
+            <Button variant={showFilters ? "default" : "outline"} size="sm" className="gap-1.5 h-9" onClick={() => setShowFilters((v) => !v)}>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px] bg-background/40">{activeFilterCount}</Badge>
+              )}
+            </Button>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" className="gap-1 h-9 text-xs text-muted-foreground" onClick={clearFilters}>
+                <FilterX className="h-3.5 w-3.5" /> Clear
+              </Button>
+            )}
           </div>
 
-          {showFilters && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              className="rounded-xl border border-border bg-card p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <FilterField label="Event type">
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
-                    {EVENT_TYPE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FilterField>
-              <FilterField label="Status">
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FilterField>
-              <FilterField label="Finalize state">
-                <Select value={filterFinalize} onValueChange={setFilterFinalize}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {FINALIZE_OPTIONS.map((o) => <SelectItem key={o.v} value={o.v}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FilterField>
-              <FilterField label="Assigned user">
-                <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All members</SelectItem>
-                    {members.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.full_name}{m.role ? ` (${m.role.replace(/_/g, " ")})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FilterField>
-              <FilterField label="Requirement">
-                <Select value={filterRequirement} onValueChange={setFilterRequirement}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any requirement</SelectItem>
-                    {[
-                      ["traditional_photographer", "Traditional Photographer"],
-                      ["traditional_videographer", "Traditional Videographer"],
-                      ["candid_photographer",     "Candid Photographer"],
-                      ["candid_videographer",     "Candid Videographer"],
-                      ["drone_shoot",             "Drone Shoot"],
-                      ["led_wall",                "LED Wall"],
-                    ].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FilterField>
-            </motion.div>
-          )}
+          {/* Active filter chips */}
           {activeFilterCount > 0 && (
-            <p className="text-[11px] text-muted-foreground">
-              Showing <span className="text-foreground font-medium">{filteredEvents.length}</span> of {events.length} events
-            </p>
+            <div className="px-3 py-2 border-b border-border/60 bg-muted/20 flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mr-1">Active:</span>
+              {search.trim() && (
+                <ActiveChip label={`"${search.trim()}"`} onClear={() => setSearch("")} icon={<Search className="h-3 w-3" />} />
+              )}
+              {filterType !== "all" && (
+                <ActiveChip label={filterType} onClear={() => setFilterType("all")} dotColor={TYPE_DOT[filterType]} />
+              )}
+              {filterStatus !== "all" && (
+                <ActiveChip label={filterStatus} onClear={() => setFilterStatus("all")} icon={<Tag className="h-3 w-3" />} />
+              )}
+              {filterFinalize !== "all" && (
+                <ActiveChip label={filterFinalize === "finalized" ? "Finalized" : "Draft"} onClear={() => setFilterFinalize("all")} icon={filterFinalize === "finalized" ? <Lock className="h-3 w-3" /> : <Pencil className="h-3 w-3" />} />
+              )}
+              {filterAssignee !== "all" && (
+                <ActiveChip
+                  label={members.find((m) => m.id === filterAssignee)?.full_name || "Member"}
+                  onClear={() => setFilterAssignee("all")}
+                  icon={<UserCheck className="h-3 w-3" />}
+                />
+              )}
+              {filterRequirement !== "all" && (
+                <ActiveChip label={filterRequirement.replace(/_/g, " ")} onClear={() => setFilterRequirement("all")} icon={<Sparkles className="h-3 w-3" />} />
+              )}
+              <span className="ml-auto text-[11px] text-muted-foreground">
+                <span className="text-foreground font-medium tabular-nums">{filteredEvents.length}</span> / {events.length} events
+              </span>
+            </div>
           )}
+
+          {/* Expanded filter panel */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 space-y-4">
+
+                  {/* QUICK TOGGLES */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Quick filters</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <ToggleChip
+                        active={filterFinalize === "finalized"}
+                        onClick={() => setFilterFinalize(filterFinalize === "finalized" ? "all" : "finalized")}
+                        icon={<Lock className="h-3 w-3" />}
+                      >Finalized</ToggleChip>
+                      <ToggleChip
+                        active={filterFinalize === "draft"}
+                        onClick={() => setFilterFinalize(filterFinalize === "draft" ? "all" : "draft")}
+                        icon={<Pencil className="h-3 w-3" />}
+                      >Draft</ToggleChip>
+                      {STATUS_OPTIONS.map((s) => (
+                        <ToggleChip key={s} active={filterStatus === s} onClick={() => setFilterStatus(filterStatus === s ? "all" : s)}>
+                          {s}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* EVENT TYPE — color-dot chips */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Event type</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <ToggleChip active={filterType === "all"} onClick={() => setFilterType("all")}>All</ToggleChip>
+                      {EVENT_TYPE_OPTIONS.map((t) => (
+                        <ToggleChip key={t} active={filterType === t} onClick={() => setFilterType(filterType === t ? "all" : t)} dotColor={TYPE_DOT[t]}>
+                          {t}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* REQUIREMENT */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Requirement</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <ToggleChip active={filterRequirement === "all"} onClick={() => setFilterRequirement("all")}>Any</ToggleChip>
+                      {[
+                        ["traditional_photographer", "Trad Photo"],
+                        ["traditional_videographer", "Trad Video"],
+                        ["candid_photographer",     "Candid Photo"],
+                        ["candid_videographer",     "Candid Video"],
+                        ["drone_shoot",             "Drone"],
+                        ["led_wall",                "LED Wall"],
+                      ].map(([v, l]) => (
+                        <ToggleChip key={v} active={filterRequirement === v} onClick={() => setFilterRequirement(filterRequirement === v ? "all" : v)}>
+                          {l}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ASSIGNED USER — avatar grid */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Assigned user</p>
+                    <div className="flex flex-wrap gap-2">
+                      <ToggleChip active={filterAssignee === "all"} onClick={() => setFilterAssignee("all")}>All members</ToggleChip>
+                      {members.map((m) => {
+                        const init = (m.full_name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+                        const active = filterAssignee === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setFilterAssignee(active ? "all" : m.id)}
+                            className={
+                              "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border transition " +
+                              (active
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted/40 text-foreground border-border hover:bg-muted")
+                            }
+                            title={`${m.full_name}${m.role ? " — " + m.role.replace(/_/g, " ") : ""}`}
+                          >
+                            <span className={
+                              "h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold " +
+                              (active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary")
+                            }>{init}</span>
+                            <span className="max-w-[80px] truncate">{m.full_name.split(" ")[0]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 
@@ -436,5 +521,43 @@ function FilterField({ label, children }: { label: string; children: React.React
       <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
       {children}
     </div>
+  );
+}
+
+function ActiveChip({ label, onClear, icon, dotColor }: { label: string; onClear: () => void; icon?: React.ReactNode; dotColor?: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 rounded-full bg-card border border-border text-[11px] font-medium text-foreground">
+      {dotColor && <span className={"h-2 w-2 rounded-full " + dotColor} />}
+      {icon}
+      <span className="capitalize">{label}</span>
+      <button type="button" onClick={onClear} className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center">
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
+  );
+}
+
+function ToggleChip({ active, onClick, children, icon, dotColor }: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  dotColor?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize " +
+        (active
+          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+          : "bg-muted/40 text-foreground border-border hover:bg-muted hover:border-border/80")
+      }
+    >
+      {dotColor && <span className={"h-2 w-2 rounded-full " + dotColor} />}
+      {icon}
+      {children}
+    </button>
   );
 }
