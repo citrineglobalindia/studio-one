@@ -567,9 +567,8 @@ function EventsDocDialog({
             </div>
           )}
 
-          {/* EVENTS + REQUIREMENT CHECKLIST */}
-          {docKind === "proposal" ? null : (
-            <div className="space-y-2">
+          {/* EVENTS + REQUIREMENT CHECKLIST — visible for all doc kinds */}
+          <div className="space-y-2">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Events &amp; what's included</Label>
               {clientEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border p-6 text-center">
@@ -678,22 +677,19 @@ function EventsDocDialog({
                 </div>
               )}
             </div>
-          )}
 
-          {/* FINAL AMOUNT — single input for the whole package */}
-          {docKind !== "proposal" && (
-            <div className="rounded-xl border-2 border-primary/30 p-5 bg-primary/[0.04]">
-              <Label className="text-[11px] uppercase tracking-wide text-primary font-semibold">Final amount (₹)</Label>
-              <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">One total price for everything ticked above</p>
-              <Input
-                type="number"
-                value={manualAmount || ""}
-                onChange={(e) => setManualAmount(Number(e.target.value || 0))}
-                placeholder="0"
-                className="text-right tabular-nums text-2xl font-bold h-14"
-              />
-            </div>
-          )}
+          {/* FINAL AMOUNT — single input for the whole package (all doc kinds) */}
+          <div className="rounded-xl border-2 border-primary/30 p-5 bg-primary/[0.04]">
+            <Label className="text-[11px] uppercase tracking-wide text-primary font-semibold">Final amount (₹)</Label>
+            <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">One total price for everything ticked above</p>
+            <Input
+              type="number"
+              value={manualAmount || ""}
+              onChange={(e) => setManualAmount(Number(e.target.value || 0))}
+              placeholder="0"
+              className="text-right tabular-nums text-2xl font-bold h-14"
+            />
+          </div>
 
           {/* GST + DATE + DISCOUNT */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -716,13 +712,11 @@ function EventsDocDialog({
               )}
               {!gst && <p className="text-[10px] text-muted-foreground">No tax applied</p>}
             </div>
-            {docKind !== "proposal" && (
-              <div className="space-y-1.5">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Discount (₹)</Label>
-                <Input type="number" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value || 0))} />
-              </div>
-            )}
-            <div className={"space-y-1.5 " + (docKind === "proposal" ? "sm:col-span-2" : "")}>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Discount (₹)</Label>
+              <Input type="number" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value || 0))} />
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">{dateLabel}</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
@@ -738,7 +732,7 @@ function EventsDocDialog({
           {/* TOTALS CARD */}
           <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{inr(subtotal)}</span></div>
-            {discountVal > 0 && docKind !== "proposal" && <div className="flex justify-between text-muted-foreground"><span>Discount</span><span className="tabular-nums">-{inr(discountVal)}</span></div>}
+            {discountVal > 0 && <div className="flex justify-between text-muted-foreground"><span>Discount</span><span className="tabular-nums">-{inr(discountVal)}</span></div>}
             {tax > 0 && <div className="flex justify-between text-muted-foreground"><span>GST @ {taxPercent}%</span><span className="tabular-nums">+{inr(tax)}</span></div>}
             <div className="flex justify-between font-semibold pt-1 border-t border-border"><span>Total</span><span className="tabular-nums text-base">{inr(total)}</span></div>
           </div>
