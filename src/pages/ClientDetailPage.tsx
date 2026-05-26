@@ -274,25 +274,18 @@ export default function ClientDetailPage() {
         icon={<Sparkles className="h-4 w-4 text-amber-500" />}
         initialValues={{
           source: client.source,
-          budget: client.budget,
           notes: client.notes,
         }}
         onSave={saveFields}
         renderView={() => (
           <>
-            <Row>
-              <ReadField label="Source" value={client.source} />
-              <ReadField label="Budget (₹)" value={client.budget != null ? `₹${Number(client.budget).toLocaleString("en-IN")}` : null} />
-            </Row>
+            <ReadField label="Source" value={client.source} />
             <ReadField label="Notes" value={client.notes} />
           </>
         )}
         renderEdit={(v, set) => (
           <>
-            <Row>
-              <Field label="Source"><Input value={v.source || ""} onChange={(e) => set("source", e.target.value)} placeholder="Instagram / Referral / …" /></Field>
-              <Field label="Budget (₹)"><Input type="number" value={v.budget ?? ""} onChange={(e) => set("budget", e.target.value === "" ? null : Number(e.target.value))} placeholder="150000" /></Field>
-            </Row>
+            <Field label="Source"><Input value={v.source || ""} onChange={(e) => set("source", e.target.value)} placeholder="Instagram / Referral / …" /></Field>
             <Field label="Notes"><Textarea rows={4} value={v.notes || ""} onChange={(e) => set("notes", e.target.value)} placeholder="Any notes about this client…" /></Field>
           </>
         )}

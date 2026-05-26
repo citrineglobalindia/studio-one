@@ -188,17 +188,14 @@ export default function AddClientPage() {
               </Section>
 
               <Section title="Basic info" icon={<Sparkles className="h-4 w-4 text-amber-500" />}>
-                <Row>
-                  <Field label="Source">
-                    <Select value={s1.source} onValueChange={(v) => u1("source", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pick source (optional)" /></SelectTrigger>
-                      <SelectContent>
-                        {SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Approx budget (₹)"><Input type="number" value={s1.budget} onChange={(e) => u1("budget", e.target.value)} placeholder="150000" /></Field>
-                </Row>
+                <Field label="Source">
+                  <Select value={s1.source} onValueChange={(v) => u1("source", v)}>
+                    <SelectTrigger><SelectValue placeholder="Pick source (optional)" /></SelectTrigger>
+                    <SelectContent>
+                      {SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
                 <Field label="Notes"><Textarea rows={3} value={s1.notes} onChange={(e) => u1("notes", e.target.value)} placeholder="Special requests, references…" /></Field>
               </Section>
             </motion.div>
