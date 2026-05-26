@@ -36,7 +36,8 @@ const REQ_LABEL: Record<string, string> = {
   led_wall: "LED Wall",
 };
 
-const GST_PERCENT = 18;
+const GST_RATES = [0, 5, 12, 18, 28];
+const DEFAULT_GST = 18;
 const QUOTE_STATUSES = ["draft", "sent", "viewed", "approved", "rejected"];
 const PROPOSAL_STATUSES = ["draft", "sent", "signed", "cancelled"];
 const INVOICE_STATUSES = ["draft", "sent", "partially_paid", "paid", "overdue", "cancelled"];
@@ -344,11 +345,12 @@ function EventsDocDialog({
 }: EventsDocDialogProps) {
   const { events: clientEvents } = useClientEvents(clientId);
 
-  // Reconstruct rates + custom items from saved items
+  // Reconstruct rates + custom items + manualAmount from saved items
   const reconstructState = (items: LineItem[] | null | undefined) => {
     const rates: Record<string, number> = {};
     const customs: Record<string, Array<{ description: string; quantity: number; rate: number }>> = {};
-    if (!Array.isArray(items)) return { rates, customs };
+    let manual = 0;
+    if (!Array.isArray(items)) return { rates, customs, manual };
     for (const it of items) {
       const reqMatch = /#evt:([0-9a-f-]+)#req:([a-z_]+)/.exec(it.description || "");
       if (reqMatch) {
@@ -365,17 +367,23 @@ function EventsDocDialog({
           quantity: Number(it.quantity || 1),
           rate: Number(it.rate || (Number(it.amount || 0) / Math.max(1, Number(it.quantity || 1)))),
         });
+        continue;
+      }
+      if ((it.description || "").includes("#manual")) {
+        manual += Number(it.rate || it.amount || 0);
       }
     }
-    return { rates, customs };
+    return { rates, customs, manual };
   };
 
   const reconstructed = reconstructState(editing?.items);
   const [rates, setRates] = useState<Record<string, number>>(() => reconstructed.rates);
+  const [manualAmount, setManualAmount] = useState<number>(reconstructed.manual || 0);
   const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
   const [status, setStatus] = useState<string>(editing?.status || statuses[0]);
   const [gst, setGst] = useState<boolean>(Boolean(editing?.gst_applicable ?? false));
+  const [gstPercent, setGstPercent] = useState<number>(Number(editing?.tax_percent || (editing?.gst_applicable ? DEFAULT_GST : 0)) || DEFAULT_GST);
   const [discount, setDiscount] = useState<number>(Number(editing?.discount_value || 0));
   const [date, setDate] = useState<string>(editing?.[dateField] || "");
   const [terms, setTerms] = useState<string>(editing?.terms || (editing ? "" : DEFAULT_TERMS));
@@ -405,13 +413,17 @@ function EventsDocDialog({
     return rows;
   }, [clientEvents, rates, customByEvent]);
 
+  const subtotalLines = useMemo(
+    () => lineRows.reduce((s, r) => s + (r.rate || 0), 0),
+    [lineRows]
+  );
   const subtotal = useMemo(
-    () => (docKind === "proposal" ? proposalAmount : lineRows.reduce((s, r) => s + (r.rate || 0), 0)),
-    [docKind, lineRows, proposalAmount]
+    () => (docKind === "proposal" ? proposalAmount : subtotalLines + (manualAmount || 0)),
+    [docKind, subtotalLines, manualAmount, proposalAmount]
   );
   const discountVal = Math.max(0, discount);
   const taxable = Math.max(0, subtotal - discountVal);
-  const taxPercent = gst ? GST_PERCENT : 0;
+  const taxPercent = gst ? gstPercent : 0;
   const tax = (taxable * taxPercent) / 100;
   const total = taxable + tax;
 
@@ -420,7 +432,6 @@ function EventsDocDialog({
 
   const buildItems = (): LineItem[] => {
     const items: LineItem[] = [];
-    // Standard requirement rows (qty=1). Keep even at rate=0 so they round-trip.
     for (const r of lineRows) {
       if (r.isCustom) continue;
       items.push({
@@ -430,11 +441,9 @@ function EventsDocDialog({
         amount: r.rate,
       });
     }
-    // Custom items. Keep at zero rate too — user may price later.
     for (const ev of clientEvents) {
       const customs = customByEvent[ev.id] || [];
       customs.forEach((c) => {
-        // Skip completely empty rows (no description AND no rate AND default qty)
         if (!c.description.trim() && !c.rate && (c.quantity ?? 1) <= 1) return;
         const qty = c.quantity || 1;
         const amount = qty * (c.rate || 0);
@@ -444,6 +453,15 @@ function EventsDocDialog({
           rate: c.rate || 0,
           amount,
         });
+      });
+    }
+    // Direct / package amount as a special line item with #manual marker
+    if (manualAmount > 0) {
+      items.push({
+        description: "Package amount  #manual",
+        quantity: 1,
+        rate: manualAmount,
+        amount: manualAmount,
       });
     }
     return items;
@@ -665,6 +683,28 @@ function EventsDocDialog({
                   })}
                 </div>
               )}
+              {/* DIRECT / PACKAGE AMOUNT */}
+              <div className="rounded-xl border border-dashed border-border p-3 bg-muted/10">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Additional amount (₹)</Label>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Use this if you want to bill a flat amount on top of the line items (e.g. package deal, advance)</p>
+                  </div>
+                  <Input
+                    type="number"
+                    value={manualAmount || ""}
+                    onChange={(e) => setManualAmount(Number(e.target.value || 0))}
+                    placeholder="0"
+                    className="w-32 text-right tabular-nums"
+                  />
+                </div>
+                {(subtotalLines > 0 || (manualAmount || 0) > 0) && (
+                  <div className="text-[11px] text-muted-foreground mt-2 flex items-center justify-between">
+                    <span>Line items subtotal: <span className="text-foreground tabular-nums">{inr(subtotalLines)}</span></span>
+                    {manualAmount > 0 && <span>+ <span className="text-foreground tabular-nums">{inr(manualAmount)}</span></span>}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             // Proposal: single amount
@@ -676,17 +716,24 @@ function EventsDocDialog({
 
           {/* GST + DATE + DISCOUNT */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="flex items-center justify-between rounded-xl border border-border p-3 bg-muted/20 sm:col-span-1">
-              <div className="flex flex-col gap-0.5">
+            <div className="rounded-xl border border-border p-3 bg-muted/20 sm:col-span-1 space-y-2">
+              <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium text-foreground">GST</Label>
-                <p className="text-[10px] text-muted-foreground">+18% on taxable</p>
+                <button type="button" onClick={() => setGst((v) => !v)}
+                  className={"relative inline-flex h-5 w-9 items-center rounded-full transition " + (gst ? "bg-primary" : "bg-muted")}
+                  aria-checked={gst} role="switch">
+                  <span className={"inline-block h-4 w-4 transform rounded-full bg-white shadow transition " + (gst ? "translate-x-4" : "translate-x-0.5")} />
+                </button>
               </div>
-              <button type="button" onClick={() => setGst((v) => !v)}
-                className={"relative inline-flex h-6 w-11 items-center rounded-full transition " + (gst ? "bg-primary" : "bg-muted")}
-                aria-checked={gst} role="switch"
-              >
-                <span className={"inline-block h-5 w-5 transform rounded-full bg-white shadow transition " + (gst ? "translate-x-5" : "translate-x-0.5")} />
-              </button>
+              {gst && (
+                <Select value={String(gstPercent)} onValueChange={(v) => setGstPercent(Number(v))}>
+                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {GST_RATES.map((r) => <SelectItem key={r} value={String(r)}>{r}% GST</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              {!gst && <p className="text-[10px] text-muted-foreground">No tax applied</p>}
             </div>
             {docKind !== "proposal" && (
               <div className="space-y-1.5">
@@ -711,7 +758,7 @@ function EventsDocDialog({
           <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{inr(subtotal)}</span></div>
             {discountVal > 0 && docKind !== "proposal" && <div className="flex justify-between text-muted-foreground"><span>Discount</span><span className="tabular-nums">-{inr(discountVal)}</span></div>}
-            {tax > 0 && <div className="flex justify-between text-muted-foreground"><span>GST @ {GST_PERCENT}%</span><span className="tabular-nums">+{inr(tax)}</span></div>}
+            {tax > 0 && <div className="flex justify-between text-muted-foreground"><span>GST @ {taxPercent}%</span><span className="tabular-nums">+{inr(tax)}</span></div>}
             <div className="flex justify-between font-semibold pt-1 border-t border-border"><span>Total</span><span className="tabular-nums text-base">{inr(total)}</span></div>
           </div>
 
