@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
 import { useLeads, LEAD_STATUSES } from "@/hooks/useLeads";
 import { useAllInvoices, useAllQuotations, useAllContracts } from "@/hooks/useFinancials";
+import { NewDocFromAccounts } from "@/components/accounts/NewDocFromAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useEmployees } from "@/hooks/useHR";
@@ -104,10 +105,12 @@ function Hero({ name, subtitle, studio }: { name: string; subtitle: string; stud
 // ──────────────────────────────────────────────────────────────────────
 function AdminDashboard() {
   const navigate = useNavigate();
+  const { organization } = useOrg();
   const { clients } = useClients();
   const { leads } = useLeads();
   const { rows: invoices } = useAllInvoices();
   const { rows: quotations } = useAllQuotations();
+  const { rows: contracts } = useAllContracts();
   const calRes = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
   const events = (calRes.data ?? []) as any[];
   const { expenses } = useExpenses();
@@ -117,26 +120,69 @@ function AdminDashboard() {
 
   const collected = invoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
   const outstanding = invoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
+  const billedTotal = invoices.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const billedMonth = invoices.filter((r: any) => (r.created_at || "").slice(0,7) === today.slice(0,7))
                               .reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
+  const estimatesTotal = quotations.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
+  const proposalsTotal = contracts.reduce((s, r: any) => s + Number(r.contract_amount || r.total_amount || 0), 0);
+  const collectedPct = billedTotal > 0 ? Math.round((collected / billedTotal) * 100) : 0;
+  const conversion = quotations.length > 0 ? Math.round((invoices.length / quotations.length) * 100) : 0;
+
   const todaysEvents = events.filter((e: any) => e.event_date === today);
   const upcomingEvents = events.filter((e: any) => e.event_date > today && e.event_date <= sevenDaysOut).slice(0, 6);
   const pendingExpenses = expenses.filter((r: any) => r.status === "pending");
-  const draftQuotes = quotations.filter((r: any) => (r.status || "draft") === "draft").length;
   const recentLeads = leads.slice(0, 5);
+
+  const recentEstimates = [...quotations].sort((a:any,b:any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 4);
+  const recentProposals = [...contracts].sort((a:any,b:any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 4);
+  const recentInvoices  = [...invoices].sort((a:any,b:any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 4);
 
   return (
     <>
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Kpi label="Collected" value={inr(collected)} hint="all-time" icon={Wallet} color="emerald" onClick={() => navigate("/accounts/ledger")} />
-        <Kpi label="Outstanding" value={inr(outstanding)} hint={`${invoices.length} invoice${invoices.length===1?"":"s"}`} icon={AlertCircle} color="rose" onClick={() => navigate("/accounts")} />
-        <Kpi label="Billed this month" value={inr(billedMonth)} hint={today.slice(0,7)} icon={TrendingUp} color="blue" onClick={() => navigate("/accounts")} />
+        <Kpi label="Collected" value={inr(collected)} hint={collectedPct > 0 ? `${collectedPct}% of ₹${(billedTotal/1000).toFixed(0)}k billed` : "all-time"} icon={Wallet} color="emerald" onClick={() => navigate("/accounts/ledger")} />
+        <Kpi label="Outstanding" value={inr(outstanding)} hint={`${invoices.filter((i:any)=> Number(i.total_amount)>Number(i.amount_paid||0)).length} unpaid`} icon={AlertCircle} color="rose" onClick={() => navigate("/accounts")} />
+        <Kpi label="Billed this month" value={inr(billedMonth)} hint={new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })} icon={TrendingUp} color="blue" onClick={() => navigate("/accounts")} />
         <Kpi label="Active clients" value={String(clients.length)} hint={`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`} icon={Users} color="violet" onClick={() => navigate("/clients")} />
       </div>
 
+      {/* Financial Pipeline — Estimate → Proposal → Invoice → Collected */}
+      <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-4 md:p-5">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center"><Receipt className="h-4 w-4 text-amber-600" /></div>
+            <div>
+              <p className="text-sm font-semibold text-foreground tracking-tight">Financial pipeline</p>
+              <p className="text-[10px] text-muted-foreground">Estimate → Proposal → Invoice → Collected · {conversion}% conversion rate</p>
+            </div>
+          </div>
+          {(currentRoleIsAccountsOrAdmin()) && organization && (
+            <div className="hidden md:flex items-center gap-1.5">
+              <NewDocFromAccounts kind="estimation" organization={organization} className="h-8 text-xs" />
+              <NewDocFromAccounts kind="proposal"   organization={organization} className="h-8 text-xs" />
+              <NewDocFromAccounts kind="invoice"    organization={organization} className="h-8 text-xs" />
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <PipelineCard label="Estimates"  count={quotations.length} total={estimatesTotal} color="amber"   icon={FileText}  onClick={() => navigate("/accounts")} />
+          <PipelineCard label="Proposals"  count={contracts.length}  total={proposalsTotal} color="violet"  icon={Briefcase} onClick={() => navigate("/accounts")} />
+          <PipelineCard label="Invoices"   count={invoices.length}   total={billedTotal}    color="blue"    icon={Receipt}   onClick={() => navigate("/accounts")} />
+          <PipelineCard label="Collected"  count={invoices.filter((i:any)=>Number(i.amount_paid)>0).length} total={collected} color="emerald" icon={Wallet} onClick={() => navigate("/accounts/ledger")} />
+        </div>
+      </motion.section>
+
+      {/* 3-column: recent estimates / proposals / invoices */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <DocList title="Recent estimates" items={recentEstimates} amountKey="total_amount" numberKey="quotation_number" tone="amber"   onMore={() => navigate("/accounts")} navigate={navigate} />
+        <DocList title="Recent proposals" items={recentProposals} amountKey="contract_amount" numberKey="contract_number" tone="violet" onMore={() => navigate("/accounts")} navigate={navigate} />
+        <DocList title="Recent invoices"  items={recentInvoices}  amountKey="total_amount" numberKey="invoice_number"  tone="emerald" onMore={() => navigate("/accounts")} navigate={navigate} />
+      </div>
+
+      {/* Today's events + Pending expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Today + upcoming events */}
         <SectionCard title="Today's events" subtitle={todaysEvents.length > 0 ? `${todaysEvents.length} happening today` : "Nothing scheduled today"} icon={CalendarDays} onMore={() => navigate("/calendar")} className="lg:col-span-2">
           {todaysEvents.length === 0 && upcomingEvents.length === 0 ? (
             <Empty icon={CalendarDays} label="No upcoming events" />
@@ -148,10 +194,9 @@ function AdminDashboard() {
           )}
         </SectionCard>
 
-        {/* Pending expenses */}
-        <SectionCard title="Pending expense approvals" subtitle={`${pendingExpenses.length} waiting`} icon={Hourglass} onMore={() => navigate("/accounts/expenses")}>
+        <SectionCard title="Pending expenses" subtitle={`${pendingExpenses.length} waiting`} icon={Hourglass} onMore={() => navigate("/accounts/expenses")}>
           {pendingExpenses.length === 0 ? (
-            <Empty icon={CheckCircle2} label="All clear — no pending requests" />
+            <Empty icon={CheckCircle2} label="All clear" />
           ) : (
             <div className="space-y-1.5">
               {pendingExpenses.slice(0, 5).map((p: any) => (
@@ -169,8 +214,8 @@ function AdminDashboard() {
         </SectionCard>
       </div>
 
+      {/* Recent leads + quick stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Recent leads */}
         <SectionCard title="Recent leads" subtitle={`${leads.length} total`} icon={Target} onMore={() => navigate("/leads")} className="lg:col-span-2">
           {recentLeads.length === 0 ? <Empty icon={Target} label="No leads yet" /> : (
             <div className="space-y-1.5">
@@ -188,19 +233,86 @@ function AdminDashboard() {
           )}
         </SectionCard>
 
-        {/* Quick stats */}
         <SectionCard title="Quick stats" icon={Activity}>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <Mini label="Draft estimates" value={String(draftQuotes)} />
-            <Mini label="Leads (new)" value={String(leads.filter((l:any)=>l.status==='new').length)} />
-            <Mini label="Events (7d)" value={String(upcomingEvents.length)} />
-            <Mini label="Clients" value={String(clients.length)} />
+            <Mini label="Draft estimates" value={String(quotations.filter((r:any) => (r.status||"draft")==='draft').length)} />
+            <Mini label="Leads (new)"     value={String(leads.filter((l:any)=>l.status==='new').length)} />
+            <Mini label="Events (7d)"     value={String(upcomingEvents.length)} />
+            <Mini label="Clients"         value={String(clients.length)} />
           </div>
         </SectionCard>
       </div>
     </>
   );
 }
+
+// ─────────────── Pipeline card with count + total ₹
+function PipelineCard({ label, count, total, color, icon: Icon, onClick }: { label: string; count: number; total: number; color: keyof typeof COLOR; icon: any; onClick: () => void }) {
+  const c = COLOR[color];
+  return (
+    <button onClick={onClick}
+      className={"relative text-left rounded-xl border bg-card overflow-hidden group p-3.5 transition hover:-translate-y-0.5 " + c.border}>
+      <div className={"absolute inset-0 bg-gradient-to-br " + c.bg + " opacity-50 group-hover:opacity-100 transition"} />
+      <div className="relative">
+        <div className={"inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-wider " + c.chip}>
+          <Icon className="h-3 w-3" /> {label}
+        </div>
+        <p className="mt-2 text-xl font-bold text-foreground tabular-nums">{inr(total)}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{count} document{count === 1 ? "" : "s"}</p>
+      </div>
+    </button>
+  );
+}
+
+// ─────────────── Recent docs list
+function DocList({ title, items, amountKey, numberKey, tone, onMore, navigate }:
+  { title: string; items: any[]; amountKey: string; numberKey: string; tone: "amber"|"violet"|"emerald"; onMore: ()=>void; navigate: any }) {
+  const toneClass = tone === "amber" ? "text-amber-600 bg-amber-500/10 border-amber-500/30"
+    : tone === "violet" ? "text-violet-600 bg-violet-500/10 border-violet-500/30"
+    : "text-emerald-600 bg-emerald-500/10 border-emerald-500/30";
+  const ToneIcon = tone === "amber" ? FileText : tone === "violet" ? Briefcase : Receipt;
+  return (
+    <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <div className={"h-7 w-7 rounded-lg flex items-center justify-center border " + toneClass}><ToneIcon className="h-3.5 w-3.5" /></div>
+          <p className="text-sm font-semibold text-foreground tracking-tight">{title}</p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onMore} className="h-7 gap-1 text-xs text-muted-foreground">
+          View all <ChevronRight className="h-3 w-3" />
+        </Button>
+      </div>
+      {items.length === 0 ? <Empty icon={ToneIcon} label="No documents yet" /> : (
+        <div className="space-y-1.5">
+          {items.map((d:any) => (
+            <button key={d.id} onClick={onMore}
+              className="w-full text-left rounded-lg border border-border bg-card hover:border-primary/40 transition px-3 py-2 flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground truncate">{d[numberKey] || "#"}</p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {d.client?.name ? `${d.client.name}${d.client.partner_name?` & ${d.client.partner_name}`:""}` : d.client_name || "—"}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-semibold text-foreground tabular-nums">{inr(Number(d[amountKey] || 0))}</p>
+                <p className="text-[10px] text-muted-foreground capitalize">{d.status || "draft"}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </motion.section>
+  );
+}
+
+// helper closure-friendly to read current role from outer scope
+function currentRoleIsAccountsOrAdmin(): boolean {
+  // This is wired via useRole at the call site of AdminDashboard, but for simplicity
+  // we always return true since AdminDashboard renders only for admin/administrator.
+  return true;
+}
+
+
 
 // ──────────────────────────────────────────────────────────────────────
 //  ACCOUNTS
