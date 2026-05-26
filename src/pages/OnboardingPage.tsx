@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -193,10 +194,9 @@ export default function OnboardingPage() {
                     <Label className="text-xs font-medium text-muted-foreground">Phone</Label>
                     <div className="relative mt-1">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
+                      <PhoneInput
                         value={data.phone}
-                        onChange={e => setData(p => ({ ...p, phone: e.target.value }))}
-                        placeholder="+91..."
+                        onChange={v => setData(p => ({ ...p, phone: v }))}
                         className="pl-9"
                       />
                     </div>

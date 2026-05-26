@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -174,11 +175,11 @@ export default function AddClientPage() {
 
               <Section title="Contact" icon={<Phone className="h-4 w-4 text-emerald-500" />}>
                 <Row>
-                  <Field label="Primary phone"><Input value={s1.phone} onChange={(e) => u1("phone", e.target.value)} placeholder="+91 98765 43210" /></Field>
+                  <Field label="Primary phone"><PhoneInput value={s1.phone} onChange={(v) => u1("phone", v)} /></Field>
                   <Field label="Primary email"><Input type="email" value={s1.email} onChange={(e) => u1("email", e.target.value)} placeholder="couple@email.com" /></Field>
                 </Row>
                 <Row>
-                  <Field label="Partner phone"><Input value={s1.partner_phone} onChange={(e) => u1("partner_phone", e.target.value)} placeholder="+91 98765 00000" /></Field>
+                  <Field label="Partner phone"><PhoneInput value={s1.partner_phone} onChange={(v) => u1("partner_phone", v)} /></Field>
                   <Field label="Partner email"><Input type="email" value={s1.partner_email} onChange={(e) => u1("partner_email", e.target.value)} placeholder="partner@email.com" /></Field>
                 </Row>
                 <Row>
@@ -219,7 +220,7 @@ export default function AddClientPage() {
               <Section title="Venue contact" icon={<MapPinned className="h-4 w-4 text-emerald-500" />}>
                 <Row>
                   <Field label="Contact person"><Input value={s2.venue_contact_person} onChange={(e) => u2("venue_contact_person", e.target.value)} placeholder="Mr Sharma — Events Manager" /></Field>
-                  <Field label="Contact phone"><Input value={s2.venue_contact_phone} onChange={(e) => u2("venue_contact_phone", e.target.value)} placeholder="+91 98765 43210" /></Field>
+                  <Field label="Contact phone"><PhoneInput value={s2.venue_contact_phone} onChange={(v) => u2("venue_contact_phone", v)} /></Field>
                 </Row>
                 <Field label="Venue notes"><Textarea rows={3} value={s2.venue_notes} onChange={(e) => u2("venue_notes", e.target.value)} placeholder="Parking, power, restrictions, AV setup…" /></Field>
               </Section>

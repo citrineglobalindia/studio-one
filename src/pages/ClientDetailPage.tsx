@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -183,11 +184,11 @@ export default function ClientDetailPage() {
         renderEdit={(v, set) => (
           <>
             <Row>
-              <Field label="Primary phone"><Input value={v.phone || ""} onChange={(e) => set("phone", e.target.value)} placeholder="+91 98765 43210" /></Field>
+              <Field label="Primary phone"><PhoneInput value={v.phone || ""} onChange={(val) => set("phone", val)} /></Field>
               <Field label="Primary email"><Input type="email" value={v.email || ""} onChange={(e) => set("email", e.target.value)} placeholder="couple@email.com" /></Field>
             </Row>
             <Row>
-              <Field label="Partner phone"><Input value={v.partner_phone || ""} onChange={(e) => set("partner_phone", e.target.value)} /></Field>
+              <Field label="Partner phone"><PhoneInput value={v.partner_phone || ""} onChange={(val) => set("partner_phone", val)} /></Field>
               <Field label="Partner email"><Input type="email" value={v.partner_email || ""} onChange={(e) => set("partner_email", e.target.value)} /></Field>
             </Row>
             <Row>
@@ -260,7 +261,7 @@ export default function ClientDetailPage() {
             </Row>
             <Row>
               <Field label="Contact person"><Input value={v.venue_contact_person || ""} onChange={(e) => set("venue_contact_person", e.target.value)} placeholder="Mr Sharma — Events Manager" /></Field>
-              <Field label="Contact phone"><Input value={v.venue_contact_phone || ""} onChange={(e) => set("venue_contact_phone", e.target.value)} /></Field>
+              <Field label="Contact phone"><PhoneInput value={v.venue_contact_phone || ""} onChange={(val) => set("venue_contact_phone", val)} /></Field>
             </Row>
             <Field label="Venue notes"><Textarea rows={3} value={v.venue_notes || ""} onChange={(e) => set("venue_notes", e.target.value)} placeholder="Parking, power, restrictions, AV setup…" /></Field>
           </>

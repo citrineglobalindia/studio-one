@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -143,7 +144,7 @@ function EmployeeDialog({ open, onOpenChange, editing, onSubmit }: { open: boole
         <div className="flex-1 overflow-y-auto pr-1 space-y-5">
           <SectionDlg title="Identity">
             <Row><Field label="Full name *"><Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} /></Field><Field label="Role / designation"><Input value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))} placeholder="e.g. Photographer" /></Field></Row>
-            <Row><Field label="Email"><Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} /></Field><Field label="Phone"><Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} /></Field></Row>
+            <Row><Field label="Email"><Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} /></Field><Field label="Phone"><PhoneInput value={form.phone} onChange={(v) => setForm((p) => ({ ...p, phone: v }))} /></Field></Row>
             <Row><Field label="Department"><Input value={form.department} onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))} placeholder="e.g. Operations" /></Field><Field label="Type"><Select value={form.type} onValueChange={(v) => setForm((p) => ({ ...p, type: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></Field></Row>
             <Row><Field label="Status"><Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field><Field label="Join date"><Input type="date" value={form.join_date} onChange={(e) => setForm((p) => ({ ...p, join_date: e.target.value }))} /></Field></Row>
             <Field label="Address"><Textarea rows={2} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} /></Field>

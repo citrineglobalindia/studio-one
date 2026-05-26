@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -432,7 +433,7 @@ function LeadDialog({ open, onOpenChange, editing, onSubmit }: { open: boolean; 
         <div className="space-y-3">
           <Field label="Name *"><Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Phone"><Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} /></Field>
+            <Field label="Phone"><PhoneInput value={form.phone} onChange={(v) => setForm((p) => ({ ...p, phone: v }))} /></Field>
             <Field label="Email"><Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">

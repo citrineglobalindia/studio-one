@@ -4,7 +4,7 @@ import { FinanceTabs } from "@/components/accounts/FinanceTabs";
 import { useNavigate } from "react-router-dom";
 import {
   Receipt, FileText, Briefcase, Search, Loader2, IndianRupee,
-  TrendingUp, AlertCircle, CheckCircle2, Wallet, ExternalLink,
+  TrendingUp, AlertCircle, CheckCircle2, Wallet, ExternalLink, Eye, FileDown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { useAllQuotations, useAllContracts, useAllInvoices } from "@/hooks/useFinancials";
 import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
 import { useOrg } from "@/contexts/OrgContext";
-import { FileDown } from "lucide-react";
+// (FileDown + Eye imported above)
 import { DonutCard, StatusBarChart } from "@/components/accounts/FinanceCharts";
 
 type Tab = "estimations" | "proposals" | "invoices";
@@ -171,7 +171,8 @@ export default function AccountsPage() {
             rows={quotations.filter((r) => matchFilter(r, search))}
             kind="estimation"
             navigate={navigate}
-            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("estimation", row, organization))}
+            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("estimation", row, organization), "download")}
+            onOpenPdf={(row) => generateDocPdf(buildAccountsPdfPayload("estimation", row, organization), "open")}
             extraCols={[{ key: "valid_until", label: "Valid until" }]}
           />
         ) : tab === "proposals" ? (
@@ -179,7 +180,8 @@ export default function AccountsPage() {
             rows={contracts.filter((r) => matchFilter(r, search))}
             kind="proposal"
             navigate={navigate}
-            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("proposal", row, organization))}
+            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("proposal", row, organization), "download")}
+            onOpenPdf={(row) => generateDocPdf(buildAccountsPdfPayload("proposal", row, organization), "open")}
             extraCols={[{ key: "valid_until", label: "Valid until" }]}
           />
         ) : (
@@ -187,7 +189,8 @@ export default function AccountsPage() {
             rows={invoices.filter((r) => matchFilter(r, search))}
             kind="invoice"
             navigate={navigate}
-            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("invoice", row, organization))}
+            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("invoice", row, organization), "download")}
+            onOpenPdf={(row) => generateDocPdf(buildAccountsPdfPayload("invoice", row, organization), "open")}
             extraCols={[
               { key: "due_date", label: "Due date" },
               { key: "amount_paid", label: "Paid" },
@@ -226,13 +229,14 @@ function KpiCard({ label, value, count, icon: Icon, color }: { label: string; va
 }
 
 function DocTable({
-  rows, kind, navigate, extraCols, onPdf,
+  rows, kind, navigate, extraCols, onPdf, onOpenPdf,
 }: {
   rows: any[];
   kind: "estimation" | "proposal" | "invoice";
   navigate: (p: string) => void;
   extraCols: { key: string; label: string }[];
-  onPdf: (row: any) => void;
+  onPdf: (row: any) => void | Promise<void>;
+  onOpenPdf: (row: any) => void | Promise<void>;
 }) {
   if (rows.length === 0) {
     return (
@@ -300,11 +304,16 @@ function DocTable({
                   </Button>
                 </td>
                 <td className="px-3 py-3 text-right">
-                  {r.client_id && (
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/clients/${r.client_id}`)} className="h-7 gap-1 text-xs">
-                      Open
+                  <div className="flex items-center justify-end gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => onOpenPdf(r)} title="Open PDF in new tab" className="h-7 gap-1 text-xs">
+                      <Eye className="h-3.5 w-3.5" /> Open
                     </Button>
-                  )}
+                    {r.client_id && (
+                      <Button size="icon" variant="ghost" onClick={() => navigate(`/clients/${r.client_id}`)} title="Go to client" className="h-7 w-7 text-muted-foreground">
+                        →
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

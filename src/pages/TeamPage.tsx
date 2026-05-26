@@ -15,6 +15,7 @@ import { useOrg } from "@/contexts/OrgContext";
 import { useRole, ALL_ROLES, getCreatableRoles, type AppRole } from "@/contexts/RoleContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -903,10 +904,9 @@ function UserFormFields({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Phone</Label>
-            <Input
-              placeholder="+91 98765 43210"
+            <PhoneInput
               value={form.phone}
-              onChange={(e) => update("phone", e.target.value)}
+              onChange={(v) => update("phone", v)}
             />
           </div>
         </div>

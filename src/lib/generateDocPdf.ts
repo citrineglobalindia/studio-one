@@ -1,5 +1,24 @@
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { toast } from "sonner";
+
+// Try to load any remote image and return it as a base64 data URL.
+// Returns null on failure (CORS, 404, etc.) so the PDF still renders without it.
+async function imageToDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 export type DocPdfKind = "estimation" | "proposal" | "invoice";
 
@@ -215,20 +234,41 @@ function buildHtml(d: DocPdfData): string {
   `;
 }
 
-export async function generateDocPdf(d: DocPdfData) {
+export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = "download") {
   const filename = `${d.kind}-${(d.number || "doc").replace(/[^a-zA-Z0-9-]/g, "_")}.pdf`;
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "fixed";
-  wrapper.style.top = "-10000px";
-  wrapper.style.left = "0";
-  wrapper.style.width = "760px";
-  wrapper.style.background = "white";
-  wrapper.innerHTML = buildHtml(d);
-  document.body.appendChild(wrapper);
+  let loadingId: string | number | undefined;
+  let wrapper: HTMLDivElement | null = null;
   try {
+    loadingId = toast.loading(`Preparing ${d.kind} PDF…`);
+
+    // Pre-load logo to data URL so html2canvas doesn't choke on CORS.
+    let safeData = d;
+    if (d.studio.logo_url) {
+      const dataUrl = await imageToDataUrl(d.studio.logo_url);
+      // If the image is unreachable, drop it instead of failing the whole render.
+      safeData = { ...d, studio: { ...d.studio, logo_url: dataUrl } };
+    }
+
+    wrapper = document.createElement("div");
+    wrapper.style.position = "fixed";
+    wrapper.style.top = "-10000px";
+    wrapper.style.left = "0";
+    wrapper.style.width = "760px";
+    wrapper.style.background = "white";
+    wrapper.innerHTML = buildHtml(safeData);
+    document.body.appendChild(wrapper);
+
+    // Give the DOM a tick to layout before snapshotting
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+
     const canvas = await html2canvas(wrapper, {
-      scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true,
+      scale: 2,
+      backgroundColor: "#ffffff",
+      logging: false,
+      useCORS: true,
+      allowTaint: false,
     });
+
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -245,8 +285,28 @@ export async function generateDocPdf(d: DocPdfData) {
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
     }
-    pdf.save(filename);
+    if (mode === "open") {
+      const blobUrl = pdf.output("bloburl") as unknown as string;
+      const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Popup blocked → fall back to download
+        pdf.save(filename);
+        if (loadingId !== undefined) toast.dismiss(loadingId);
+        toast.success(`Popup blocked — downloaded ${filename} instead`);
+      } else {
+        if (loadingId !== undefined) toast.dismiss(loadingId);
+        toast.success(`Opened ${filename}`);
+      }
+    } else {
+      pdf.save(filename);
+      if (loadingId !== undefined) toast.dismiss(loadingId);
+      toast.success(`Downloaded ${filename}`);
+    }
+  } catch (err: any) {
+    console.error("PDF generation failed:", err);
+    if (loadingId !== undefined) toast.dismiss(loadingId);
+    toast.error(`Couldn't generate PDF: ${err?.message || "unknown error"}`);
   } finally {
-    document.body.removeChild(wrapper);
+    if (wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
   }
 }
