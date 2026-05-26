@@ -298,7 +298,7 @@ export function useAllQuotations() {
       if (!orgId) return [] as DbQuotation[];
       const { data, error } = await (supabase as any)
         .from("quotations")
-        .select("*, client:clients(id,name,partner_name)")
+        .select("*, client:clients(id,name,partner_name,phone,email,partner_phone,partner_email,address,city)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -320,7 +320,7 @@ export function useAllContracts() {
       if (!orgId) return [] as DbContract[];
       const { data, error } = await (supabase as any)
         .from("contracts")
-        .select("*, client:clients(id,name,partner_name)")
+        .select("*, client:clients(id,name,partner_name,phone,email,partner_phone,partner_email,address,city)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -342,7 +342,7 @@ export function useAllInvoices() {
       if (!orgId) return [] as DbInvoice[];
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("*, client:clients(id,name,partner_name)")
+        .select("*, client:clients(id,name,partner_name,phone,email,partner_phone,partner_email,address,city)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
       if (error) throw error;

@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/contexts/RoleContext";
 import { useAllQuotations, useAllContracts, useAllInvoices } from "@/hooks/useFinancials";
+import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
+import { useOrg } from "@/contexts/OrgContext";
+import { FileDown } from "lucide-react";
 import { DonutCard, StatusBarChart } from "@/components/accounts/FinanceCharts";
 
 type Tab = "estimations" | "proposals" | "invoices";
@@ -45,6 +48,7 @@ export default function AccountsPage() {
   const allowed = currentRole === "admin" || currentRole === "accounts";
 
   const navigate = useNavigate();
+  const { organization } = useOrg();
   const [tab, setTab] = useState<Tab>("estimations");
   const [search, setSearch] = useState("");
 
@@ -167,6 +171,7 @@ export default function AccountsPage() {
             rows={quotations.filter((r) => matchFilter(r, search))}
             kind="estimation"
             navigate={navigate}
+            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("estimation", row, organization))}
             extraCols={[{ key: "valid_until", label: "Valid until" }]}
           />
         ) : tab === "proposals" ? (
@@ -174,6 +179,7 @@ export default function AccountsPage() {
             rows={contracts.filter((r) => matchFilter(r, search))}
             kind="proposal"
             navigate={navigate}
+            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("proposal", row, organization))}
             extraCols={[{ key: "valid_until", label: "Valid until" }]}
           />
         ) : (
@@ -181,6 +187,7 @@ export default function AccountsPage() {
             rows={invoices.filter((r) => matchFilter(r, search))}
             kind="invoice"
             navigate={navigate}
+            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("invoice", row, organization))}
             extraCols={[
               { key: "due_date", label: "Due date" },
               { key: "amount_paid", label: "Paid" },
@@ -219,12 +226,13 @@ function KpiCard({ label, value, count, icon: Icon, color }: { label: string; va
 }
 
 function DocTable({
-  rows, kind, navigate, extraCols,
+  rows, kind, navigate, extraCols, onPdf,
 }: {
   rows: any[];
   kind: "estimation" | "proposal" | "invoice";
   navigate: (p: string) => void;
   extraCols: { key: string; label: string }[];
+  onPdf: (row: any) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -249,6 +257,7 @@ function DocTable({
             <th className="text-right px-3 py-3 font-medium">Amount</th>
             <th className="text-center px-3 py-3 font-medium">Status</th>
             <th className="text-center px-3 py-3 font-medium">GST</th>
+            <th className="px-3 py-3 text-right">PDF</th>
             <th className="px-3 py-3"></th>
           </tr>
         </thead>
@@ -286,6 +295,11 @@ function DocTable({
                     : <span className="text-muted-foreground/50 text-[10px]">—</span>}
                 </td>
                 <td className="px-3 py-3 text-right">
+                  <Button size="icon" variant="ghost" onClick={() => onPdf(r)} title="Download PDF" className="h-7 w-7">
+                    <FileDown className="h-3.5 w-3.5" />
+                  </Button>
+                </td>
+                <td className="px-3 py-3 text-right">
                   {r.client_id && (
                     <Button size="sm" variant="ghost" onClick={() => navigate(`/clients/${r.client_id}`)} className="h-7 gap-1 text-xs">
                       Open
@@ -299,4 +313,53 @@ function DocTable({
       </table>
     </div>
   );
+}
+
+
+function buildAccountsPdfPayload(kind: DocPdfKind, doc: any, studio: any) {
+  const client = doc.client || {};
+  const items = Array.isArray(doc.items) ? doc.items : [];
+  const subtotal = Number(doc.subtotal || (kind === "proposal" ? doc.contract_amount : 0) || 0);
+  const taxPercent = Number(doc.tax_percent || (doc.gst_applicable ? 18 : 0));
+  const discount = Number(doc.discount_value || 0);
+  const taxable = Math.max(0, subtotal - discount);
+  const tax = (taxable * taxPercent) / 100;
+  const total = Number(kind === "proposal" ? doc.contract_amount || (taxable + tax) : doc.total_amount || (taxable + tax));
+  return {
+    kind,
+    studio: {
+      name: studio?.name || "Studio",
+      address: studio?.address || null,
+      city: studio?.city || null,
+      phone: studio?.phone || null,
+      email: studio?.email || null,
+      website: studio?.website || null,
+      gst_number: studio?.gst_number || null,
+      logo_url: studio?.logo_url || null,
+    },
+    client: {
+      name: client?.name || "Client",
+      partner_name: client?.partner_name || null,
+      phone: client?.phone || null,
+      email: client?.email || null,
+      partner_phone: client?.partner_phone || null,
+      partner_email: client?.partner_email || null,
+      address: client?.address || null,
+      city: client?.city || null,
+    },
+    number: doc.quotation_number || doc.contract_number || doc.invoice_number || null,
+    status: doc.status || "draft",
+    date: doc.valid_until || doc.due_date || null,
+    dateLabel: kind === "invoice" ? "Due date" : "Valid until",
+    items,
+    subtotal,
+    discount,
+    taxLabel: doc.gst_applicable ? `GST @ ${taxPercent}%` : (taxPercent > 0 ? `Tax @ ${taxPercent}%` : undefined),
+    tax,
+    total,
+    amountPaid: kind === "invoice" ? Number(doc.amount_paid || 0) : undefined,
+    body: doc.body || undefined,
+    terms: doc.terms || undefined,
+    notes: doc.notes || undefined,
+  };
 }
