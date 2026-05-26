@@ -26,7 +26,7 @@ import {
   CalendarOff,
   LogOut,
   Package,
-  Receipt, Scissors,
+  Receipt, Scissors, Camera,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +58,7 @@ const salesItems: SidebarItem[] = [
 
 const operationsItems: SidebarItem[] = [
   { title: "Editing", url: "/editing", icon: Scissors, module: "projects" },
+  { title: "Event Reports", url: "/event-reports", icon: Camera, module: "events" },
 ];
 
 const financeItems: SidebarItem[] = [

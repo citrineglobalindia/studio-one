@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCalendarEvents, type CalendarEventRow } from "@/hooks/useCalendarEvents";
 import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useAuth } from "@/contexts/AuthContext";
+import { CheckInDialog } from "@/components/events/CheckInDialog";
+import { Camera as CameraIcon } from "lucide-react";
 
 const TYPE_DOT: Record<string, string> = {
   Wedding:       "bg-rose-500",
@@ -120,6 +123,9 @@ export default function CalendarPage() {
   const { data: events = [], isLoading } = useCalendarEvents(fromIso, toIso);
   const { members } = useTeamMembers();
   const memberById = new Map(members.map((m) => [m.id, m]));
+  const { user } = useAuth();
+  const myTeamMember = members.find((m: any) => m.user_id && user?.id && m.user_id === user.id) || null;
+  const [checkInEvent, setCheckInEvent] = useState<any | null>(null);
 
   // Apply filters first (admin/administrator only see filter UI)
   const filteredEvents = useMemo(() => {
@@ -497,6 +503,16 @@ export default function CalendarPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* Check-in CTA — visible if current user is assigned to this event */}
+                      {myTeamMember && e.assigned_member_ids?.includes(myTeamMember.id) && (
+                        <button
+                          onClick={() => setCheckInEvent(e)}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition"
+                        >
+                          <CameraIcon className="h-3.5 w-3.5" /> Check in
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -520,6 +536,14 @@ function FilterField({ label, children }: { label: string; children: React.React
     <div className="space-y-1">
       <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
       {children}
+      {checkInEvent && (
+        <CheckInDialog
+          open
+          onOpenChange={() => setCheckInEvent(null)}
+          event={checkInEvent}
+          teamMemberId={myTeamMember?.id ?? null}
+        />
+      )}
     </div>
   );
 }
