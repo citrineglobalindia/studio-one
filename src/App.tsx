@@ -105,7 +105,7 @@ function ProtectedRoutes() {
       </Route>
 
       {/* Super Admin (separate layout inside the page) */}
-      <Route path="/superadmin" element={<SuperAdminPage />}>
+      <Route path="/super-admin" element={<SuperAdminPage />}>
         <Route index element={<SADashboard />} />
         <Route path="dashboard" element={<SADashboard />} />
         <Route path="studios" element={<SAStudios />} />
