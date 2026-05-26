@@ -377,17 +377,15 @@ function EventsDocDialog({
   };
 
   const reconstructed = reconstructState(editing?.items);
-  const [rates, setRates] = useState<Record<string, number>>(() => reconstructed.rates);
+  // selectedKeys = Set of "<eventId>::<requirementKey>" for ticked requirements
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => {
+    const set = new Set<string>();
+    // Initialize from event.requirements (any saved item with #req)
+    for (const key of Object.keys(reconstructed.rates)) set.add(key);
+    return set;
+  });
   const [manualAmount, setManualAmount] = useState<number>(reconstructed.manual || 0);
-  // Detect saved mode: if all stored items are just one #manual line (and no line/custom rates), assume "single"
-  const initialMode = (() => {
-    if (!editing) return "itemized" as const;
-    const hasRates = Object.values(reconstructed.rates).some((v) => Number(v) > 0);
-    const hasCustoms = Object.values(reconstructed.customs).some((arr) => arr.length > 0);
-    if (!hasRates && !hasCustoms && (reconstructed.manual || 0) > 0) return "single" as const;
-    return "itemized" as const;
-  })();
-  const [billingMode, setBillingMode] = useState<"itemized" | "single">(initialMode);
+
   const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
   const [status, setStatus] = useState<string>(editing?.status || statuses[0]);
@@ -404,31 +402,21 @@ function EventsDocDialog({
   const [title, setTitle] = useState<string>(editing?.title || "");
   const [saving, setSaving] = useState(false);
 
-  // Compute totals from rates map
-  const lineRows = useMemo(() => {
-    const rows: Array<{ event: DbEvent; req: string; rate: number; label: string; isCustom?: boolean }> = [];
-    for (const ev of clientEvents) {
-      const reqs = Array.isArray(ev.requirements) ? ev.requirements : [];
-      for (const r of reqs) {
-        const rate = rates[itemKey(ev.id, r)] || 0;
-        rows.push({ event: ev, req: r, rate, label: REQ_LABEL[r] || r });
-      }
-      const customs = customByEvent[ev.id] || [];
-      customs.forEach((c, idx) => {
-        const amount = (c.quantity || 1) * (c.rate || 0);
-        rows.push({ event: ev, req: `__custom_${idx}__`, rate: amount, label: c.description || "Custom item", isCustom: true });
-      });
-    }
-    return rows;
-  }, [clientEvents, rates, customByEvent]);
+  // Toggle a requirement on/off for an event
+  const toggleRequirement = (eventId: string, req: string) => {
+    const k = itemKey(eventId, req);
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
 
-  const subtotalLines = useMemo(
-    () => lineRows.reduce((s, r) => s + (r.rate || 0), 0),
-    [lineRows]
-  );
+  // In the new workflow, ALL itemized docs use a single final amount (manualAmount).
+  // Line items are just markers showing what's included. So subtotal = manualAmount.
   const subtotal = useMemo(
-    () => (docKind === "proposal" ? proposalAmount : (billingMode === "single" ? (manualAmount || 0) : subtotalLines + (manualAmount || 0))),
-    [docKind, billingMode, subtotalLines, manualAmount, proposalAmount]
+    () => (docKind === "proposal" ? proposalAmount : (manualAmount || 0)),
+    [docKind, manualAmount, proposalAmount]
   );
   const discountVal = Math.max(0, discount);
   const taxable = Math.max(0, subtotal - discountVal);
@@ -436,47 +424,32 @@ function EventsDocDialog({
   const tax = (taxable * taxPercent) / 100;
   const total = taxable + tax;
 
-  const updateRate = (eventId: string, req: string, value: number) =>
-    setRates((p) => ({ ...p, [itemKey(eventId, req)]: value }));
-
   const buildItems = (): LineItem[] => {
     const items: LineItem[] = [];
-    if (billingMode === "single") {
-      // Save only the single amount as a #manual line
-      if (manualAmount > 0) {
+    // Selected requirements as zero-rate line items (just for record/PDF display)
+    for (const ev of clientEvents) {
+      for (const key of Object.keys(REQ_LABEL)) {
+        if (!selectedKeys.has(itemKey(ev.id, key))) continue;
         items.push({
-          description: "Package amount  #manual",
+          description: `${ev.event_type || "Event"} — ${REQ_LABEL[key]}  #evt:${ev.id}#req:${key}`,
           quantity: 1,
-          rate: manualAmount,
-          amount: manualAmount,
+          rate: 0,
+          amount: 0,
         });
       }
-      return items;
-    }
-    // Itemized mode — save everything
-    for (const r of lineRows) {
-      if (r.isCustom) continue;
-      items.push({
-        description: `${r.event.event_type || "Event"} — ${r.label}  #evt:${r.event.id}#req:${r.req}`,
-        quantity: 1,
-        rate: r.rate,
-        amount: r.rate,
-      });
-    }
-    for (const ev of clientEvents) {
       const customs = customByEvent[ev.id] || [];
       customs.forEach((c) => {
-        if (!c.description.trim() && !c.rate && (c.quantity ?? 1) <= 1) return;
+        if (!c.description.trim()) return;
         const qty = c.quantity || 1;
-        const amount = qty * (c.rate || 0);
         items.push({
-          description: `${ev.event_type || "Event"} — ${c.description || "Custom item"}  #evt:${ev.id}#custom`,
+          description: `${ev.event_type || "Event"} — ${c.description}  #evt:${ev.id}#custom`,
           quantity: qty,
-          rate: c.rate || 0,
-          amount,
+          rate: 0,
+          amount: 0,
         });
       });
     }
+    // Final single amount as the #manual line
     if (manualAmount > 0) {
       items.push({
         description: "Package amount  #manual",
@@ -557,35 +530,6 @@ function EventsDocDialog({
             </div>
           </div>
 
-          {/* Billing mode toggle (estimation + invoice only) */}
-          {docKind !== "proposal" && (
-            <div className="flex items-center justify-between rounded-xl border border-border p-3 bg-muted/20">
-              <div>
-                <Label className="text-xs font-medium text-foreground">Billing mode</Label>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {billingMode === "itemized" ? "Bill per requirement / event" : "Bill a single lump-sum amount"}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-background border border-border">
-                {(["itemized", "single"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setBillingMode(mode)}
-                    className={
-                      "px-2.5 py-1 rounded-md text-xs font-medium transition capitalize " +
-                      (billingMode === mode
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground")
-                    }
-                  >
-                    {mode === "single" ? "Single amount" : "Itemized"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Proposal-only title */}
           {docKind === "proposal" && (
             <div className="space-y-1.5">
@@ -594,10 +538,10 @@ function EventsDocDialog({
             </div>
           )}
 
-          {/* EVENTS + REQUIREMENTS GRID (only in itemized mode) */}
-          {docKind === "proposal" ? null : billingMode === "itemized" ? (
+          {/* EVENTS + REQUIREMENT CHECKLIST */}
+          {docKind === "proposal" ? null : (
             <div className="space-y-2">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Events &amp; requirements</Label>
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Events &amp; what's included</Label>
               {clientEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border p-6 text-center">
                   <CalendarDays className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
@@ -607,7 +551,11 @@ function EventsDocDialog({
               ) : (
                 <div className="space-y-2">
                   {clientEvents.map((ev) => {
-                    const reqs = Array.isArray(ev.requirements) ? ev.requirements : [];
+                    const eventReqs = Array.isArray(ev.requirements) ? ev.requirements : [];
+                    // Show ALL 6 standard requirements as a checklist for this event
+                    const allReqs = Object.keys(REQ_LABEL);
+                    const eventSelectedCount = allReqs.filter((r) => selectedKeys.has(itemKey(ev.id, r))).length
+                      + (customByEvent[ev.id] || []).filter((c) => c.description.trim()).length;
                     return (
                       <div key={ev.id} className="rounded-xl border border-border bg-background overflow-hidden">
                         <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border">
@@ -616,107 +564,82 @@ function EventsDocDialog({
                           {ev.event_date && (
                             <Badge variant="outline" className="text-[10px]">{fmtDate(ev.event_date)}</Badge>
                           )}
-                          {reqs.length > 0 && (
-                            <Badge variant="secondary" className="text-[10px]">{reqs.length} req</Badge>
+                          {eventSelectedCount > 0 && (
+                            <Badge variant="default" className="text-[10px]">{eventSelectedCount} selected</Badge>
                           )}
                         </div>
-                        <div className="divide-y divide-border">
-                          {reqs.length === 0 && (customByEvent[ev.id] ?? []).length === 0 && (
-                            <p className="px-3 py-3 text-[11px] text-muted-foreground italic">
-                              No requirements selected on this event. Use “+ Add line item” below to bill anyway.
+                        <div className="p-3 space-y-2">
+                          {/* Hint */}
+                          {eventReqs.length === 0 && (
+                            <p className="text-[10px] text-muted-foreground italic">
+                              No requirements were ticked when this event was created. Pick what to include here.
                             </p>
                           )}
-                          {reqs.map((r) => (
-                            <div key={r} className="grid grid-cols-[1fr,140px] gap-2 items-center px-3 py-2">
-                              <span className="text-sm text-foreground">{REQ_LABEL[r] || r}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">₹</span>
-                                <Input
-                                  type="number"
-                                  value={rates[itemKey(ev.id, r)] || ""}
-                                  onChange={(e) => updateRate(ev.id, r, Number(e.target.value || 0))}
-                                  placeholder="0"
-                                  className="text-right tabular-nums h-8"
-                                />
-                              </div>
+
+                          {/* All 6 standard requirements as checkbox chips */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {(Object.entries(REQ_LABEL) as Array<[string, string]>).map(([key, label]) => {
+                              const isSelected = selectedKeys.has(itemKey(ev.id, key));
+                              const wasOnEvent = eventReqs.includes(key);
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => toggleRequirement(ev.id, key)}
+                                  className={
+                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition " +
+                                    (isSelected
+                                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                      : "bg-muted/40 text-foreground border-border hover:bg-muted hover:border-border/80")
+                                  }
+                                  title={wasOnEvent ? "Was set on the event" : "Add to this estimate"}
+                                >
+                                  {isSelected ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                                  {label}
+                                  {wasOnEvent && !isSelected && <span className="opacity-50">·</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Custom notes per event */}
+                          {(customByEvent[ev.id] ?? []).map((ci, idx) => (
+                            <div key={`custom-${idx}`} className="grid grid-cols-[1fr,60px,28px] gap-2 items-center">
+                              <Input
+                                value={ci.description}
+                                onChange={(e) => setCustomByEvent((p) => {
+                                  const list = [...(p[ev.id] || [])];
+                                  list[idx] = { ...list[idx], description: e.target.value };
+                                  return { ...p, [ev.id]: list };
+                                })}
+                                placeholder="Custom item (e.g. Coffee table book)"
+                                className="h-8 text-sm"
+                              />
+                              <Input
+                                type="number"
+                                value={ci.quantity || ""}
+                                onChange={(e) => setCustomByEvent((p) => {
+                                  const list = [...(p[ev.id] || [])];
+                                  list[idx] = { ...list[idx], quantity: Number(e.target.value || 0) };
+                                  return { ...p, [ev.id]: list };
+                                })}
+                                placeholder="Qty"
+                                className="text-center tabular-nums h-8"
+                              />
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => setCustomByEvent((p) => {
+                                const list = (p[ev.id] || []).filter((_, i) => i !== idx);
+                                return { ...p, [ev.id]: list };
+                              })}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           ))}
-                          {(customByEvent[ev.id] ?? []).map((ci, idx) => {
-                            const amount = (ci.quantity || 1) * (ci.rate || 0);
-                            return (
-                              <div key={`custom-${idx}`} className="grid grid-cols-[1fr,60px,90px,90px,28px] gap-2 items-center px-3 py-2">
-                                <Input
-                                  value={ci.description}
-                                  onChange={(e) => setCustomByEvent((p) => {
-                                    const list = [...(p[ev.id] || [])];
-                                    list[idx] = { ...list[idx], description: e.target.value };
-                                    return { ...p, [ev.id]: list };
-                                  })}
-                                  placeholder="Description"
-                                  className="h-8 text-sm"
-                                />
-                                <Input
-                                  type="number"
-                                  value={ci.quantity || ""}
-                                  onChange={(e) => setCustomByEvent((p) => {
-                                    const list = [...(p[ev.id] || [])];
-                                    list[idx] = { ...list[idx], quantity: Number(e.target.value || 0) };
-                                    return { ...p, [ev.id]: list };
-                                  })}
-                                  placeholder="Qty"
-                                  className="text-center tabular-nums h-8"
-                                />
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-muted-foreground">₹</span>
-                                  <Input
-                                    type="number"
-                                    value={ci.rate || ""}
-                                    onChange={(e) => setCustomByEvent((p) => {
-                                      const list = [...(p[ev.id] || [])];
-                                      list[idx] = { ...list[idx], rate: Number(e.target.value || 0) };
-                                      return { ...p, [ev.id]: list };
-                                    })}
-                                    placeholder="Rate"
-                                    className="text-right tabular-nums h-8"
-                                  />
-                                </div>
-                                <Input value={amount ? `₹${amount}` : ""} disabled className="h-8 text-right tabular-nums" />
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => setCustomByEvent((p) => {
-                                  const list = (p[ev.id] || []).filter((_, i) => i !== idx);
-                                  return { ...p, [ev.id]: list };
-                                })}>
-                                  <X className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            );
-                          })}
-
-                          {/* Quick-add requirement chips + custom */}
-                          <div className="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-border/50 bg-muted/10">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mr-1">Quick add:</span>
-                            {(Object.entries(REQ_LABEL) as Array<[string, string]>).map(([key, label]) => (
-                              <Button
-                                key={key}
-                                size="sm"
-                                variant="outline"
-                                className="h-7 gap-1.5 text-xs"
-                                onClick={() => setCustomByEvent((p) => ({
-                                  ...p,
-                                  [ev.id]: [...(p[ev.id] || []), { description: label, quantity: 1, rate: 0 }],
-                                }))}
-                              >
-                                <Plus className="h-3 w-3" /> {label}
-                              </Button>
-                            ))}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 gap-1.5 text-xs"
+                          <div>
+                            <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs"
                               onClick={() => setCustomByEvent((p) => ({
                                 ...p, [ev.id]: [...(p[ev.id] || []), { description: "", quantity: 1, rate: 0 }]
-                              }))}
-                            >
-                              <Plus className="h-3 w-3" /> Custom
+                              }))}>
+                              <Plus className="h-3 w-3" /> Add custom item
                             </Button>
                           </div>
                         </div>
@@ -725,45 +648,24 @@ function EventsDocDialog({
                   })}
                 </div>
               )}
-              {/* DIRECT / PACKAGE AMOUNT */}
-              <div className="rounded-xl border border-dashed border-border p-3 bg-muted/10">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Additional amount (₹)</Label>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Use this if you want to bill a flat amount on top of the line items (e.g. package deal, advance)</p>
-                  </div>
-                  <Input
-                    type="number"
-                    value={manualAmount || ""}
-                    onChange={(e) => setManualAmount(Number(e.target.value || 0))}
-                    placeholder="0"
-                    className="w-32 text-right tabular-nums"
-                  />
-                </div>
-                {(subtotalLines > 0 || (manualAmount || 0) > 0) && (
-                  <div className="text-[11px] text-muted-foreground mt-2 flex items-center justify-between">
-                    <span>Line items subtotal: <span className="text-foreground tabular-nums">{inr(subtotalLines)}</span></span>
-                    {manualAmount > 0 && <span>+ <span className="text-foreground tabular-nums">{inr(manualAmount)}</span></span>}
-                  </div>
-                )}
-              </div>
             </div>
-          ) : (
-            // Single amount mode for estimation/invoice
-            <div className="rounded-xl border border-dashed border-border p-5 bg-muted/10">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Final amount (₹)</Label>
+          )}
+
+          {/* FINAL AMOUNT — single input for the whole package */}
+          {docKind !== "proposal" && (
+            <div className="rounded-xl border-2 border-primary/30 p-5 bg-primary/[0.04]">
+              <Label className="text-[11px] uppercase tracking-wide text-primary font-semibold">Final amount (₹)</Label>
+              <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">One total price for everything ticked above</p>
               <Input
                 type="number"
                 value={manualAmount || ""}
                 onChange={(e) => setManualAmount(Number(e.target.value || 0))}
-                placeholder="Enter the total amount"
-                className="text-right tabular-nums text-2xl font-bold h-14 mt-2"
+                placeholder="0"
+                className="text-right tabular-nums text-2xl font-bold h-14"
               />
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Bills the client one single amount. Switch to Itemized to break it down by event / requirement.
-              </p>
             </div>
           )}
+
           {docKind === "proposal" && (
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Proposal amount (₹)</Label>
