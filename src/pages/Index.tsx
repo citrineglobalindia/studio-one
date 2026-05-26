@@ -108,8 +108,9 @@ function AdminDashboard() {
   const { leads } = useLeads();
   const { rows: invoices } = useAllInvoices();
   const { rows: quotations } = useAllQuotations();
-  const { events } = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
-  const { rows: expenses } = useExpenses();
+  const calRes = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
+  const events = (calRes.data ?? []) as any[];
+  const { expenses } = useExpenses();
 
   const today = todayIso();
   const sevenDaysOut = plusDaysIso(7);
@@ -209,7 +210,7 @@ function AccountsDashboard() {
   const { rows: invoices } = useAllInvoices();
   const { rows: quotations } = useAllQuotations();
   const { rows: contracts } = useAllContracts();
-  const { rows: expenses } = useExpenses();
+  const { expenses } = useExpenses();
 
   const today = todayIso().slice(0, 7);
   const collected = invoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
@@ -359,7 +360,8 @@ function SalesDashboard() {
 function OpsDashboard() {
   const navigate = useNavigate();
   const { currentRole } = useRole();
-  const { events } = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
+  const calRes = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
+  const events = (calRes.data ?? []) as any[];
   const { employees } = useEmployees();
 
   const today = todayIso();
@@ -407,7 +409,8 @@ function OpsDashboard() {
 // ──────────────────────────────────────────────────────────────────────
 function VendorDashboard() {
   const navigate = useNavigate();
-  const { events } = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
+  const calRes = useCalendarEvents(startOfMonthIso(), plusDaysIso(60));
+  const events = (calRes.data ?? []) as any[];
   const today = todayIso();
   const todays = events.filter((e: any) => e.event_date === today);
   const upcoming = events.filter((e: any) => e.event_date > today);
