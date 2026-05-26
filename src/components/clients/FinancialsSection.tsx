@@ -19,6 +19,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { useOrg } from "@/contexts/OrgContext";
+import { useClients } from "@/hooks/useClients";
 import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
 import {
   useClientQuotations, useClientContracts, useClientInvoices,
@@ -74,23 +75,44 @@ function fmtDate(d?: string | null) {
 function buildPdfPayload(opts: {
   kind: DocPdfKind;
   doc: any;
-  clientName: string;
-  studioName: string;
+  studio: any;
+  client: any;
 }) {
-  const { kind, doc, clientName, studioName } = opts;
-  const isProposal = kind === "proposal";
-  const items = isProposal ? [] : (Array.isArray(doc.items) ? doc.items : []);
-  const subtotal = isProposal ? Number(doc.contract_amount || 0) : Number(doc.subtotal || 0);
+  const { kind, doc, studio, client } = opts;
+  const items = Array.isArray(doc.items) ? doc.items : [];
+  const subtotal = Number(doc.subtotal || (kind === "proposal" ? doc.contract_amount : 0) || 0);
   const taxPercent = Number(doc.tax_percent || (doc.gst_applicable ? 18 : 0));
   const discount = Number(doc.discount_value || 0);
   const taxable = Math.max(0, subtotal - discount);
   const tax = (taxable * taxPercent) / 100;
-  const total = isProposal ? Number(doc.contract_amount || 0) : Number(doc.total_amount || (taxable + tax));
+  const total = Number(
+    kind === "proposal"
+      ? doc.contract_amount || (taxable + tax)
+      : doc.total_amount || (taxable + tax)
+  );
   return {
     kind,
-    studioName,
+    studio: {
+      name: studio?.name || "Studio",
+      address: studio?.address || null,
+      city: studio?.city || null,
+      phone: studio?.phone || null,
+      email: studio?.email || null,
+      website: studio?.website || null,
+      gst_number: studio?.gst_number || null,
+      logo_url: studio?.logo_url || null,
+    },
+    client: {
+      name: client?.name || "Client",
+      partner_name: client?.partner_name || null,
+      phone: client?.phone || null,
+      email: client?.email || null,
+      partner_phone: client?.partner_phone || null,
+      partner_email: client?.partner_email || null,
+      address: client?.address || null,
+      city: client?.city || null,
+    },
     number: doc.quotation_number || doc.contract_number || doc.invoice_number || null,
-    clientName,
     status: doc.status || "draft",
     date: doc.valid_until || doc.due_date || null,
     dateLabel: kind === "invoice" ? "Due date" : "Valid until",
@@ -109,6 +131,8 @@ function buildPdfPayload(opts: {
 
 export function FinancialsSection({ clientId, clientName }: { clientId: string; clientName: string }) {
   const { organization } = useOrg();
+  const { clients } = useClients();
+  const client = clients.find((c) => c.id === clientId);
   const studioName = organization?.name || "Studio";
   const { currentRole } = useRole();
   const allowed = currentRole === "admin" || currentRole === "accounts";
@@ -145,9 +169,9 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
       </div>
 
       <div className="rounded-xl border border-border/80 bg-card p-4 md:p-5 border-l-[3px] border-l-amber-500">
-        {tab === "estimations" && <EstimationsPanel clientId={clientId} clientName={clientName} studioName={studioName} />}
-        {tab === "proposals" && <ProposalsPanel clientId={clientId} clientName={clientName} studioName={studioName} />}
-        {tab === "invoices" && <InvoicesPanel clientId={clientId} clientName={clientName} studioName={studioName} />}
+        {tab === "estimations" && <EstimationsPanel clientId={clientId} clientName={clientName} studio={organization} client={client} />}
+        {tab === "proposals" && <ProposalsPanel clientId={clientId} clientName={clientName} studio={organization} client={client} />}
+        {tab === "invoices" && <InvoicesPanel clientId={clientId} clientName={clientName} studio={organization} client={client} />}
       </div>
     </motion.div>
   );
@@ -157,7 +181,7 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
 // PANELS
 // ============================================================================
 
-function EstimationsPanel({ clientId, clientName, studioName }: { clientId: string; clientName: string; studioName: string }) {
+function EstimationsPanel({ clientId, clientName, studio, client }: { clientId: string; clientName: string; studio: any; client: any }) {
   const { quotations, isLoading, add, update, remove } = useClientQuotations(clientId);
   const [editing, setEditing] = useState<DbQuotation | null | undefined>(undefined);
   return (
@@ -180,7 +204,7 @@ function EstimationsPanel({ clientId, clientName, studioName }: { clientId: stri
               status={q.status || "draft"}
               onEdit={() => setEditing(q)}
               onDelete={() => { if (window.confirm("Delete this estimation?")) remove.mutate(q.id); }}
-              onPdf={() => generateDocPdf(buildPdfPayload({ kind: "estimation", doc: q, clientName, studioName }))}
+              onPdf={() => generateDocPdf(buildPdfPayload({ kind: "estimation", doc: q, studio, client }))}
             />
           );
         })}
@@ -207,7 +231,7 @@ function EstimationsPanel({ clientId, clientName, studioName }: { clientId: stri
   );
 }
 
-function ProposalsPanel({ clientId, clientName, studioName }: { clientId: string; clientName: string; studioName: string }) {
+function ProposalsPanel({ clientId, clientName, studio, client }: { clientId: string; clientName: string; studio: any; client: any }) {
   const { contracts, isLoading, add, update, remove } = useClientContracts(clientId);
   const [editing, setEditing] = useState<DbContract | null | undefined>(undefined);
   return (
@@ -228,7 +252,7 @@ function ProposalsPanel({ clientId, clientName, studioName }: { clientId: string
             status={cn.status || "draft"}
             onEdit={() => setEditing(cn)}
             onDelete={() => { if (window.confirm("Delete this proposal?")) remove.mutate(cn.id); }}
-            onPdf={() => generateDocPdf(buildPdfPayload({ kind: "proposal", doc: cn, clientName, studioName }))}
+            onPdf={() => generateDocPdf(buildPdfPayload({ kind: "proposal", doc: cn, studio, client }))}
           />
         ))}
       </div>
@@ -254,7 +278,7 @@ function ProposalsPanel({ clientId, clientName, studioName }: { clientId: string
   );
 }
 
-function InvoicesPanel({ clientId, clientName, studioName }: { clientId: string; clientName: string; studioName: string }) {
+function InvoicesPanel({ clientId, clientName, studio, client }: { clientId: string; clientName: string; studio: any; client: any }) {
   const { invoices, isLoading, add, update, remove } = useClientInvoices(clientId);
   const [editing, setEditing] = useState<DbInvoice | null | undefined>(undefined);
   return (
@@ -285,7 +309,7 @@ function InvoicesPanel({ clientId, clientName, studioName }: { clientId: string;
               status={i.status || "draft"}
               onEdit={() => setEditing(i)}
               onDelete={() => { if (window.confirm("Delete this invoice?")) remove.mutate(i.id); }}
-              onPdf={() => generateDocPdf(buildPdfPayload({ kind: "invoice", doc: i, clientName, studioName }))}
+              onPdf={() => generateDocPdf(buildPdfPayload({ kind: "invoice", doc: i, studio, client }))}
             />
           );
         })}
@@ -340,7 +364,7 @@ function itemKey(eventId: string, req: string) { return `${eventId}::${req}`; }
 function customKey(eventId: string, idx: number) { return `${eventId}::custom::${idx}`; }
 
 function EventsDocDialog({
-  open, onOpenChange, docKind, editing, clientId, statuses,
+  open, onOpenChange, docKind, editing, clientId, clientName, statuses,
   numberLabel, dateLabel, dateField, numberField, extraAmountField, onSubmit,
 }: EventsDocDialogProps) {
   const { events: clientEvents } = useClientEvents(clientId);
@@ -384,7 +408,9 @@ function EventsDocDialog({
     for (const key of Object.keys(reconstructed.rates)) set.add(key);
     return set;
   });
-  const [manualAmount, setManualAmount] = useState<number>(reconstructed.manual || 0);
+  const [manualAmount, setManualAmount] = useState<number>(
+    reconstructed.manual || (editing && "contract_amount" in (editing as any) ? Number((editing as any).contract_amount || 0) : 0)
+  );
 
   const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
@@ -396,8 +422,6 @@ function EventsDocDialog({
   const [terms, setTerms] = useState<string>(editing?.terms || (editing ? "" : DEFAULT_TERMS));
   const [notes, setNotes] = useState<string>(editing?.notes || "");
   const [amountPaid, setAmountPaid] = useState<number>(extraAmountField ? Number(editing?.[extraAmountField.key] || 0) : 0);
-  // Proposal-only: single contract_amount fallback
-  const [proposalAmount, setProposalAmount] = useState<number>(Number(editing?.contract_amount || 0));
   const [body, setBody] = useState<string>(editing?.body || "");
   const [title, setTitle] = useState<string>(editing?.title || "");
   const [saving, setSaving] = useState(false);
@@ -415,8 +439,8 @@ function EventsDocDialog({
   // In the new workflow, ALL itemized docs use a single final amount (manualAmount).
   // Line items are just markers showing what's included. So subtotal = manualAmount.
   const subtotal = useMemo(
-    () => (docKind === "proposal" ? proposalAmount : (manualAmount || 0)),
-    [docKind, manualAmount, proposalAmount]
+    () => manualAmount || 0,
+    [manualAmount]
   );
   const discountVal = Math.max(0, discount);
   const taxable = Math.max(0, subtotal - discountVal);
@@ -476,9 +500,14 @@ function EventsDocDialog({
         await onSubmit({
           ...base,
           [numberField]: docNumber || null,
-          title: title || null,
-          contract_amount: total, // includes GST if applicable
+          title: title || `Proposal — ${clientName}`,
+          contract_amount: total,
           body: body?.trim() || null,
+          items: builtItems,
+          subtotal,
+          discount_type: "amount",
+          discount_value: discountVal,
+          tax_percent: taxPercent,
         });
       } else {
         await onSubmit({
@@ -663,13 +692,6 @@ function EventsDocDialog({
                 placeholder="0"
                 className="text-right tabular-nums text-2xl font-bold h-14"
               />
-            </div>
-          )}
-
-          {docKind === "proposal" && (
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Proposal amount (₹)</Label>
-              <Input type="number" value={proposalAmount || ""} onChange={(e) => setProposalAmount(Number(e.target.value || 0))} placeholder="0" />
             </div>
           )}
 
