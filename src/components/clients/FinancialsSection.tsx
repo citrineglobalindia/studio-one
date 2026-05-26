@@ -379,6 +379,15 @@ function EventsDocDialog({
   const reconstructed = reconstructState(editing?.items);
   const [rates, setRates] = useState<Record<string, number>>(() => reconstructed.rates);
   const [manualAmount, setManualAmount] = useState<number>(reconstructed.manual || 0);
+  // Detect saved mode: if all stored items are just one #manual line (and no line/custom rates), assume "single"
+  const initialMode = (() => {
+    if (!editing) return "itemized" as const;
+    const hasRates = Object.values(reconstructed.rates).some((v) => Number(v) > 0);
+    const hasCustoms = Object.values(reconstructed.customs).some((arr) => arr.length > 0);
+    if (!hasRates && !hasCustoms && (reconstructed.manual || 0) > 0) return "single" as const;
+    return "itemized" as const;
+  })();
+  const [billingMode, setBillingMode] = useState<"itemized" | "single">(initialMode);
   const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
   const [status, setStatus] = useState<string>(editing?.status || statuses[0]);
@@ -418,8 +427,8 @@ function EventsDocDialog({
     [lineRows]
   );
   const subtotal = useMemo(
-    () => (docKind === "proposal" ? proposalAmount : subtotalLines + (manualAmount || 0)),
-    [docKind, subtotalLines, manualAmount, proposalAmount]
+    () => (docKind === "proposal" ? proposalAmount : (billingMode === "single" ? (manualAmount || 0) : subtotalLines + (manualAmount || 0))),
+    [docKind, billingMode, subtotalLines, manualAmount, proposalAmount]
   );
   const discountVal = Math.max(0, discount);
   const taxable = Math.max(0, subtotal - discountVal);
@@ -432,6 +441,19 @@ function EventsDocDialog({
 
   const buildItems = (): LineItem[] => {
     const items: LineItem[] = [];
+    if (billingMode === "single") {
+      // Save only the single amount as a #manual line
+      if (manualAmount > 0) {
+        items.push({
+          description: "Package amount  #manual",
+          quantity: 1,
+          rate: manualAmount,
+          amount: manualAmount,
+        });
+      }
+      return items;
+    }
+    // Itemized mode — save everything
     for (const r of lineRows) {
       if (r.isCustom) continue;
       items.push({
@@ -455,7 +477,6 @@ function EventsDocDialog({
         });
       });
     }
-    // Direct / package amount as a special line item with #manual marker
     if (manualAmount > 0) {
       items.push({
         description: "Package amount  #manual",
@@ -471,14 +492,6 @@ function EventsDocDialog({
     setSaving(true);
     try {
       const builtItems = buildItems();
-      if (docKind !== "proposal" && builtItems.length === 0 && total === 0) {
-        toast.warning("Nothing to save — add at least one line item.");
-        setSaving(false);
-        return;
-      }
-      if (docKind !== "proposal" && total === 0) {
-        toast.info("Saved as draft — total is ₹0. Add rates to bill.");
-      }
       const base: any = {
         gst_applicable: gst,
         status,
@@ -544,6 +557,35 @@ function EventsDocDialog({
             </div>
           </div>
 
+          {/* Billing mode toggle (estimation + invoice only) */}
+          {docKind !== "proposal" && (
+            <div className="flex items-center justify-between rounded-xl border border-border p-3 bg-muted/20">
+              <div>
+                <Label className="text-xs font-medium text-foreground">Billing mode</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {billingMode === "itemized" ? "Bill per requirement / event" : "Bill a single lump-sum amount"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-background border border-border">
+                {(["itemized", "single"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setBillingMode(mode)}
+                    className={
+                      "px-2.5 py-1 rounded-md text-xs font-medium transition capitalize " +
+                      (billingMode === mode
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    {mode === "single" ? "Single amount" : "Itemized"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Proposal-only title */}
           {docKind === "proposal" && (
             <div className="space-y-1.5">
@@ -552,8 +594,8 @@ function EventsDocDialog({
             </div>
           )}
 
-          {/* EVENTS + REQUIREMENTS GRID */}
-          {docKind !== "proposal" ? (
+          {/* EVENTS + REQUIREMENTS GRID (only in itemized mode) */}
+          {docKind === "proposal" ? null : billingMode === "itemized" ? (
             <div className="space-y-2">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Events &amp; requirements</Label>
               {clientEvents.length === 0 ? (
@@ -707,7 +749,22 @@ function EventsDocDialog({
               </div>
             </div>
           ) : (
-            // Proposal: single amount
+            // Single amount mode for estimation/invoice
+            <div className="rounded-xl border border-dashed border-border p-5 bg-muted/10">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Final amount (₹)</Label>
+              <Input
+                type="number"
+                value={manualAmount || ""}
+                onChange={(e) => setManualAmount(Number(e.target.value || 0))}
+                placeholder="Enter the total amount"
+                className="text-right tabular-nums text-2xl font-bold h-14 mt-2"
+              />
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Bills the client one single amount. Switch to Itemized to break it down by event / requirement.
+              </p>
+            </div>
+          )}
+          {docKind === "proposal" && (
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Proposal amount (₹)</Label>
               <Input type="number" value={proposalAmount || ""} onChange={(e) => setProposalAmount(Number(e.target.value || 0))} placeholder="0" />
