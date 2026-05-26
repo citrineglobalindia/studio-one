@@ -47,8 +47,8 @@ export function canCreateRole(creator: AppRole | null | undefined, target: AppRo
 }
 
 export type AppModule =
-  | "dashboard" | "leads" | "clients" | "quotations"
-  | "projects" | "live-clients" | "albums" | "events" | "calendar" | "tasks" | "process-planner"
+  | "dashboard" | "leads" | "clients"
+  | "events" | "calendar" | "editing" | "event-reports"
   | "team"
   | "invoices" | "contracts" | "payment-requests" | "salary"
   | "hr-employees" | "hr-attendance" | "hr-leaves"
@@ -58,14 +58,10 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "dashboard", label: "Dashboard", group: "Sales CRM" },
   { value: "leads", label: "Leads", group: "Sales CRM" },
   { value: "clients", label: "Clients", group: "Sales CRM" },
-  { value: "quotations", label: "Quotations", group: "Sales CRM" },
-  { value: "live-clients", label: "Live Clients", group: "Operations" },
-  { value: "projects", label: "Projects", group: "Operations" },
   { value: "events", label: "Events", group: "Operations" },
-  { value: "albums", label: "Albums", group: "Operations" },
   { value: "calendar", label: "Calendar", group: "Operations" },
-  { value: "tasks", label: "Tasks", group: "Operations" },
-  { value: "process-planner", label: "Process Planner", group: "Operations" },
+  { value: "editing", label: "Editing", group: "Operations" },
+  { value: "event-reports", label: "Event Reports", group: "Operations" },
   { value: "team", label: "Users", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
@@ -91,15 +87,15 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   administrator: ALL_MODULES
     .map((m) => m.value)
     .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
-  editor: ["dashboard", "projects", "tasks", "albums", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  editor: ["dashboard", "editing", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads + own attendance/leaves/expense
   telecaller: ["dashboard", "leads", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
-  videographer: ["dashboard", "projects", "events", "calendar", "tasks", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
-  photographer: ["dashboard", "projects", "events", "calendar", "tasks", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  videographer: ["dashboard", "events", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  photographer: ["dashboard", "events", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Vendors can still raise expenses (per-event payouts) but no internal HR
   photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
   videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
-  accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "hr-leaves", "notifications", "profile"],
+  accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "event-reports", "hr-attendance", "hr-employees", "hr-leaves", "notifications", "profile"],
 };
 
 /** Where this user is allowed to sign in: web dashboard, mobile PWA, or both. */
