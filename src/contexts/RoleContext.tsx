@@ -91,15 +91,15 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   administrator: ALL_MODULES
     .map((m) => m.value)
     .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
-  editor: ["dashboard", "projects", "tasks", "albums", "hr-attendance", "payment-requests", "notifications", "profile"],
-  // Sales (telecaller): leads-only focus — RLS enforces own-leads visibility
-  telecaller: ["dashboard", "leads", "calendar", "notifications", "profile"],
+  editor: ["dashboard", "projects", "tasks", "albums", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  // Sales (telecaller): leads + own attendance/leaves/expense
+  telecaller: ["dashboard", "leads", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   videographer: ["dashboard", "projects", "events", "calendar", "tasks", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   photographer: ["dashboard", "projects", "events", "calendar", "tasks", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
-  // Vendor photographer/videographer: outside contractor — no attendance/leaves, paid per event
+  // Vendors can still raise expenses (per-event payouts) but no internal HR
   photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
   videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
-  accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "notifications", "profile"],
+  accounts: ["dashboard", "quotations", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "hr-attendance", "hr-employees", "hr-leaves", "notifications", "profile"],
 };
 
 /** Where this user is allowed to sign in: web dashboard, mobile PWA, or both. */

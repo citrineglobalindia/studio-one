@@ -11,6 +11,8 @@ import { HRTabs } from "@/components/hr/HRTabs";
 import { HRHero, RestrictedNotice } from "./HREmployeesPage";
 import { useEmployees, useAttendance, type DbAttendance } from "@/hooks/useHR";
 import { useRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { CheckCircle2, Hourglass } from "lucide-react";
 
 const STATUS_CYCLE: Record<string, { next: string; label: string; bg: string }> = {
   "—":     { next: "present", label: "—", bg: "bg-muted text-muted-foreground" },
@@ -34,8 +36,10 @@ function initials(n: string) {
 
 export default function HRAttendancePage() {
   const { currentRole } = useRole();
+  const { user } = useAuth();
   const canManage = currentRole === "admin" || currentRole === "administrator";
-  const allowed = canManage || currentRole === "accounts";
+  const allowed = true; // anyone can view their own attendance
+  const isManager = canManage || currentRole === "accounts";
 
   const [date, setDate] = useState<Date>(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1); });
   const y = date.getFullYear(), m = date.getMonth();
@@ -93,6 +97,21 @@ export default function HRAttendancePage() {
     return { present: p, absent: a, leave: l, half: h, totalWorking, pct };
   }, [stats]);
 
+
+  // current user's employee row (matched by email)
+  const myEmployee = (employees as any[]).find(e => e.email && user?.email && e.email.toLowerCase() === user.email!.toLowerCase()) || null;
+  const myStats = myEmployee ? stats.get(myEmployee.id) : null;
+  const myTodayRecord = myEmployee ? lookup.get(myEmployee.id + ":" + todayIso) : null;
+
+  const checkInToday = () => {
+    if (!myEmployee) return;
+    upsert.mutate({ employee_id: myEmployee.id, date: todayIso, status: "present" });
+  };
+  const markLeaveToday = () => {
+    if (!myEmployee) return;
+    upsert.mutate({ employee_id: myEmployee.id, date: todayIso, status: "leave" });
+  };
+
   const cycleStatus = (employeeId: string, day: number, current: string) => {
     if (!canManage) return;
     const dateStr = isoDate(y, m, day);
@@ -106,6 +125,58 @@ export default function HRAttendancePage() {
     <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
       <HRHero />
       <HRTabs />
+
+      {/* SELF-SERVICE check-in widget — non-managers only */}
+      {!isManager && myEmployee && (
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-gradient-to-br from-emerald-500/5 to-transparent overflow-hidden">
+          <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                {myTodayRecord?.status === "present" ? <CheckCircle2 className="h-6 w-6 text-emerald-600" /> :
+                 myTodayRecord?.status === "leave"   ? <Hourglass     className="h-6 w-6 text-blue-600" /> :
+                                                       <CalendarCheck className="h-6 w-6 text-muted-foreground" />}
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">My attendance today</p>
+                <h2 className="text-lg font-bold text-foreground">
+                  {myTodayRecord?.status === "present" ? "You're checked in" :
+                   myTodayRecord?.status === "leave"   ? "On leave today" :
+                                                        "Not marked yet"}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long" })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {!myTodayRecord || myTodayRecord.status !== "present" ? (
+                <Button onClick={checkInToday} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" /> Check in
+                </Button>
+              ) : (
+                <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                  ✓ Marked present
+                </Badge>
+              )}
+              {(!myTodayRecord || myTodayRecord.status === "present") && (
+                <Button variant="outline" onClick={markLeaveToday} className="gap-2">
+                  <Hourglass className="h-4 w-4" /> On leave
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {myStats && (
+            <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
+              <SelfStat label="Present" value={String(myStats.present)} tone="text-emerald-600" />
+              <SelfStat label="Leave"   value={String(myStats.leave)}   tone="text-blue-600" />
+              <SelfStat label="Absent"  value={String(myStats.absent)}  tone="text-rose-600" />
+              <SelfStat label="%"       value={myStats.pct + "%"}       tone={myStats.pct >= 80 ? "text-emerald-600" : myStats.pct >= 50 ? "text-amber-600" : "text-rose-600"} />
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Month picker */}
       <div className="flex items-center justify-between gap-2">
@@ -121,6 +192,8 @@ export default function HRAttendancePage() {
         </div>
       </div>
 
+      {/* Manager-only views below */}
+      {isManager && (<>
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Kpi label="Employees" value={String(active.length)} icon={<Users className="h-3.5 w-3.5" />} color="text-primary bg-primary/10" />
@@ -234,6 +307,7 @@ export default function HRAttendancePage() {
           </table>
         )}
       </div>
+      </>)}
     </div>
   );
 }
@@ -248,4 +322,13 @@ function Kpi({ label, value, icon, color }: { label: string; value: string; icon
 }
 function Legend({ dot, label }: { dot: string; label: string }) {
   return <span className="inline-flex items-center gap-1.5"><span className={"h-2 w-2 rounded-full " + dot} />{label}</span>;
+}
+
+function SelfStat({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="p-3 text-center">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={"mt-1 text-lg font-bold tabular-nums " + tone}>{value}</p>
+    </div>
+  );
 }
