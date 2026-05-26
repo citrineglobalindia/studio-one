@@ -363,7 +363,7 @@ interface EventsDocDialogProps {
 function itemKey(eventId: string, req: string) { return `${eventId}::${req}`; }
 function customKey(eventId: string, idx: number) { return `${eventId}::custom::${idx}`; }
 
-function EventsDocDialog({
+export function EventsDocDialog({
   open, onOpenChange, docKind, editing, clientId, clientName, statuses,
   numberLabel, dateLabel, dateField, numberField, extraAmountField, onSubmit,
 }: EventsDocDialogProps) {

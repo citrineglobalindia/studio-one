@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useRole } from "@/contexts/RoleContext";
 import { useAllQuotations, useAllContracts, useAllInvoices } from "@/hooks/useFinancials";
 import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
+import { NewDocFromAccounts } from "@/components/accounts/NewDocFromAccounts";
 import { useOrg } from "@/contexts/OrgContext";
 // (FileDown + Eye imported above)
 import { DonutCard, StatusBarChart } from "@/components/accounts/FinanceCharts";
@@ -156,9 +157,18 @@ export default function AccountsPage() {
             );
           })}
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by client / number…" className="pl-9" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by client / number…" className="pl-9" />
+          </div>
+          {(currentRole === "admin" || currentRole === "accounts") && (
+            <NewDocFromAccounts
+              kind={tab === "estimations" ? "estimation" : tab === "proposals" ? "proposal" : "invoice"}
+              organization={organization}
+              className="h-9 shrink-0"
+            />
+          )}
         </div>
       </div>
 
