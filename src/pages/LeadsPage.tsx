@@ -203,58 +203,142 @@ export default function LeadsPage() {
           <p className="text-sm text-muted-foreground">No leads match the current filters</p>
         </div>
       ) : view === "table" ? (
-        <div className="rounded-xl border border-border bg-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Name</th>
-                <th className="text-left px-3 py-3 font-medium">Contact</th>
-                <th className="text-left px-3 py-3 font-medium">Source</th>
-                <th className="text-left px-3 py-3 font-medium">Event</th>
-                <th className="text-right px-3 py-3 font-medium">Budget</th>
-                <th className="text-center px-3 py-3 font-medium">Status</th>
-                <th className="text-left px-3 py-3 font-medium">Follow-up</th>
-                <th className="px-3 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((l) => (
-                <tr key={l.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-4 py-3"><p className="font-medium text-foreground">{l.name}</p>{l.city && <p className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{l.city}</p>}</td>
-                  <td className="px-3 py-3 text-xs">
-                    {l.phone && <p className="text-foreground inline-flex items-center gap-1"><PhoneIcon className="h-3 w-3" />{l.phone}</p>}
-                    {l.email && <p className="text-muted-foreground inline-flex items-center gap-1"><Mail className="h-3 w-3" />{l.email}</p>}
-                  </td>
-                  <td className="px-3 py-3"><Badge variant="secondary" className="text-[10px]">{l.source || "—"}</Badge></td>
-                  <td className="px-3 py-3 text-xs">
-                    {l.event_type && <p className="text-foreground capitalize">{l.event_type}</p>}
-                    {l.event_date && <p className="text-muted-foreground">{fmtDate(l.event_date)}</p>}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums">{l.budget ? inr(l.budget) : "—"}</td>
-                  <td className="px-3 py-3 text-center">
-                    <Select value={String(l.status)} onValueChange={(v) => setStatus.mutate({ id: l.id, status: v as LeadStatus })}>
-                      <SelectTrigger className={"h-7 text-[11px] capitalize border-0 " + (STATUS_META[String(l.status)]?.color || "")}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground">{l.follow_up_date ? fmtDate(l.follow_up_date) : "—"}</td>
-                  <td className="px-3 py-3 text-right">
-                    <div className="inline-flex gap-0.5">
-                      {l.status !== "converted" && (
-                        <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px] text-emerald-600" title="Convert to client" onClick={() => {
-                          if (window.confirm(`Convert ${l.name} to a client?`)) convertToClient.mutate(l);
-                        }}><UserCheck className="h-3 w-3" /> Convert</Button>
-                      )}
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(l)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => { if (window.confirm("Delete this lead?")) remove.mutate(l.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  </td>
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm table-fixed min-w-[1100px]">
+              <colgroup>
+                <col className="w-[20%]" />
+                <col className="w-[18%]" />
+                <col className="w-[10%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[9%]" />
+                <col className="w-[8%]" />
+              </colgroup>
+              <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold">Lead</th>
+                  <th className="text-left px-3 py-3 font-semibold">Contact</th>
+                  <th className="text-left px-3 py-3 font-semibold">Source</th>
+                  <th className="text-left px-3 py-3 font-semibold">Event</th>
+                  <th className="text-right px-3 py-3 font-semibold">Budget</th>
+                  <th className="text-left px-3 py-3 font-semibold">Status</th>
+                  <th className="text-left px-3 py-3 font-semibold">Follow-up</th>
+                  <th className="text-right px-4 py-3 font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((l) => (
+                  <tr key={l.id} className="hover:bg-muted/20 transition-colors align-middle">
+                    {/* Lead name + city */}
+                    <td className="px-4 py-3 align-middle">
+                      <p className="font-semibold text-foreground truncate" title={l.name}>{l.name}</p>
+                      {l.city ? (
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                          <MapPin className="h-3 w-3 shrink-0" /> {l.city}
+                        </p>
+                      ) : null}
+                    </td>
+
+                    {/* Contact stacked */}
+                    <td className="px-3 py-3 text-xs align-middle">
+                      <div className="space-y-1">
+                        {l.phone ? (
+                          <p className="text-foreground flex items-center gap-1.5 truncate" title={l.phone}>
+                            <PhoneIcon className="h-3 w-3 text-muted-foreground shrink-0" /> {l.phone}
+                          </p>
+                        ) : null}
+                        {l.email ? (
+                          <p className="text-muted-foreground flex items-center gap-1.5 truncate" title={l.email}>
+                            <Mail className="h-3 w-3 shrink-0" /> {l.email}
+                          </p>
+                        ) : null}
+                        {!l.phone && !l.email ? <span className="text-muted-foreground">—</span> : null}
+                      </div>
+                    </td>
+
+                    {/* Source */}
+                    <td className="px-3 py-3 align-middle">
+                      {l.source ? (
+                        <Badge variant="secondary" className="text-[10px] font-normal capitalize">{l.source}</Badge>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+
+                    {/* Event */}
+                    <td className="px-3 py-3 text-xs align-middle">
+                      {l.event_type ? <p className="text-foreground capitalize truncate" title={l.event_type}>{l.event_type}</p> : <p className="text-muted-foreground">—</p>}
+                      {l.event_date ? (
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <CalendarDays className="h-3 w-3 shrink-0" /> {fmtDate(l.event_date)}
+                        </p>
+                      ) : null}
+                    </td>
+
+                    {/* Budget */}
+                    <td className="px-3 py-3 text-right tabular-nums font-medium text-foreground align-middle">
+                      {l.budget ? inr(l.budget) : <span className="text-muted-foreground font-normal">—</span>}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-3 py-3 align-middle">
+                      <Select value={String(l.status)} onValueChange={(v) => setStatus.mutate({ id: l.id, status: v as LeadStatus })}>
+                        <SelectTrigger className={"h-7 w-full text-[11px] font-medium capitalize border " + (STATUS_META[String(l.status)]?.color || "")}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LEAD_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <span className="inline-flex items-center gap-2">
+                                <span className={"h-2 w-2 rounded-full " + STATUS_META[s].dot} />
+                                {STATUS_META[s].label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+
+                    {/* Follow-up */}
+                    <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums align-middle">
+                      {l.follow_up_date ? fmtDate(l.follow_up_date) : "—"}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3 align-middle">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {l.status !== "converted" && (
+                          <Button
+                            size="icon" variant="ghost"
+                            className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                            title="Convert to client"
+                            onClick={() => { if (window.confirm(`Convert ${l.name} to a client?`)) convertToClient.mutate(l); }}
+                          >
+                            <UserCheck className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit" onClick={() => setEditing(l)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon" variant="ghost"
+                          className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                          title="Delete"
+                          onClick={() => { if (window.confirm("Delete this lead?")) remove.mutate(l.id); }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/20 text-[11px] text-muted-foreground">
+            <span>Showing <span className="font-medium text-foreground">{filtered.length}</span> of <span className="font-medium text-foreground">{leads.length}</span> leads</span>
+            {activeFilterCount > 0 ? <span className="inline-flex items-center gap-1"><Filter className="h-3 w-3" /> {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span> : null}
+          </div>
         </div>
       ) : (
         // KANBAN
