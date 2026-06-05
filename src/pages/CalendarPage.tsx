@@ -15,6 +15,8 @@ import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckInDialog } from "@/components/events/CheckInDialog";
+import { EditorWorkLogPanel } from "@/components/calendar/EditorWorkLogPanel";
+import { useWorkLogCountsByDate } from "@/hooks/useEditorWorkLogs";
 import { Camera as CameraIcon } from "lucide-react";
 
 const TYPE_DOT: Record<string, string> = {
@@ -121,6 +123,7 @@ export default function CalendarPage() {
   const toIso = isoDate(cells[cells.length - 1]);
 
   const { data: events = [], isLoading } = useCalendarEvents(fromIso, toIso);
+  const { data: workLogCounts = {} } = useWorkLogCountsByDate(fromIso, toIso);
   const { members } = useTeamMembers();
   const memberById = new Map(members.map((m) => [m.id, m]));
   const { user } = useAuth();
@@ -395,9 +398,14 @@ export default function CalendarPage() {
                     "text-xs font-medium inline-flex items-center justify-center " +
                     (isToday ? "h-5 w-5 rounded-full bg-primary text-primary-foreground" : "")
                   }>{d.getDate()}</span>
-                  {list.length > 0 && inMonth && (
-                    <span className="text-[9px] text-muted-foreground">{list.length}</span>
-                  )}
+                  <span className="inline-flex items-center gap-1">
+                    {(workLogCounts[iso] ?? 0) > 0 && inMonth && (
+                      <span className="text-[8px] px-1 rounded bg-fuchsia-500/15 text-fuchsia-600 font-medium" title="Editor logs">{workLogCounts[iso]} log</span>
+                    )}
+                    {list.length > 0 && inMonth && (
+                      <span className="text-[9px] text-muted-foreground">{list.length}</span>
+                    )}
+                  </span>
                 </div>
                 <div className="space-y-0.5">
                   {list.slice(0, 3).map((e) => {
@@ -518,6 +526,11 @@ export default function CalendarPage() {
                 })}
               </div>
             )}
+
+            {/* Editor work log for this day */}
+            <div className="mt-4">
+              <EditorWorkLogPanel dateIso={selectedDay} canManage={canManageWorkLog} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
