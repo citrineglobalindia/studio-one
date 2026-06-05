@@ -5,6 +5,7 @@ import {
   CalendarDays, Clock, MapPin, Lock, CheckCircle2, UserPlus, Pencil,
   FileText, Briefcase, Receipt, Camera as CameraIcon, ChevronLeft, ChevronRight,
   ArrowLeft, Printer, Users, IndianRupee, Sparkles, Hourglass, CalendarClock,
+  Download, Eye, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -300,10 +301,33 @@ function EventCard({ e, memberById, navigate, seesAll, canManageTeam, myTeamMemb
 
 function FinChip({ label, doc, kind, studio, tone, navigate, clientId }: any) {
   const Icon = kind === "estimation" ? FileText : kind === "proposal" ? Briefcase : Receipt;
-  const toneCls = tone === "amber" ? "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/20"
-    : tone === "violet" ? "bg-violet-500/10 text-violet-700 border-violet-500/30 hover:bg-violet-500/20"
-    : "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20";
+  const toneCls = tone === "amber" ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
+    : tone === "violet" ? "bg-violet-500/10 text-violet-700 border-violet-500/30"
+    : "bg-emerald-500/10 text-emerald-700 border-emerald-500/30";
   const amount = doc ? Number(kind === "proposal" ? doc.contract_amount || doc.total_amount || 0 : doc.total_amount || 0) : 0;
-  if (!doc) return <button onClick={() => clientId && navigate(`/clients/${clientId}`)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-foreground transition" title={`No ${label.toLowerCase()} yet`}><Icon className="h-3 w-3" /> {label} <span className="opacity-60">+</span></button>;
-  return <button onClick={() => generateDocPdf(buildDocPdfPayload(kind, doc, studio), "open")} className={"inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition " + toneCls} title={`Open ${label} PDF`}><Icon className="h-3 w-3" /> {label} <span className="tabular-nums font-semibold">{inr0(amount)}</span></button>;
+
+  // No doc yet → create button
+  if (!doc) {
+    return (
+      <button onClick={() => clientId && navigate(`/clients/${clientId}`)}
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-foreground transition"
+        title={`No ${label.toLowerCase()} yet — create one`}>
+        <Plus className="h-3 w-3" /> {label}
+      </button>
+    );
+  }
+
+  // Doc exists → label + amount, then View / Download / Edit
+  return (
+    <div className={"inline-flex items-center gap-0.5 rounded-md border pl-2 pr-0.5 py-0.5 " + toneCls}>
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium">
+        <Icon className="h-3 w-3" /> <span className="hidden lg:inline">{label}</span> <span className="tabular-nums font-semibold">{inr0(amount)}</span>
+      </span>
+      <span className="inline-flex items-center">
+        <button onClick={() => generateDocPdf(buildDocPdfPayload(kind, doc, studio), "open")} title={`View ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Eye className="h-3 w-3" /></button>
+        <button onClick={() => generateDocPdf(buildDocPdfPayload(kind, doc, studio), "download")} title={`Download ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Download className="h-3 w-3" /></button>
+        <button onClick={() => clientId && navigate(`/clients/${clientId}`)} title={`Edit ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Pencil className="h-3 w-3" /></button>
+      </span>
+    </div>
+  );
 }
