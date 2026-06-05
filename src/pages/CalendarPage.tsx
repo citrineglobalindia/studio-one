@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCalendarEvents, type CalendarEventRow } from "@/hooks/useCalendarEvents";
 import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
@@ -429,26 +430,19 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Side panel for selected day */}
-      <AnimatePresence>
-        {selectedDay && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.15 }}
-            className="rounded-2xl border border-border bg-card p-4 md:p-5"
-          >
-            <div className="flex items-center justify-between mb-3">
+      {/* Day detail — opens as a modal window on date click */}
+      <Dialog open={!!selectedDay} onOpenChange={(o) => { if (!o) setSelectedDay(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-5 md:p-6">
+          {selectedDay && (
+          <>
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Selected day</p>
-                <h2 className="text-base font-semibold text-foreground tracking-tight">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Day overview</p>
+                <h2 className="text-lg font-semibold text-foreground tracking-tight">
                   {new Date(selectedDay).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
                 </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{dayEvents.length} event{dayEvents.length===1?"":"s"} scheduled</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
-                <X className="h-4 w-4" />
-              </Button>
             </div>
 
             {dayEvents.length === 0 ? (
@@ -532,9 +526,10 @@ export default function CalendarPage() {
             <div className="mt-4">
               <EditorWorkLogPanel dateIso={selectedDay} canManage={canManageWorkLog} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {isLoading && (
         <div className="text-center py-4">
