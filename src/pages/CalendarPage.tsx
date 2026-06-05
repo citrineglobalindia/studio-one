@@ -17,6 +17,8 @@ import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckInDialog } from "@/components/events/CheckInDialog";
 import { EditorWorkLogPanel } from "@/components/calendar/EditorWorkLogPanel";
+import { AssignTeamDialog } from "@/components/clients/AssignTeamDialog";
+import { UserPlus, Pencil as PencilIcon } from "lucide-react";
 import { useWorkLogCountsByDate } from "@/hooks/useEditorWorkLogs";
 import { useAllQuotations, useAllContracts, useAllInvoices } from "@/hooks/useFinancials";
 import { generateDocPdf } from "@/lib/generateDocPdf";
@@ -154,6 +156,8 @@ export default function CalendarPage() {
   const myTeamMember = members.find((m: any) => m.user_id && user?.id && m.user_id === user.id) || null;
   const [checkInEvent, setCheckInEvent] = useState<any | null>(null);
   const canManageWorkLog = currentRole === "admin" || currentRole === "administrator";
+  const canManageTeam = currentRole === "admin" || currentRole === "administrator";
+  const [assignEvent, setAssignEvent] = useState<any | null>(null);
 
   // Apply filters first (admin/administrator only see filter UI)
   const filteredEvents = useMemo(() => {
@@ -471,93 +475,93 @@ export default function CalendarPage() {
             {dayEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No events on this day</p>
             ) : (
-              <div className="space-y-2">
-                {dayEvents.map((e) => {
-                  const grad = TYPE_GRADIENT[e.event_type || ""] || TYPE_GRADIENT.Other;
-                  const est = e.client_id ? docsByClient.est.get(e.client_id) : null;
-                  const prop = e.client_id ? docsByClient.prop.get(e.client_id) : null;
-                  const inv = e.client_id ? docsByClient.inv.get(e.client_id) : null;
-                  const hasFinance = seesAll && (est || prop || inv);
-                  return (
-                    <div key={e.id} className="rounded-xl border border-border p-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${grad} text-white flex items-center justify-center font-bold text-[11px] shrink-0`}>
-                        {(e.event_type || "EVT").slice(0, 4)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-foreground">{e.event_type || "Event"}</p>
-                          {e.client_name && (
-                            <button onClick={() => e.client_id && navigate(`/clients/${e.client_id}`)} className="text-xs text-primary hover:underline">
-                              {e.client_name}
-                            </button>
-                          )}
-                          {e.is_finalized && (
-                            <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                              <CheckCircle2 className="h-3 w-3" /> Finalized
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {(fmtTime(e.start_time) || fmtTime(e.end_time)) && (
-                            <span className="inline-flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {fmtTime(e.start_time) || "—"}{fmtTime(e.end_time) ? ` → ${fmtTime(e.end_time)}` : ""}
-                            </span>
-                          )}
-                          {e.venue && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{e.venue}</span>}
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 hidden md:block">
-                        {e.assigned_member_ids.length > 0 ? (
-                          <div className="flex -space-x-1.5">
-                            {e.assigned_member_ids.slice(0, 5).map((mid) => {
-                              const m = memberById.get(mid);
-                              if (!m) return null;
-                              const init = (m.full_name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
-                              return (
-                                <div key={mid} title={m.full_name} className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-card flex items-center justify-center text-[10px] font-bold text-primary">
-                                  {init}
+              <div className="rounded-xl border border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[820px]">
+                    <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-3 py-2.5 font-semibold">Event</th>
+                        <th className="text-left px-3 py-2.5 font-semibold">Client</th>
+                        <th className="text-left px-3 py-2.5 font-semibold">Time</th>
+                        <th className="text-left px-3 py-2.5 font-semibold">Venue</th>
+                        <th className="text-left px-3 py-2.5 font-semibold">Team</th>
+                        {seesAll && <th className="text-right px-3 py-2.5 font-semibold">Estimate</th>}
+                        {seesAll && <th className="text-right px-3 py-2.5 font-semibold">Proposal</th>}
+                        {seesAll && <th className="text-right px-3 py-2.5 font-semibold">Invoice</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {dayEvents.map((e) => {
+                        const grad = TYPE_GRADIENT[e.event_type || ""] || TYPE_GRADIENT.Other;
+                        const est = e.client_id ? docsByClient.est.get(e.client_id) : null;
+                        const prop = e.client_id ? docsByClient.prop.get(e.client_id) : null;
+                        const inv = e.client_id ? docsByClient.inv.get(e.client_id) : null;
+                        return (
+                          <tr key={e.id} className="hover:bg-muted/20 align-middle">
+                            {/* Event */}
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`h-8 w-8 rounded-lg bg-gradient-to-br ${grad} text-white flex items-center justify-center font-bold text-[9px] shrink-0`}>
+                                  {(e.event_type || "EVT").slice(0, 4)}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-foreground truncate">{e.name || e.event_type || "Event"}</p>
+                                  {e.is_finalized && <span className="inline-flex items-center gap-0.5 text-[9px] text-emerald-600"><CheckCircle2 className="h-2.5 w-2.5" />Finalized</span>}
                                 </div>
-                              );
-                            })}
-                            {e.assigned_member_ids.length > 5 && (
-                              <div className="h-7 w-7 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-medium text-muted-foreground">
-                                +{e.assigned_member_ids.length - 5}
                               </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
-                            <Lock className="h-3 w-3" /> Unassigned
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Check-in CTA — visible if current user is assigned to this event */}
-                      {myTeamMember && e.assigned_member_ids?.includes(myTeamMember.id) && (
-                        <button
-                          onClick={() => setCheckInEvent(e)}
-                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition"
-                        >
-                          <CameraIcon className="h-3.5 w-3.5" /> Check in
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Financial quick-view — admin/accounts only */}
-                    {hasFinance && (
-                      <div className="mt-2.5 pt-2.5 border-t border-border flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Financials:</span>
-                        <FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} />
-                        <FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} />
-                        <FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} />
-                      </div>
-                    )}
-                    </div>
-                  );
-                })}
+                            </td>
+                            {/* Client */}
+                            <td className="px-3 py-2.5">
+                              {e.client_name ? (
+                                <button onClick={() => e.client_id && navigate(`/clients/${e.client_id}`)} className="text-xs text-primary hover:underline truncate max-w-[140px] inline-block align-bottom">{e.client_name}</button>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
+                            {/* Time */}
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                              {(fmtTime(e.start_time) || fmtTime(e.end_time)) ? `${fmtTime(e.start_time) || "—"}${fmtTime(e.end_time) ? ` → ${fmtTime(e.end_time)}` : ""}` : "—"}
+                            </td>
+                            {/* Venue */}
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground truncate max-w-[140px]">{e.venue || "—"}</td>
+                            {/* Team */}
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                {e.assigned_member_ids.length > 0 ? (
+                                  <div className="flex -space-x-1.5">
+                                    {e.assigned_member_ids.slice(0, 4).map((mid) => {
+                                      const m = memberById.get(mid);
+                                      if (!m) return null;
+                                      const init = (m.full_name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+                                      return (<div key={mid} title={m.full_name} className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-card flex items-center justify-center text-[9px] font-bold text-primary">{init}</div>);
+                                    })}
+                                    {e.assigned_member_ids.length > 4 && <div className="h-6 w-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[9px] font-medium text-muted-foreground">+{e.assigned_member_ids.length - 4}</div>}
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground italic inline-flex items-center gap-1"><Lock className="h-3 w-3" />None</span>
+                                )}
+                                {canManageTeam && (
+                                  <button onClick={() => setAssignEvent(e)} title={e.assigned_member_ids.length ? "Edit team" : "Assign team"}
+                                    className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium border border-border hover:border-primary/40 hover:text-primary transition">
+                                    {e.assigned_member_ids.length ? <PencilIcon className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                                    {e.assigned_member_ids.length ? "Edit" : "Assign"}
+                                  </button>
+                                )}
+                                {myTeamMember && e.assigned_member_ids?.includes(myTeamMember.id) && (
+                                  <button onClick={() => setCheckInEvent(e)} title="Check in" className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                                    <CameraIcon className="h-3 w-3" /> Check in
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            {/* Financials */}
+                            {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} /></td>}
+                            {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} /></td>}
+                            {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} /></td>}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
@@ -584,6 +588,13 @@ function FilterField({ label, children }: { label: string; children: React.React
     <div className="space-y-1">
       <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
       {children}
+      {assignEvent && (
+        <AssignTeamDialog
+          open
+          onOpenChange={(v) => { if (!v) setAssignEvent(null); }}
+          event={assignEvent}
+        />
+      )}
       {checkInEvent && (
         <CheckInDialog
           open
