@@ -18,6 +18,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CheckInDialog } from "@/components/events/CheckInDialog";
 import { EditorWorkLogPanel } from "@/components/calendar/EditorWorkLogPanel";
 import { useWorkLogCountsByDate } from "@/hooks/useEditorWorkLogs";
+import { useAllQuotations, useAllContracts, useAllInvoices } from "@/hooks/useFinancials";
+import { generateDocPdf } from "@/lib/generateDocPdf";
+import { buildDocPdfPayload } from "@/lib/buildDocPdfPayload";
+import { useOrg } from "@/contexts/OrgContext";
+import { FileText, Briefcase, Receipt, IndianRupee } from "lucide-react";
+
 import { Camera as CameraIcon } from "lucide-react";
 
 const TYPE_DOT: Record<string, string> = {
@@ -125,6 +131,23 @@ export default function CalendarPage() {
 
   const { data: events = [], isLoading } = useCalendarEvents(fromIso, toIso);
   const { data: workLogCounts = {} } = useWorkLogCountsByDate(fromIso, toIso);
+  const { organization } = useOrg();
+  const { rows: allQuotes = [] } = useAllQuotations();
+  const { rows: allContracts = [] } = useAllContracts();
+  const { rows: allInvoices = [] } = useAllInvoices();
+  // Latest doc of each type per client_id
+  const docsByClient = useMemo(() => {
+    const pick = (rows: any[]) => {
+      const m = new Map<string, any>();
+      for (const r of rows) {
+        if (!r.client_id) continue;
+        const prev = m.get(r.client_id);
+        if (!prev || String(r.created_at) > String(prev.created_at)) m.set(r.client_id, r);
+      }
+      return m;
+    };
+    return { est: pick(allQuotes), prop: pick(allContracts), inv: pick(allInvoices) };
+  }, [allQuotes, allContracts, allInvoices]);
   const { members } = useTeamMembers();
   const memberById = new Map(members.map((m) => [m.id, m]));
   const { user } = useAuth();
@@ -451,8 +474,13 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 {dayEvents.map((e) => {
                   const grad = TYPE_GRADIENT[e.event_type || ""] || TYPE_GRADIENT.Other;
+                  const est = e.client_id ? docsByClient.est.get(e.client_id) : null;
+                  const prop = e.client_id ? docsByClient.prop.get(e.client_id) : null;
+                  const inv = e.client_id ? docsByClient.inv.get(e.client_id) : null;
+                  const hasFinance = seesAll && (est || prop || inv);
                   return (
-                    <div key={e.id} className="rounded-xl border border-border p-3 flex items-center gap-3">
+                    <div key={e.id} className="rounded-xl border border-border p-3">
+                    <div className="flex items-center gap-3">
                       <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${grad} text-white flex items-center justify-center font-bold text-[11px] shrink-0`}>
                         {(e.event_type || "EVT").slice(0, 4)}
                       </div>
@@ -516,6 +544,17 @@ export default function CalendarPage() {
                           <CameraIcon className="h-3.5 w-3.5" /> Check in
                         </button>
                       )}
+                    </div>
+
+                    {/* Financial quick-view — admin/accounts only */}
+                    {hasFinance && (
+                      <div className="mt-2.5 pt-2.5 border-t border-border flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Financials:</span>
+                        <FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} />
+                        <FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} />
+                        <FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} />
+                      </div>
+                    )}
                     </div>
                   );
                 })}
@@ -591,6 +630,44 @@ function ToggleChip({ active, onClick, children, icon, dotColor }: {
       {dotColor && <span className={"h-2 w-2 rounded-full " + dotColor} />}
       {icon}
       {children}
+    </button>
+  );
+}
+
+// ─────────── Financial quick-view chip (admin/accounts only)
+function inrShort(n: number) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(n || 0));
+}
+function FinChip({ label, doc, kind, studio, tone, navigate, clientId }: {
+  label: string; doc: any; kind: "estimation" | "proposal" | "invoice"; studio: any;
+  tone: "amber" | "violet" | "emerald"; navigate: (p: string) => void; clientId: string | null;
+}) {
+  const Icon = kind === "estimation" ? FileText : kind === "proposal" ? Briefcase : Receipt;
+  const toneCls = tone === "amber" ? "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/20"
+    : tone === "violet" ? "bg-violet-500/10 text-violet-700 border-violet-500/30 hover:bg-violet-500/20"
+    : "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20";
+  const amount = doc ? Number(kind === "proposal" ? doc.contract_amount || doc.total_amount || 0 : doc.total_amount || 0) : 0;
+
+  if (!doc) {
+    // No doc yet → muted button to create it on the client page
+    return (
+      <button
+        onClick={() => clientId && navigate(`/clients/${clientId}`)}
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-foreground transition"
+        title={`No ${label.toLowerCase()} yet — create one`}
+      >
+        <Icon className="h-3 w-3" /> {label} <span className="opacity-60">+</span>
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={() => generateDocPdf(buildDocPdfPayload(kind, doc, studio), "open")}
+      className={"inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition " + toneCls}
+      title={`Open ${label} PDF`}
+    >
+      <Icon className="h-3 w-3" /> {label}
+      <span className="tabular-nums font-semibold">{inrShort(amount)}</span>
     </button>
   );
 }
