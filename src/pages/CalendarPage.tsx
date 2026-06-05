@@ -413,7 +413,7 @@ export default function CalendarPage() {
             return (
               <button
                 key={iso + i}
-                onClick={() => window.open(`/day/${iso}`, "_blank", "noopener,noreferrer,width=1100,height=820")}
+                onClick={() => navigate(`/day/${iso}`)}
                 className={
                   "min-h-[96px] border-b border-r border-border p-1.5 text-left transition relative overflow-hidden " +
                   (inMonth ? "bg-card hover:bg-muted/30" : "bg-muted/10 text-muted-foreground/60") +
