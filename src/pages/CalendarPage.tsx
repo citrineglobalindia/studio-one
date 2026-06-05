@@ -129,6 +129,7 @@ export default function CalendarPage() {
   const { user } = useAuth();
   const myTeamMember = members.find((m: any) => m.user_id && user?.id && m.user_id === user.id) || null;
   const [checkInEvent, setCheckInEvent] = useState<any | null>(null);
+  const canManageWorkLog = currentRole === "admin" || currentRole === "administrator";
 
   // Apply filters first (admin/administrator only see filter UI)
   const filteredEvents = useMemo(() => {
