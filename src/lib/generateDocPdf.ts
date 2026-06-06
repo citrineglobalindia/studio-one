@@ -297,9 +297,13 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
   let loadingId: string | number | undefined;
   let wrapper: HTMLDivElement | null = null;
   // Open the preview tab synchronously NOW (inside the click gesture) so it isn't popup-blocked.
-  const previewWin = mode === "open" ? window.open("", "_blank") : null;
+  const previewWin = mode === "open" ? window.open("about:blank", "_blank") : null;
   if (previewWin) {
-    try { previewWin.document.write('<!doctype html><title>Preparing PDF…</title><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666">Preparing PDF…</body>'); } catch (_e) { /* ignore */ }
+    try {
+      previewWin.document.open();
+      previewWin.document.write('<!doctype html><html><head><title>Preparing PDF…</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666;background:#f5f5f5">Preparing PDF…</body></html>');
+      previewWin.document.close();
+    } catch (_e) { /* ignore */ }
   }
   try {
     loadingId = toast.loading(`Preparing ${d.kind} PDF…`);
@@ -351,17 +355,20 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
     }
 
     if (mode === "open") {
-      const blobUrl = pdf.output("bloburl") as unknown as string;
+      const blob = pdf.output("blob") as Blob;
+      const blobUrl = URL.createObjectURL(blob);
       if (previewWin && !previewWin.closed) {
-        previewWin.location.href = blobUrl;
+        // Replace the placeholder document with the PDF
+        try { previewWin.location.replace(blobUrl); }
+        catch (_e) { previewWin.location.href = blobUrl; }
         if (loadingId !== undefined) toast.dismiss(loadingId);
         toast.success(`Opened ${filename}`);
       } else {
-        // Tab was blocked/closed → last-resort: open a fresh tab, else download
-        const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
+        const win = window.open(blobUrl, "_blank");
         if (!win) { pdf.save(filename); if (loadingId !== undefined) toast.dismiss(loadingId); toast.success(`Popup blocked — downloaded ${filename}`); }
         else { if (loadingId !== undefined) toast.dismiss(loadingId); toast.success(`Opened ${filename}`); }
       }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } else {
       pdf.save(filename);
       if (loadingId !== undefined) toast.dismiss(loadingId);
