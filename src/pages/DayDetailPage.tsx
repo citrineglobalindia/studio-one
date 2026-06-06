@@ -20,6 +20,7 @@ import { buildDocPdfPayload } from "@/lib/buildDocPdfPayload";
 import { AssignTeamDialog } from "@/components/clients/AssignTeamDialog";
 import { CheckInDialog } from "@/components/events/CheckInDialog";
 import { EditorWorkLogPanel } from "@/components/calendar/EditorWorkLogPanel";
+import { EditDocDialog } from "@/components/accounts/EditDocDialog";
 
 const TYPE_GRADIENT: Record<string, string> = {
   Wedding: "from-rose-500 to-pink-600", "Pre-Wedding": "from-purple-500 to-fuchsia-600",
@@ -72,6 +73,7 @@ export default function DayDetailPage() {
   const [assignEvent, setAssignEvent] = useState<any | null>(null);
   const [checkInEvent, setCheckInEvent] = useState<any | null>(null);
   const [view, setView] = useState<"table" | "cards">("table");
+  const [editDoc, setEditDoc] = useState<{ kind: any; doc: any; clientId: string; clientName: string } | null>(null);
 
   // KPIs
   const totalCrew = useMemo(() => {
@@ -170,7 +172,7 @@ export default function DayDetailPage() {
                 {events.map((e: any) => (
                   <EventRow key={e.id} e={e} memberById={memberById} navigate={navigate} seesAll={seesAll}
                     canManageTeam={canManageTeam} myTeamMember={myTeamMember} docsByClient={docsByClient}
-                    organization={organization} onAssign={() => setAssignEvent(e)} onCheckIn={() => setCheckInEvent(e)} />
+                    organization={organization} onAssign={() => setAssignEvent(e)} onCheckIn={() => setCheckInEvent(e)} onEditDoc={(kind:any, doc:any) => setEditDoc({ kind, doc, clientId: e.client_id, clientName: e.client_name || "Client" })} />
                 ))}
               </tbody>
             </table>
@@ -181,7 +183,7 @@ export default function DayDetailPage() {
           {events.map((e: any) => (
             <EventCard key={e.id} e={e} memberById={memberById} navigate={navigate} seesAll={seesAll}
               canManageTeam={canManageTeam} myTeamMember={myTeamMember} docsByClient={docsByClient}
-              organization={organization} onAssign={() => setAssignEvent(e)} onCheckIn={() => setCheckInEvent(e)} />
+              organization={organization} onAssign={() => setAssignEvent(e)} onCheckIn={() => setCheckInEvent(e)} onEditDoc={(kind:any, doc:any) => setEditDoc({ kind, doc, clientId: e.client_id, clientName: e.client_name || "Client" })} />
           ))}
         </div>
       )}
@@ -191,6 +193,7 @@ export default function DayDetailPage() {
 
       {assignEvent && <AssignTeamDialog open onOpenChange={(v) => { if (!v) setAssignEvent(null); }} event={assignEvent} />}
       {checkInEvent && <CheckInDialog open onOpenChange={() => setCheckInEvent(null)} event={checkInEvent} teamMemberId={myTeamMember?.id ?? null} />}
+      {editDoc && <EditDocDialog kind={editDoc.kind} doc={editDoc.doc} clientId={editDoc.clientId} clientName={editDoc.clientName} onClose={() => setEditDoc(null)} />}
     </div>
   );
 }
@@ -239,7 +242,7 @@ function TeamCell({ e, memberById, canManageTeam, myTeamMember, onAssign, onChec
   );
 }
 
-function EventRow({ e, memberById, navigate, seesAll, canManageTeam, myTeamMember, docsByClient, organization, onAssign, onCheckIn }: any) {
+function EventRow({ e, memberById, navigate, seesAll, canManageTeam, myTeamMember, docsByClient, organization, onAssign, onCheckIn, onEditDoc }: any) {
   const grad = TYPE_GRADIENT[e.event_type || ""] || TYPE_GRADIENT.Other;
   const est = e.client_id ? docsByClient.est.get(e.client_id) : null;
   const prop = e.client_id ? docsByClient.prop.get(e.client_id) : null;
@@ -259,14 +262,14 @@ function EventRow({ e, memberById, navigate, seesAll, canManageTeam, myTeamMembe
       <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{(fmtTime(e.start_time) || fmtTime(e.end_time)) ? `${fmtTime(e.start_time) || "—"}${fmtTime(e.end_time) ? ` → ${fmtTime(e.end_time)}` : ""}` : "—"}</td>
       <td className="px-3 py-2.5 text-xs text-muted-foreground truncate max-w-[140px]">{e.venue || "—"}</td>
       <td className="px-3 py-2.5"><TeamCell e={e} memberById={memberById} canManageTeam={canManageTeam} myTeamMember={myTeamMember} onAssign={onAssign} onCheckIn={onCheckIn} /></td>
-      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} /></td>}
-      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} /></td>}
-      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} /></td>}
+      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("estimation", est)} /></td>}
+      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("proposal", prop)} /></td>}
+      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("invoice", inv)} /></td>}
     </tr>
   );
 }
 
-function EventCard({ e, memberById, navigate, seesAll, canManageTeam, myTeamMember, docsByClient, organization, onAssign, onCheckIn }: any) {
+function EventCard({ e, memberById, navigate, seesAll, canManageTeam, myTeamMember, docsByClient, organization, onAssign, onCheckIn, onEditDoc }: any) {
   const grad = TYPE_GRADIENT[e.event_type || ""] || TYPE_GRADIENT.Other;
   const est = e.client_id ? docsByClient.est.get(e.client_id) : null;
   const prop = e.client_id ? docsByClient.prop.get(e.client_id) : null;
@@ -290,16 +293,16 @@ function EventCard({ e, memberById, navigate, seesAll, canManageTeam, myTeamMemb
       <div className="pt-2 border-t border-border"><TeamCell e={e} memberById={memberById} canManageTeam={canManageTeam} myTeamMember={myTeamMember} onAssign={onAssign} onCheckIn={onCheckIn} /></div>
       {seesAll && (
         <div className="flex items-center gap-1.5 flex-wrap pt-1">
-          <FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} />
-          <FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} />
-          <FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} />
+          <FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("estimation", est)} />
+          <FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("proposal", prop)} />
+          <FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("invoice", inv)} />
         </div>
       )}
     </div>
   );
 }
 
-function FinChip({ label, doc, kind, studio, tone, navigate, clientId }: any) {
+function FinChip({ label, doc, kind, studio, tone, navigate, clientId, onEdit }: any) {
   const Icon = kind === "estimation" ? FileText : kind === "proposal" ? Briefcase : Receipt;
   const toneCls = tone === "amber" ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
     : tone === "violet" ? "bg-violet-500/10 text-violet-700 border-violet-500/30"
@@ -326,7 +329,7 @@ function FinChip({ label, doc, kind, studio, tone, navigate, clientId }: any) {
       <span className="inline-flex items-center">
         <button onClick={() => generateDocPdf(buildDocPdfPayload(kind, doc, studio), "open")} title={`View ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Eye className="h-3 w-3" /></button>
         <button onClick={() => generateDocPdf(buildDocPdfPayload(kind, doc, studio), "download")} title={`Download ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Download className="h-3 w-3" /></button>
-        <button onClick={() => clientId && navigate(`/clients/${clientId}`)} title={`Edit ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Pencil className="h-3 w-3" /></button>
+        <button onClick={() => onEdit ? onEdit() : (clientId && navigate(`/clients/${clientId}`))} title={`Edit ${label}`} className="h-5 w-5 rounded hover:bg-black/10 inline-flex items-center justify-center"><Pencil className="h-3 w-3" /></button>
       </span>
     </div>
   );
