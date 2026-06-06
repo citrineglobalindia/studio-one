@@ -298,16 +298,39 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
   let wrapper: HTMLDivElement | null = null;
   // Open the preview tab synchronously NOW (inside the click gesture) so it isn't popup-blocked.
   const previewWin = mode === "open" ? window.open("about:blank", "_blank") : null;
+  const setProgress = (pct: number, msg?: string) => {
+    if (!previewWin || previewWin.closed) return;
+    try {
+      const pctEl = previewWin.document.getElementById("pdf-pct");
+      const barEl = previewWin.document.getElementById("pdf-bar");
+      const msgEl = previewWin.document.getElementById("pdf-msg");
+      if (pctEl) pctEl.textContent = Math.round(pct) + "%";
+      if (barEl) (barEl as HTMLElement).style.width = pct + "%";
+      if (msg && msgEl) msgEl.textContent = msg;
+    } catch (_e) { /* ignore */ }
+  };
   if (previewWin) {
     try {
       previewWin.document.open();
-      previewWin.document.write('<!doctype html><html><head><title>Preparing PDF…</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666;background:#f5f5f5">Preparing PDF…</body></html>');
+      previewWin.document.write(`<!doctype html><html><head><title>Preparing PDF…</title><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7f9;font-family:system-ui,-apple-system,sans-serif">
+  <div style="width:280px;text-align:center">
+    <div style="width:54px;height:54px;margin:0 auto 18px;border-radius:14px;background:linear-gradient(135deg,#5e0b21,#430716);display:flex;align-items:center;justify-content:center;color:#c9952b;font-weight:bold;font-size:20px;font-family:Georgia,serif">PDF</div>
+    <div style="font-weight:600;font-size:14px;color:#333;margin-bottom:4px">Preparing your document</div>
+    <div id="pdf-msg" style="font-size:11px;color:#888;margin-bottom:12px">Starting…</div>
+    <div style="height:8px;background:#e6e7ea;border-radius:99px;overflow:hidden">
+      <div id="pdf-bar" style="height:100%;width:5%;background:linear-gradient(90deg,#5e0b21,#9c1740);border-radius:99px;transition:width .35s ease"></div>
+    </div>
+    <div id="pdf-pct" style="margin-top:8px;font-size:12px;font-weight:600;color:#5e0b21;font-variant-numeric:tabular-nums">5%</div>
+  </div>
+</body></html>`);
       previewWin.document.close();
     } catch (_e) { /* ignore */ }
   }
   try {
     loadingId = toast.loading(`Preparing ${d.kind} PDF…`);
 
+    setProgress(15, "Loading studio details…");
     let safeData = d;
     if (d.studio.logo_url) {
       const dataUrl = await imageToDataUrl(d.studio.logo_url);
@@ -324,6 +347,7 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
     const evtIds = Array.from(new Set((d.items || [])
       .map((it) => { const m = /#evt:([0-9a-f-]+)#/i.exec(it.description || ""); return m ? m[1] : null; })
       .filter(Boolean) as string[]));
+    setProgress(35, "Fetching event details…");
     let eventsById: Record<string, any> = {};
     if (evtIds.length) {
       try {
@@ -331,12 +355,14 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
         for (const ev of (evs ?? [])) eventsById[ev.id] = ev;
       } catch (_e) { /* names optional */ }
     }
+    setProgress(55, "Laying out document…");
     wrapper.innerHTML = buildHtml(safeData, eventsById);
     document.body.appendChild(wrapper);
 
     await new Promise((r) => setTimeout(r, 60));
-
+    setProgress(70, "Rendering…");
     const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true, allowTaint: false });
+    setProgress(90, "Building PDF…");
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -355,6 +381,7 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
     }
 
     if (mode === "open") {
+      setProgress(100, "Opening…");
       const blob = pdf.output("blob") as Blob;
       const blobUrl = URL.createObjectURL(blob);
       if (previewWin && !previewWin.closed) {
