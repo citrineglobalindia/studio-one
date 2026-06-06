@@ -334,7 +334,7 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
     wrapper.innerHTML = buildHtml(safeData, eventsById);
     document.body.appendChild(wrapper);
 
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => setTimeout(r, 60));
 
     const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true, allowTaint: false });
     const imgData = canvas.toDataURL("image/png");
