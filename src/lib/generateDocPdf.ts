@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export type DocPdfKind = "estimation" | "proposal" | "invoice";
 
@@ -95,7 +96,14 @@ function cleanDesc(desc: string) {
     .trim();
 }
 
-function buildHtml(d: DocPdfData): string {
+interface EventInfo { name?: string | null; event_type?: string | null; event_date?: string | null; venue?: string | null; }
+
+function evtIdOf(desc: string): string | null {
+  const m = /#evt:([0-9a-f-]+)#/i.exec(desc || "");
+  return m ? m[1] : null;
+}
+
+function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): string {
   const titleMap: Record<DocPdfKind, string> = { estimation: "ESTIMATION", proposal: "PROPOSAL", invoice: "INVOICE" };
   const noLabelMap: Record<DocPdfKind, string> = { estimation: "Estimation No.", proposal: "Proposal No.", invoice: "Invoice No." };
   const title = titleMap[d.kind];
@@ -104,26 +112,73 @@ function buildHtml(d: DocPdfData): string {
   const coupleName = d.client.partner_name ? `${d.client.name} & ${d.client.partner_name}` : d.client.name;
   const studioAddress = [d.studio.address, d.studio.city].filter(Boolean).map(esc).join(", ");
 
-  const items = (d.items || []).map((it) => ({
-    description: cleanDesc(it.description),
-    quantity: Number(it.quantity || 1),
-    rate: Number(it.rate ?? it.amount ?? 0),
-    amount: Number(it.amount ?? 0),
-  })).filter((it) => it.description.length > 0);
+  // Group items by their event marker so requirements show under each event
+  type Line = { description: string; quantity: number; rate: number; amount: number; isReq: boolean };
+  const groups = new Map<string, { info: EventInfo; lines: Line[]; amount: number }>();
+  const manualLines: Line[] = [];
+  let totalQty = 0;
 
-  const totalQty = items.reduce((s, it) => s + (it.quantity || 0), 0);
+  for (const raw of (d.items || [])) {
+    const desc = cleanDesc(raw.description);
+    if (!desc) continue;
+    const qty = Number(raw.quantity || 1);
+    const amt = Number(raw.amount ?? 0);
+    const rate = Number(raw.rate ?? raw.amount ?? 0);
+    const isReq = /#req:/i.test(raw.description || "");
+    totalQty += qty;
+    const evt = evtIdOf(raw.description);
+    const isManual = /#manual/i.test(raw.description || "");
+    if (isManual || !evt) {
+      manualLines.push({ description: desc, quantity: qty, rate, amount: amt, isReq: false });
+      continue;
+    }
+    if (!groups.has(evt)) groups.set(evt, { info: eventsById[evt] || {}, lines: [], amount: 0 });
+    const g = groups.get(evt)!;
+    g.lines.push({ description: desc, quantity: qty, rate, amount: amt, isReq });
+    g.amount += amt;
+  }
 
-  const itemRows = items.map((it, i) => `
+  // The single "final amount" (manual) is the package price — attribute to the doc, shown as its own row.
+  const manualAmount = manualLines.reduce((s, l) => s + l.amount, 0);
+
+  let rowNo = 0;
+  const groupRows = Array.from(groups.values()).map((g) => {
+    rowNo += 1;
+    const headLabel = g.info.name || g.info.event_type || "Event";
+    const sub = [g.info.event_type && g.info.event_type !== headLabel ? g.info.event_type : null,
+                 g.info.event_date ? fmtDate(g.info.event_date) : null,
+                 g.info.venue || null].filter(Boolean).map(esc).join(" · ");
+    const reqLines = g.lines.map((l) => `
+      <div style="display:flex;justify-content:space-between;padding:1px 0;font-size:10.5px;color:#333">
+        <span>• ${esc(l.description)}${l.quantity > 1 ? ` <span style="color:#888">×${l.quantity}</span>` : ""}</span>
+        ${l.amount > 0 ? `<span style="color:#111;font-weight:500">${inr2(l.amount)}</span>` : ""}
+      </div>`).join("");
+    return `
     <tr>
-      <td style="border:1px solid #111;padding:5px 6px;text-align:center;vertical-align:top;font-style:italic">${i + 1}</td>
-      <td style="border:1px solid #111;padding:5px 8px;vertical-align:top">
-        <span style="font-weight:bold;font-style:italic">${esc(it.description)}</span>
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo}</td>
+      <td style="border:1px solid #111;padding:6px 8px;vertical-align:top">
+        <p style="margin:0;font-weight:bold;font-style:italic;font-size:12px">${esc(headLabel)}</p>
+        ${sub ? `<p style="margin:1px 0 4px 0;font-size:10px;color:#666">${sub}</p>` : ""}
+        <div style="margin-top:3px">${reqLines || '<span style="font-size:10px;color:#999">No requirements listed</span>'}</div>
       </td>
-      <td style="border:1px solid #111;padding:5px 6px;text-align:center;vertical-align:top">${it.quantity}</td>
-      <td style="border:1px solid #111;padding:5px 6px;text-align:center;vertical-align:top">no.s</td>
-      <td style="border:1px solid #111;padding:5px 8px;text-align:right;vertical-align:top">${inr2(it.rate)}</td>
-      <td style="border:1px solid #111;padding:5px 8px;text-align:right;vertical-align:top">${inr2(it.amount)}</td>
-    </tr>`).join("");
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">1</td>
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">no.s</td>
+      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${g.amount > 0 ? inr2(g.amount) : "0.00"}</td>
+      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${g.amount > 0 ? inr2(g.amount) : "0.00"}</td>
+    </tr>`;
+  }).join("");
+
+  const manualRow = manualAmount > 0 ? `
+    <tr>
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo + 1}</td>
+      <td style="border:1px solid #111;padding:6px 8px;vertical-align:top"><span style="font-weight:bold;font-style:italic">Package Amount</span></td>
+      <td style="border:1px solid #111;padding:6px;text-align:center">1</td>
+      <td style="border:1px solid #111;padding:6px;text-align:center">no.s</td>
+      <td style="border:1px solid #111;padding:6px 8px;text-align:right">${inr2(manualAmount)}</td>
+      <td style="border:1px solid #111;padding:6px 8px;text-align:right">${inr2(manualAmount)}</td>
+    </tr>` : "";
+
+  const itemRows = groupRows + manualRow;
 
   const dueLine = (d.kind === "invoice" && d.amountPaid != null)
     ? `<tr><td style="border:1px solid #111;padding:3px 10px;text-align:right;color:#444">Amount Paid</td><td style="border:1px solid #111;padding:3px 10px;text-align:right">${inr2(d.amountPaid)}</td></tr>
@@ -261,7 +316,18 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
     wrapper.style.left = "0";
     wrapper.style.width = "794px";
     wrapper.style.background = "white";
-    wrapper.innerHTML = buildHtml(safeData);
+    // Fetch event names for grouping requirements under each event
+    const evtIds = Array.from(new Set((d.items || [])
+      .map((it) => { const m = /#evt:([0-9a-f-]+)#/i.exec(it.description || ""); return m ? m[1] : null; })
+      .filter(Boolean) as string[]));
+    let eventsById: Record<string, any> = {};
+    if (evtIds.length) {
+      try {
+        const { data: evs } = await (supabase as any).from("events").select("id,name,event_type,event_date,venue").in("id", evtIds);
+        for (const ev of (evs ?? [])) eventsById[ev.id] = ev;
+      } catch (_e) { /* names optional */ }
+    }
+    wrapper.innerHTML = buildHtml(safeData, eventsById);
     document.body.appendChild(wrapper);
 
     await new Promise((r) => requestAnimationFrame(() => r(null)));
