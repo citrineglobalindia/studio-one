@@ -442,7 +442,6 @@ export default function CalendarPage() {
                     return (
                       <div key={e.id} className={`text-[10px] truncate rounded px-1.5 py-0.5 text-white bg-gradient-to-r ${grad}`}
                         title={`${e.client_name ? e.client_name + " - " : ""}${e.name || e.event_type || "Event"}`}>
-                        {fmtTime(e.start_time) && <span className="opacity-90 mr-1">{fmtTime(e.start_time)}</span>}
                         {e.client_name ? `${(e.client_name.split(" & ")[0])} - ` : ""}{e.name || e.event_type || "Event"}
                       </div>
                     );
