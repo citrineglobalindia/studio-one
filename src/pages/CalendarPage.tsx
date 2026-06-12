@@ -210,7 +210,7 @@ export default function CalendarPage() {
             <CalendarDays className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">Calendar <span className="text-[10px] font-normal text-muted-foreground align-super">v2</span></h1>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Calendar</h1>
             <p className="text-xs text-muted-foreground">
               {seesAll ? "All studio events" : "Your assigned events"} · {totalThisMonth} this month
             </p>
@@ -427,14 +427,9 @@ export default function CalendarPage() {
                     "text-xs font-medium inline-flex items-center justify-center " +
                     (isToday ? "h-5 w-5 rounded-full bg-primary text-primary-foreground" : "")
                   }>{d.getDate()}</span>
-                  <span className="inline-flex items-center gap-1">
-                    {(workLogCounts[iso] ?? 0) > 0 && inMonth && (
-                      <span className="text-[8px] px-1 rounded bg-fuchsia-500/15 text-fuchsia-600 font-medium" title="Editor logs">{workLogCounts[iso]} log</span>
-                    )}
-                    {list.length > 0 && inMonth && (
-                      <span className="text-[9px] text-muted-foreground">{list.length}</span>
-                    )}
-                  </span>
+                  {list.length > 0 && inMonth && (
+                    <span className="text-[9px] text-muted-foreground">{list.length}</span>
+                  )}
                 </div>
                 <div className="space-y-0.5">
                   {list.slice(0, 3).map((e) => {
