@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Phone as PhoneIcon, Plus, Pencil, Trash2, Loader2, Search, Upload, Download,
   Sparkles, Mail, MapPin, CalendarDays, IndianRupee, ArrowRight, X, Check,
-  Filter, FilterX, UserCheck, Target,
+  Filter, FilterX, UserCheck, Target, UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLeads, LEAD_STATUSES, LEAD_SOURCES, type DbLead, type LeadStatus } from "@/hooks/useLeads";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 
@@ -25,6 +26,16 @@ const STATUS_META: Record<string, { label: string; color: string; dot: string }>
   converted: { label: "Converted",  color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", dot: "bg-emerald-500" },
   lost:      { label: "Lost",       color: "bg-rose-500/10 text-rose-600 border-rose-500/30",         dot: "bg-rose-500" },
 };
+
+const SALES_ROLES = new Set(["telecaller", "admin", "administrator", "accounts"]);
+const AVATAR_COLORS = ["bg-emerald-500", "bg-blue-500", "bg-violet-500", "bg-amber-500", "bg-rose-500", "bg-cyan-500", "bg-fuchsia-500", "bg-indigo-500"];
+function initials(name: string) {
+  return (name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "?";
+}
+function colorFor(key: string) {
+  let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
 
 function inr(n: number | null | undefined) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(n ?? 0));
@@ -38,11 +49,27 @@ export default function LeadsPage() {
   const { currentRole } = useRole();
   const allowed = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts" || currentRole === "telecaller";
   const { leads, isLoading, add, update, remove, setStatus, bulkImport, convertToClient } = useLeads();
+  const { members } = useTeamMembers();
+
+  const executives = useMemo(
+    () => members
+      .filter((m) => m.user_id && SALES_ROLES.has(String(m.role || "")))
+      .map((m) => ({ user_id: m.user_id as string, name: m.full_name, role: m.role || "" })),
+    [members],
+  );
+  const execName = (uid: string | null | undefined) =>
+    executives.find((e) => e.user_id === uid)?.name || null;
+
+  const assignLead = (leadId: string, uid: string | null) => {
+    const name = uid ? (execName(uid) || null) : null;
+    update.mutate({ id: leadId, assigned_user_id: uid, assigned_to: name } as any);
+  };
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterCity, setFilterCity] = useState<string>("");
+  const [filterExec, setFilterExec] = useState<string>("all");
   const [view, setView] = useState<"table" | "kanban">("table");
   const [editing, setEditing] = useState<DbLead | null | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -52,10 +79,11 @@ export default function LeadsPage() {
     if (filterStatus !== "all") list = list.filter((l) => l.status === filterStatus);
     if (filterSource !== "all") list = list.filter((l) => l.source === filterSource);
     if (filterCity.trim()) list = list.filter((l) => (l.city || "").toLowerCase().includes(filterCity.trim().toLowerCase()));
+    if (filterExec !== "all") list = list.filter((l) => (filterExec === "unassigned" ? !l.assigned_user_id : l.assigned_user_id === filterExec));
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((l) => [l.name, l.phone, l.email, l.notes, l.event_type, l.city].filter(Boolean).join(" ").toLowerCase().includes(q));
     return list;
-  }, [leads, filterStatus, filterSource, filterCity, search]);
+  }, [leads, filterStatus, filterSource, filterCity, filterExec, search]);
 
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -63,7 +91,7 @@ export default function LeadsPage() {
     for (const l of leads) counts[String(l.status)] = (counts[String(l.status)] || 0) + 1;
     return counts;
   }, [leads]);
-  const activeFilterCount = [filterStatus !== "all", filterSource !== "all", filterCity.trim(), search.trim()].filter(Boolean).length;
+  const activeFilterCount = [filterStatus !== "all", filterSource !== "all", filterCity.trim(), filterExec !== "all", search.trim()].filter(Boolean).length;
 
   const exportCSV = () => {
     if (filtered.length === 0) { toast.info("Nothing to export"); return; }
@@ -181,8 +209,16 @@ export default function LeadsPage() {
           </SelectContent>
         </Select>
         <Input value={filterCity} onChange={(e) => setFilterCity(e.target.value)} placeholder="City filter" className="h-9 w-full sm:w-36" />
+        <Select value={filterExec} onValueChange={setFilterExec}>
+          <SelectTrigger className="h-9 w-full sm:w-44 text-xs"><SelectValue placeholder="Executive" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All executives</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {executives.map((e) => <SelectItem key={e.user_id} value={e.user_id}>{e.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         {activeFilterCount > 0 && (
-          <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => { setSearch(""); setFilterStatus("all"); setFilterSource("all"); setFilterCity(""); }}>
+          <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => { setSearch(""); setFilterStatus("all"); setFilterSource("all"); setFilterCity(""); setFilterExec("all"); }}>
             <FilterX className="h-3.5 w-3.5" /> Clear
           </Button>
         )}
@@ -206,16 +242,17 @@ export default function LeadsPage() {
       ) : view === "table" ? (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm table-fixed min-w-[1100px]">
+            <table className="w-full text-sm table-fixed min-w-[1280px]">
               <colgroup>
-                <col className="w-[20%]" />
-                <col className="w-[18%]" />
-                <col className="w-[10%]" />
-                <col className="w-[14%]" />
-                <col className="w-[10%]" />
-                <col className="w-[11%]" />
-                <col className="w-[9%]" />
+                <col className="w-[17%]" />
+                <col className="w-[15%]" />
                 <col className="w-[8%]" />
+                <col className="w-[12%]" />
+                <col className="w-[9%]" />
+                <col className="w-[11%]" />
+                <col className="w-[13%]" />
+                <col className="w-[8%]" />
+                <col className="w-[7%]" />
               </colgroup>
               <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <tr>
@@ -225,6 +262,7 @@ export default function LeadsPage() {
                   <th className="text-left px-3 py-3 font-semibold">Event</th>
                   <th className="text-right px-3 py-3 font-semibold">Budget</th>
                   <th className="text-left px-3 py-3 font-semibold">Status</th>
+                  <th className="text-left px-3 py-3 font-semibold">Executive</th>
                   <th className="text-left px-3 py-3 font-semibold">Follow-up</th>
                   <th className="text-right px-4 py-3 font-semibold">Actions</th>
                 </tr>
@@ -300,6 +338,34 @@ export default function LeadsPage() {
                       </Select>
                     </td>
 
+                    {/* Executive */}
+                    <td className="px-3 py-3 align-middle">
+                      <Select value={l.assigned_user_id || "unassigned"} onValueChange={(v) => assignLead(l.id, v === "unassigned" ? null : v)}>
+                        <SelectTrigger className="h-8 w-full text-[11px] border-border">
+                          {l.assigned_user_id && execName(l.assigned_user_id) ? (
+                            <span className="inline-flex items-center gap-1.5 min-w-0">
+                              <span className={"h-5 w-5 rounded-full text-white text-[9px] font-semibold flex items-center justify-center shrink-0 " + colorFor(l.assigned_user_id)}>{initials(execName(l.assigned_user_id) as string)}</span>
+                              <span className="truncate">{execName(l.assigned_user_id)}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-muted-foreground"><UserCog className="h-3.5 w-3.5" /> Unassigned</span>
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned"><span className="text-muted-foreground">Unassigned</span></SelectItem>
+                          {executives.map((ex) => (
+                            <SelectItem key={ex.user_id} value={ex.user_id}>
+                              <span className="inline-flex items-center gap-2">
+                                <span className={"h-5 w-5 rounded-full text-white text-[9px] font-semibold flex items-center justify-center " + colorFor(ex.user_id)}>{initials(ex.name)}</span>
+                                {ex.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                          {executives.length === 0 && <div className="px-2 py-1.5 text-[11px] text-muted-foreground">No sales executives found</div>}
+                        </SelectContent>
+                      </Select>
+                    </td>
+
                     {/* Follow-up */}
                     <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums align-middle">
                       {l.follow_up_date ? fmtDate(l.follow_up_date) : "—"}
@@ -367,6 +433,16 @@ export default function LeadsPage() {
                         {l.event_type && <p className="truncate">🎉 {l.event_type}{l.event_date ? ` · ${fmtDate(l.event_date)}` : ""}</p>}
                         {l.budget && <p className="truncate">💰 {inr(l.budget)}</p>}
                       </div>
+                      <div className="mt-1.5 pt-1.5 border-t border-border/60">
+                        {l.assigned_user_id && execName(l.assigned_user_id) ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-foreground">
+                            <span className={"h-4 w-4 rounded-full text-white text-[8px] font-semibold flex items-center justify-center " + colorFor(l.assigned_user_id)}>{initials(execName(l.assigned_user_id) as string)}</span>
+                            {execName(l.assigned_user_id)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1"><UserCog className="h-3 w-3" /> Unassigned</span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -380,6 +456,7 @@ export default function LeadsPage() {
         <LeadDialog
           open onOpenChange={() => setEditing(undefined)}
           editing={editing}
+          executives={executives}
           onSubmit={async (payload) => {
             if (editing) await update.mutateAsync({ id: editing.id, ...payload });
             else await add.mutateAsync(payload);
@@ -391,7 +468,7 @@ export default function LeadsPage() {
 }
 
 // ─────────── Add/Edit lead dialog ───────────
-function LeadDialog({ open, onOpenChange, editing, onSubmit }: { open: boolean; onOpenChange: () => void; editing: DbLead | null; onSubmit: (p: Partial<DbLead>) => Promise<void> }) {
+function LeadDialog({ open, onOpenChange, editing, onSubmit, executives }: { open: boolean; onOpenChange: () => void; editing: DbLead | null; onSubmit: (p: Partial<DbLead>) => Promise<void>; executives: { user_id: string; name: string; role: string }[] }) {
   const [form, setForm] = useState({
     name: editing?.name || "",
     phone: editing?.phone || "",
@@ -404,6 +481,7 @@ function LeadDialog({ open, onOpenChange, editing, onSubmit }: { open: boolean; 
     status: editing?.status || ("new" as LeadStatus),
     follow_up_date: editing?.follow_up_date || "",
     notes: editing?.notes || "",
+    assigned_user_id: editing?.assigned_user_id || "",
   });
   const [saving, setSaving] = useState(false);
   const save = async () => {
@@ -422,6 +500,8 @@ function LeadDialog({ open, onOpenChange, editing, onSubmit }: { open: boolean; 
         status: form.status,
         follow_up_date: form.follow_up_date || null,
         notes: form.notes.trim() || null,
+        assigned_user_id: form.assigned_user_id || null,
+        assigned_to: form.assigned_user_id ? (executives.find((e) => e.user_id === form.assigned_user_id)?.name || null) : null,
       } as any);
       onOpenChange();
     } finally { setSaving(false); }
@@ -458,7 +538,18 @@ function LeadDialog({ open, onOpenChange, editing, onSubmit }: { open: boolean; 
             <Field label="City"><Input value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} /></Field>
             <Field label="Budget (₹)"><Input type="number" value={form.budget || ""} onChange={(e) => setForm((p) => ({ ...p, budget: Number(e.target.value || 0) }))} /></Field>
           </div>
-          <Field label="Follow-up date"><Input type="date" value={form.follow_up_date} onChange={(e) => setForm((p) => ({ ...p, follow_up_date: e.target.value }))} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Follow-up date"><Input type="date" value={form.follow_up_date} onChange={(e) => setForm((p) => ({ ...p, follow_up_date: e.target.value }))} /></Field>
+            <Field label="Assigned to (Sales Executive)">
+              <Select value={form.assigned_user_id || "unassigned"} onValueChange={(v) => setForm((p) => ({ ...p, assigned_user_id: v === "unassigned" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {executives.map((ex) => <SelectItem key={ex.user_id} value={ex.user_id}>{ex.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
           <Field label="Notes"><Textarea rows={2} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} /></Field>
         </div>
         <DialogFooter>
