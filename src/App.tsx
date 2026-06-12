@@ -42,6 +42,7 @@ import AccountsPage from "./pages/AccountsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import LedgerPage from "./pages/LedgerPage";
 import PnLPage from "./pages/PnLPage";
+import ClientPnlPage from "./pages/ClientPnlPage";
 import HREmployeesPage from "./pages/hr/HREmployeesPage";
 import HRSalaryPage from "./pages/hr/HRSalaryPage";
 import HRPayslipsPage from "./pages/hr/HRPayslipsPage";
@@ -104,6 +105,7 @@ function ProtectedRoutes() {
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/ledger" element={<LedgerPage />} />
         <Route path="/pnl" element={<PnLPage />} />
+        <Route path="/client-pnl" element={<ClientPnlPage />} />
         <Route path="/hr" element={<HREmployeesPage />} />
         <Route path="/hr/salary" element={<HRSalaryPage />} />
         <Route path="/hr/payslips" element={<HRPayslipsPage />} />

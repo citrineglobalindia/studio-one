@@ -118,10 +118,12 @@ function AdminDashboard() {
   const today = todayIso();
   const sevenDaysOut = plusDaysIso(7);
 
-  const collected = invoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
-  const outstanding = invoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
-  const billedTotal = invoices.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
-  const billedMonth = invoices.filter((r: any) => (r.created_at || "").slice(0,7) === today.slice(0,7))
+  // Exclude cancelled/void/draft invoices from money roll-ups so totals reflect real billing.
+  const liveInvoices = invoices.filter((r: any) => !["cancelled","void","voided","draft"].includes(String(r.status || "").toLowerCase()));
+  const collected = liveInvoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
+  const outstanding = liveInvoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
+  const billedTotal = liveInvoices.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
+  const billedMonth = liveInvoices.filter((r: any) => (r.created_at || "").slice(0,7) === today.slice(0,7))
                               .reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const estimatesTotal = quotations.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const proposalsTotal = contracts.reduce((s, r: any) => s + Number(r.contract_amount || r.total_amount || 0), 0);
@@ -170,7 +172,7 @@ function AdminDashboard() {
           <PipelineCard label="Estimates"  count={quotations.length} total={estimatesTotal} color="amber"   icon={FileText}  onClick={() => navigate("/accounts")} />
           <PipelineCard label="Proposals"  count={contracts.length}  total={proposalsTotal} color="violet"  icon={Briefcase} onClick={() => navigate("/accounts")} />
           <PipelineCard label="Invoices"   count={invoices.length}   total={billedTotal}    color="blue"    icon={Receipt}   onClick={() => navigate("/accounts")} />
-          <PipelineCard label="Collected"  count={invoices.filter((i:any)=>Number(i.amount_paid)>0).length} total={collected} color="emerald" icon={Wallet} onClick={() => navigate("/accounts/ledger")} />
+          <PipelineCard label="Collected"  count={liveInvoices.filter((i:any)=>Number(i.amount_paid)>0).length} total={collected} color="emerald" icon={Wallet} onClick={() => navigate("/accounts/ledger")} />
         </div>
       </motion.section>
 
@@ -325,9 +327,10 @@ function AccountsDashboard() {
   const { expenses } = useExpenses();
 
   const today = todayIso().slice(0, 7);
-  const collected = invoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
-  const outstanding = invoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
-  const billedMonth = invoices.filter((r: any) => (r.created_at || "").slice(0,7) === today)
+  const liveInvoices = invoices.filter((r: any) => !["cancelled","void","voided","draft"].includes(String(r.status || "").toLowerCase()));
+  const collected = liveInvoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
+  const outstanding = liveInvoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
+  const billedMonth = liveInvoices.filter((r: any) => (r.created_at || "").slice(0,7) === today)
                               .reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const drafts = [
     ...quotations.filter((r: any) => (r.status || "draft") === "draft"),

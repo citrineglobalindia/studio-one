@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Wallet, Receipt, BookOpen, BarChart3, IndianRupee } from "lucide-react";
+import { Wallet, Receipt, BookOpen, BarChart3, IndianRupee, Users } from "lucide-react";
 
 const TABS = [
   { key: "/accounts", label: "Overview", icon: Wallet },
@@ -7,6 +7,7 @@ const TABS = [
   { key: "/expenses", label: "Expenses", icon: Receipt },
   { key: "/ledger",   label: "Ledger",   icon: BookOpen },
   { key: "/pnl",      label: "P&L",      icon: BarChart3 },
+  { key: "/client-pnl", label: "Client P&L", icon: Users },
 ] as const;
 
 export function FinanceTabs() {
