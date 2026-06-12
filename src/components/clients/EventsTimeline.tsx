@@ -29,6 +29,7 @@ const REQ_LABEL: Record<string, { short: string; full: string; color: string }> 
   candid_videographer:     { short: "Candid Video", full: "Candid Videographer",     color: "bg-amber-500/10 text-amber-700 border-amber-500/30" },
   drone_shoot:             { short: "Drone",        full: "Drone Shoot",             color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
   led_wall:                { short: "LED Wall",     full: "LED Wall",                color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/30" },
+  live_streaming:          { short: "Live Stream",  full: "Live Streaming",          color: "bg-red-500/10 text-red-600 border-red-500/30" },
 };
 
 const TYPE_COLORS: Record<string, string> = {

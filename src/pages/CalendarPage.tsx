@@ -346,6 +346,7 @@ export default function CalendarPage() {
                         ["candid_videographer",     "Candid Video"],
                         ["drone_shoot",             "Drone"],
                         ["led_wall",                "LED Wall"],
+                        ["live_streaming",          "Live Stream"],
                       ].map(([v, l]) => (
                         <ToggleChip key={v} active={filterRequirement === v} onClick={() => setFilterRequirement(filterRequirement === v ? "all" : v)}>
                           {l}

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Clock, Building2, FileText, Loader2, Tag, Check, Camera, Video, Plane, Sparkles, Monitor } from "lucide-react";
+import { CalendarDays, Clock, Building2, FileText, Loader2, Tag, Check, Camera, Video, Plane, Sparkles, Monitor, Radio } from "lucide-react";
 import type { DbEvent, EventStatus } from "@/hooks/useEvents";
 
 const EVENT_TYPES = [
@@ -27,6 +27,7 @@ const REQUIREMENT_OPTIONS: { value: string; label: string; icon: typeof Camera; 
   { value: "candid_videographer",     label: "Candid Videographer",     icon: Video,  color: "from-amber-500 to-orange-500" },
   { value: "drone_shoot",             label: "Drone Shoot",             icon: Plane,  color: "from-emerald-500 to-teal-500" },
   { value: "led_wall",                label: "LED Wall",                icon: Monitor, color: "from-indigo-500 to-violet-500" },
+  { value: "live_streaming",          label: "Live Streaming",          icon: Radio,  color: "from-red-500 to-rose-500" },
 ];
 
 export function EventDialog({

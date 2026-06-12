@@ -35,6 +35,7 @@ const REQ_LABEL: Record<string, string> = {
   candid_videographer: "Candid Videographer",
   drone_shoot: "Drone Shoot",
   led_wall: "LED Wall",
+  live_streaming: "Live Streaming",
 };
 
 const GST_RATES = [0, 5, 12, 18, 28];
