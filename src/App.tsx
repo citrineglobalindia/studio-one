@@ -34,6 +34,7 @@ import ClientDetailPage from "./pages/ClientDetailPage";
 import LeadsPage from "./pages/LeadsPage";
 import EditingPage from "./pages/EditingPage";
 import EventReportsPage from "./pages/EventReportsPage";
+import PaymentsPage from "./pages/PaymentsPage";
 import DayDetailPage from "./pages/DayDetailPage";
 import CalendarPage from "./pages/CalendarPage";
 import AccountsPage from "./pages/AccountsPage";
@@ -97,6 +98,7 @@ function ProtectedRoutes() {
         <Route path="/day/:date" element={<DayDetailPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/ledger" element={<LedgerPage />} />
         <Route path="/pnl" element={<PnLPage />} />

@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Wallet, Receipt, BookOpen, BarChart3 } from "lucide-react";
+import { Wallet, Receipt, BookOpen, BarChart3, IndianRupee } from "lucide-react";
 
 const TABS = [
   { key: "/accounts", label: "Overview", icon: Wallet },
+  { key: "/payments", label: "Payments", icon: IndianRupee },
   { key: "/expenses", label: "Expenses", icon: Receipt },
   { key: "/ledger",   label: "Ledger",   icon: BookOpen },
   { key: "/pnl",      label: "P&L",      icon: BarChart3 },
@@ -14,7 +15,7 @@ export function FinanceTabs() {
   return (
     <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/40 border border-border w-fit overflow-x-auto">
       {TABS.map(({ key, label, icon: Icon }) => {
-        const active = location.pathname === key || (key === "/accounts" && location.pathname.startsWith("/accounts"));
+        const active = location.pathname === key;
         return (
           <button
             key={key}
