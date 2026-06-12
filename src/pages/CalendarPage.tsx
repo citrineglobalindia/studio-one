@@ -210,7 +210,7 @@ export default function CalendarPage() {
             <CalendarDays className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">Calendar</h1>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Calendar <span className="text-[10px] font-normal text-muted-foreground align-super">v2</span></h1>
             <p className="text-xs text-muted-foreground">
               {seesAll ? "All studio events" : "Your assigned events"} · {totalThisMonth} this month
             </p>
