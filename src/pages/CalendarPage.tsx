@@ -516,7 +516,18 @@ export default function CalendarPage() {
                               {(fmtTime(e.start_time) || fmtTime(e.end_time)) ? `${fmtTime(e.start_time) || "—"}${fmtTime(e.end_time) ? ` → ${fmtTime(e.end_time)}` : ""}` : "—"}
                             </td>
                             {/* Venue */}
-                            <td className="px-3 py-2.5 text-xs text-muted-foreground truncate max-w-[140px]">{e.venue || "—"}</td>
+                            <td className="px-3 py-2.5 text-xs text-muted-foreground truncate max-w-[160px]">
+                              {e.venue ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <span className="truncate">{e.venue}</span>
+                                  {e.venue_map_url && (
+                                    <a href={e.venue_map_url} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()} title="Open location" className="text-primary hover:text-primary/80 shrink-0">
+                                      <MapPin className="h-3.5 w-3.5" />
+                                    </a>
+                                  )}
+                                </span>
+                              ) : "—"}
+                            </td>
                             {/* Team */}
                             <td className="px-3 py-2.5">
                               <div className="flex items-center gap-1.5">

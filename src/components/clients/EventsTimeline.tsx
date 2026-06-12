@@ -198,7 +198,7 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                               </span>
                             )}
                             {e.venue && (
-                              <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{e.venue}</span>
+                              <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{e.venue}{(e as any).venue_map_url && <a href={(e as any).venue_map_url} target="_blank" rel="noreferrer" className="text-primary hover:underline ml-0.5">map</a>}</span>
                             )}
                           </div>
                           {Array.isArray(e.requirements) && e.requirements.length > 0 && (

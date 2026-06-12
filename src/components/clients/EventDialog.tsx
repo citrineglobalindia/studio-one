@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Clock, Building2, FileText, Loader2, Tag, Check, Camera, Video, Plane, Sparkles, Monitor, Radio } from "lucide-react";
+import { CalendarDays, Clock, Building2, FileText, Loader2, Tag, Check, Camera, Video, Plane, Sparkles, Monitor, Radio, MapPin } from "lucide-react";
 import type { DbEvent, EventStatus } from "@/hooks/useEvents";
 
 const EVENT_TYPES = [
@@ -45,6 +45,7 @@ export function EventDialog({
     start_time: "",
     end_time: "",
     venue: "",
+    venue_map_url: "",
     status: "upcoming" as EventStatus,
     notes: "",
     requirements: [] as string[],
@@ -60,6 +61,7 @@ export function EventDialog({
         start_time: editing.start_time ? String(editing.start_time).slice(0, 5) : "",
         end_time: editing.end_time ? String(editing.end_time).slice(0, 5) : "",
         venue: editing.venue || "",
+        venue_map_url: (editing as any).venue_map_url || "",
         status: (editing.status as EventStatus) || "upcoming",
         notes: editing.notes || "",
         requirements: Array.isArray(editing.requirements) ? editing.requirements : [],
@@ -71,6 +73,7 @@ export function EventDialog({
         start_time: "",
         end_time: "",
         venue: "",
+        venue_map_url: "",
         status: "upcoming",
         notes: "",
         requirements: [],
@@ -87,6 +90,7 @@ export function EventDialog({
         start_time: form.start_time || null,
         end_time: form.end_time || null,
         venue: form.venue.trim() || defaultVenue || null,
+        venue_map_url: form.venue_map_url.trim() || null,
         status: form.status,
         notes: form.notes.trim() || null,
         name: form.event_type, // mirror type into name for display
@@ -189,6 +193,19 @@ export function EventDialog({
                 Will save as: <span className="text-foreground">{defaultVenue}</span>
               </p>
             )}
+          </div>
+
+          {/* Location link */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              <Label className="text-xs text-muted-foreground">Location link (Google Maps)</Label>
+            </div>
+            <Input
+              value={form.venue_map_url}
+              onChange={(e) => setForm((p) => ({ ...p, venue_map_url: e.target.value }))}
+              placeholder="https://maps.app.goo.gl/…"
+            />
           </div>
 
           {/* Requirements (multi-select) */}

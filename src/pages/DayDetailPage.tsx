@@ -260,7 +260,18 @@ function EventRow({ e, memberById, navigate, seesAll, canManageTeam, myTeamMembe
       </td>
       <td className="px-3 py-2.5">{e.client_name ? <button onClick={() => e.client_id && navigate(`/clients/${e.client_id}`)} className="text-xs text-primary hover:underline truncate max-w-[140px] inline-block align-bottom">{e.client_name}</button> : <span className="text-xs text-muted-foreground">—</span>}</td>
       <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{(fmtTime(e.start_time) || fmtTime(e.end_time)) ? `${fmtTime(e.start_time) || "—"}${fmtTime(e.end_time) ? ` → ${fmtTime(e.end_time)}` : ""}` : "—"}</td>
-      <td className="px-3 py-2.5 text-xs text-muted-foreground truncate max-w-[140px]">{e.venue || "—"}</td>
+      <td className="px-3 py-2.5 text-xs text-muted-foreground truncate max-w-[160px]">
+        {e.venue ? (
+          <span className="inline-flex items-center gap-1">
+            <span className="truncate">{e.venue}</span>
+            {e.venue_map_url && (
+              <a href={e.venue_map_url} target="_blank" rel="noreferrer" onClick={(ev: any) => ev.stopPropagation()} title="Open location" className="text-primary hover:text-primary/80 shrink-0">
+                <MapPin className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </span>
+        ) : "—"}
+      </td>
       <td className="px-3 py-2.5"><TeamCell e={e} memberById={memberById} canManageTeam={canManageTeam} myTeamMember={myTeamMember} onAssign={onAssign} onCheckIn={onCheckIn} /></td>
       {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("estimation", est)} /></td>}
       {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("proposal", prop)} /></td>}
@@ -286,7 +297,12 @@ function EventCard({ e, memberById, navigate, seesAll, canManageTeam, myTeamMemb
           {e.client_name && <button onClick={() => e.client_id && navigate(`/clients/${e.client_id}`)} className="text-xs text-primary hover:underline">{e.client_name}</button>}
           <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
             {(fmtTime(e.start_time) || fmtTime(e.end_time)) && <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{fmtTime(e.start_time) || "—"}{fmtTime(e.end_time) ? ` → ${fmtTime(e.end_time)}` : ""}</span>}
-            {e.venue && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{e.venue}</span>}
+            {e.venue && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" />{e.venue}
+                {e.venue_map_url && <a href={e.venue_map_url} target="_blank" rel="noreferrer" className="text-primary hover:underline ml-0.5">map</a>}
+              </span>
+            )}
           </div>
         </div>
       </div>

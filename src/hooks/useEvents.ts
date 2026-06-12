@@ -16,6 +16,7 @@ export interface DbEvent {
   start_time: string | null;
   end_time: string | null;
   venue: string | null;
+  venue_map_url: string | null;
   notes: string | null;
   status: EventStatus | string | null;
   display_order: number | null;
