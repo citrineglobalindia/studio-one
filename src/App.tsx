@@ -35,6 +35,7 @@ import LeadsPage from "./pages/LeadsPage";
 import EditingPage from "./pages/EditingPage";
 import EventReportsPage from "./pages/EventReportsPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import EditorLogsPage from "./pages/EditorLogsPage";
 import DayDetailPage from "./pages/DayDetailPage";
 import CalendarPage from "./pages/CalendarPage";
 import AccountsPage from "./pages/AccountsPage";
@@ -94,6 +95,7 @@ function ProtectedRoutes() {
         <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/editing" element={<EditingPage />} />
+        <Route path="/editor-logs" element={<EditorLogsPage />} />
         <Route path="/event-reports" element={<EventReportsPage />} />
         <Route path="/day/:date" element={<DayDetailPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
