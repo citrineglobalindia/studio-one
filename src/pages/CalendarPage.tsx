@@ -441,9 +441,9 @@ export default function CalendarPage() {
                     const grad = TYPE_GRADIENT[e.event_type || ""] || TYPE_GRADIENT.Other;
                     return (
                       <div key={e.id} className={`text-[10px] truncate rounded px-1.5 py-0.5 text-white bg-gradient-to-r ${grad}`}
-                        title={`${e.event_type || "Event"} — ${e.client_name || ""}`}>
+                        title={`${e.client_name ? e.client_name + " - " : ""}${e.name || e.event_type || "Event"}`}>
                         {fmtTime(e.start_time) && <span className="opacity-90 mr-1">{fmtTime(e.start_time)}</span>}
-                        {e.event_type || "Event"}
+                        {e.client_name ? `${(e.client_name.split(" & ")[0])} - ` : ""}{e.name || e.event_type || "Event"}
                       </div>
                     );
                   })}

@@ -22,8 +22,7 @@ type Step1 = {
   partner_phone: string; partner_email: string;
   address: string; city: string;
   source: string;
-  marriage_date: string; engagement_date: string;
-  date_of_birth: string; partner_date_of_birth: string;
+  event_date: string; engagement_date: string;
   budget: string; notes: string;
 };
 
@@ -45,8 +44,7 @@ const BLANK1: Step1 = {
   partner_phone: "", partner_email: "",
   address: "", city: "",
   source: "",
-  marriage_date: "", engagement_date: "",
-  date_of_birth: "", partner_date_of_birth: "",
+  event_date: "", engagement_date: "",
   budget: "", notes: "",
 };
 
@@ -84,11 +82,9 @@ export default function AddClientPage() {
         address: s1.address.trim() || null,
         city: s1.city.trim() || null,
         source: s1.source || null,
-        marriage_date: s1.marriage_date || null,
+
         engagement_date: s1.engagement_date || null,
-        date_of_birth: s1.date_of_birth || null,
-        partner_date_of_birth: s1.partner_date_of_birth || null,
-        event_date: s1.marriage_date || null,
+        event_date: s1.event_date || null,
         budget: s1.budget ? Number(s1.budget) : null,
         notes: s1.notes.trim() || null,
         status: "active",
@@ -164,12 +160,8 @@ export default function AddClientPage() {
                   <Field label="Partner name"><Input value={s1.partner_name} onChange={(e) => u1("partner_name", e.target.value)} placeholder="Arjun Mehta" /></Field>
                 </Row>
                 <Row>
-                  <Field label="Marriage / event date"><Input type="date" value={s1.marriage_date} onChange={(e) => u1("marriage_date", e.target.value)} /></Field>
+                  <Field label="Event date"><Input type="date" value={s1.event_date} onChange={(e) => u1("event_date", e.target.value)} /></Field>
                   <Field label="Engagement date"><Input type="date" value={s1.engagement_date} onChange={(e) => u1("engagement_date", e.target.value)} /></Field>
-                </Row>
-                <Row>
-                  <Field label="Primary DOB"><Input type="date" value={s1.date_of_birth} onChange={(e) => u1("date_of_birth", e.target.value)} /></Field>
-                  <Field label="Partner DOB"><Input type="date" value={s1.partner_date_of_birth} onChange={(e) => u1("partner_date_of_birth", e.target.value)} /></Field>
                 </Row>
               </Section>
 
