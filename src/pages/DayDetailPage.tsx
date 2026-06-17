@@ -163,8 +163,6 @@ export default function DayDetailPage() {
                   <th className="text-left px-3 py-2.5 font-semibold">Time</th>
                   <th className="text-left px-3 py-2.5 font-semibold">Venue</th>
                   <th className="text-left px-3 py-2.5 font-semibold">Team</th>
-                  {seesAll && <th className="text-right px-3 py-2.5 font-semibold">Estimate</th>}
-                  {seesAll && <th className="text-right px-3 py-2.5 font-semibold">Proposal</th>}
                   {seesAll && <th className="text-right px-3 py-2.5 font-semibold">Invoice</th>}
                 </tr>
               </thead>
@@ -273,8 +271,6 @@ function EventRow({ e, memberById, navigate, seesAll, canManageTeam, myTeamMembe
         ) : "—"}
       </td>
       <td className="px-3 py-2.5"><TeamCell e={e} memberById={memberById} canManageTeam={canManageTeam} myTeamMember={myTeamMember} onAssign={onAssign} onCheckIn={onCheckIn} /></td>
-      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("estimation", est)} /></td>}
-      {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("proposal", prop)} /></td>}
       {seesAll && <td className="px-3 py-2.5 text-right"><FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("invoice", inv)} /></td>}
     </tr>
   );
@@ -309,8 +305,6 @@ function EventCard({ e, memberById, navigate, seesAll, canManageTeam, myTeamMemb
       <div className="pt-2 border-t border-border"><TeamCell e={e} memberById={memberById} canManageTeam={canManageTeam} myTeamMember={myTeamMember} onAssign={onAssign} onCheckIn={onCheckIn} /></div>
       {seesAll && (
         <div className="flex items-center gap-1.5 flex-wrap pt-1">
-          <FinChip label="Estimate" doc={est} kind="estimation" studio={organization} tone="amber" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("estimation", est)} />
-          <FinChip label="Proposal" doc={prop} kind="proposal" studio={organization} tone="violet" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("proposal", prop)} />
           <FinChip label="Invoice" doc={inv} kind="invoice" studio={organization} tone="emerald" navigate={navigate} clientId={e.client_id} onEdit={() => onEditDoc("invoice", inv)} />
         </div>
       )}

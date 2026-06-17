@@ -22,7 +22,7 @@ const STATUS_META: Record<string, { label: string; color: string; dot: string }>
   new:       { label: "New",        color: "bg-blue-500/10 text-blue-600 border-blue-500/30",         dot: "bg-blue-500" },
   contacted: { label: "Contacted",  color: "bg-amber-500/10 text-amber-700 border-amber-500/30",     dot: "bg-amber-500" },
   qualified: { label: "Qualified",  color: "bg-violet-500/10 text-violet-600 border-violet-500/30",  dot: "bg-violet-500" },
-  proposal:  { label: "Proposal",   color: "bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/30", dot: "bg-fuchsia-500" },
+
   converted: { label: "Converted",  color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", dot: "bg-emerald-500" },
   lost:      { label: "Lost",       color: "bg-rose-500/10 text-rose-600 border-rose-500/30",         dot: "bg-rose-500" },
 };

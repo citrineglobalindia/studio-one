@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { toast } from "sonner";
 
-export type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "converted" | "lost";
+export type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "lost";
 
-export const LEAD_STATUSES: LeadStatus[] = ["new", "contacted", "qualified", "proposal", "converted", "lost"];
+export const LEAD_STATUSES: LeadStatus[] = ["new", "contacted", "qualified", "converted", "lost"];
 
 export const LEAD_SOURCES = ["Instagram", "Facebook", "WhatsApp", "Website", "Referral", "Google", "Walk-in", "Other"];
 

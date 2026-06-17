@@ -205,13 +205,14 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {e.requirements.map((r) => {
                                 const meta = REQ_LABEL[r];
+                                const q = ((e as any).requirement_qty || {})[r];
                                 return (
                                   <span
                                     key={r}
                                     title={meta?.full || r}
                                     className={"inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border " + (meta?.color || "bg-muted text-foreground border-border")}
                                   >
-                                    {meta?.short || r}
+                                    {meta?.short || r}{q && q > 1 ? ` ×${q}` : ""}
                                   </span>
                                 );
                               })}

@@ -49,6 +49,7 @@ export function EventDialog({
     status: "upcoming" as EventStatus,
     notes: "",
     requirements: [] as string[],
+    requirement_qty: {} as Record<string, number>,
   });
   const [saving, setSaving] = useState(false);
 
@@ -65,6 +66,7 @@ export function EventDialog({
         status: (editing.status as EventStatus) || "upcoming",
         notes: editing.notes || "",
         requirements: Array.isArray(editing.requirements) ? editing.requirements : [],
+        requirement_qty: (editing as any).requirement_qty || {},
       });
     } else {
       setForm({
@@ -77,6 +79,7 @@ export function EventDialog({
         status: "upcoming",
         notes: "",
         requirements: [],
+        requirement_qty: {},
       });
     }
   }, [open, editing]);
@@ -95,6 +98,7 @@ export function EventDialog({
         notes: form.notes.trim() || null,
         name: form.event_type, // mirror type into name for display
         requirements: form.requirements,
+        requirement_qty: form.requirement_qty,
       });
       onOpenChange(false);
     } finally {
@@ -221,18 +225,11 @@ export function EventDialog({
               {REQUIREMENT_OPTIONS.map((opt) => {
                 const active = form.requirements.includes(opt.value);
                 const Icon = opt.icon;
+                const qty = form.requirement_qty[opt.value] ?? 1;
+                const setQty = (n: number) => setForm((p) => ({ ...p, requirement_qty: { ...p.requirement_qty, [opt.value]: Math.max(1, n) } }));
                 return (
-                  <button
+                  <div
                     key={opt.value}
-                    type="button"
-                    onClick={() =>
-                      setForm((p) => ({
-                        ...p,
-                        requirements: active
-                          ? p.requirements.filter((r) => r !== opt.value)
-                          : [...p.requirements, opt.value],
-                      }))
-                    }
                     className={
                       "group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition " +
                       (active
@@ -240,12 +237,26 @@ export function EventDialog({
                         : "border-border bg-muted/20 hover:border-border/80 hover:bg-muted/40")
                     }
                   >
-                    <div className={"h-8 w-8 rounded-lg bg-gradient-to-br text-white flex items-center justify-center shrink-0 " + opt.color}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span className={"text-sm font-medium " + (active ? "text-foreground" : "text-foreground/90")}>{opt.label}</span>
-                    {active && <Check className="h-4 w-4 text-primary ml-auto shrink-0" />}
-                  </button>
+                    <button type="button" className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+                      onClick={() => setForm((p) => ({
+                        ...p,
+                        requirements: active ? p.requirements.filter((r) => r !== opt.value) : [...p.requirements, opt.value],
+                        requirement_qty: active ? p.requirement_qty : { ...p.requirement_qty, [opt.value]: p.requirement_qty[opt.value] ?? 1 },
+                      }))}
+                    >
+                      <div className={"h-8 w-8 rounded-lg bg-gradient-to-br text-white flex items-center justify-center shrink-0 " + opt.color}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className={"text-sm font-medium truncate " + (active ? "text-foreground" : "text-foreground/90")}>{opt.label}</span>
+                    </button>
+                    {active ? (
+                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" onClick={() => setQty(qty - 1)} className="h-6 w-6 rounded-md border border-border bg-background text-sm font-bold leading-none hover:bg-muted">-</button>
+                        <span className="w-6 text-center text-sm font-semibold tabular-nums">{qty}</span>
+                        <button type="button" onClick={() => setQty(qty + 1)} className="h-6 w-6 rounded-md border border-border bg-background text-sm font-bold leading-none hover:bg-muted">+</button>
+                      </div>
+                    ) : null}
+                  </div>
                 );
               })}
             </div>

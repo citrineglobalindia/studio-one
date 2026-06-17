@@ -137,7 +137,7 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
   const studioName = organization?.name || "Studio";
   const { currentRole } = useRole();
   const allowed = currentRole === "admin" || currentRole === "accounts";
-  const [tab, setTab] = useState<Tab>("estimations");
+  const [tab, setTab] = useState<Tab>("invoices");
   if (!allowed) return null;
 
   return (
@@ -151,8 +151,6 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
         </div>
         <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/40 border border-border">
           {([
-            { key: "estimations" as Tab, label: "Estimations", icon: FileText },
-            { key: "proposals" as Tab, label: "Proposals", icon: Briefcase },
             { key: "invoices" as Tab, label: "Invoices", icon: Receipt },
           ]).map(({ key, label, icon: Icon }) => {
             const active = tab === key;

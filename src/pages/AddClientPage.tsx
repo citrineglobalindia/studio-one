@@ -63,6 +63,7 @@ type EventRow = {
   venue: string;
   venue_map_url: string;
   requirements: string[];
+  requirement_qty: Record<string, number>;
 };
 
 const BLANK1: Step1 = {
@@ -89,6 +90,7 @@ const blankEvent = (): EventRow => ({
   venue: "",
   venue_map_url: "",
   requirements: [],
+  requirement_qty: {},
 });
 
 export default function AddClientPage() {
@@ -117,7 +119,12 @@ export default function AddClientPage() {
       requirements: e.requirements.includes(val)
         ? e.requirements.filter((r) => r !== val)
         : [...e.requirements, val],
+      requirement_qty: e.requirements.includes(val)
+        ? e.requirement_qty
+        : { ...e.requirement_qty, [val]: e.requirement_qty[val] ?? 1 },
     } : e));
+  const setReqQty = (i: number, val: string, n: number) =>
+    setEvents((p) => p.map((e, idx) => idx === i ? { ...e, requirement_qty: { ...e.requirement_qty, [val]: Math.max(1, n) } } : e));
 
   const saveStep1AndNext = async () => {
     setSaving(true);
@@ -187,6 +194,7 @@ export default function AddClientPage() {
           venue: (e.venue.trim() || s2.venue_name.trim()) || null,
           venue_map_url: (e.venue_map_url.trim() || s2.venue_map_url.trim()) || null,
           requirements: e.requirements,
+          requirement_qty: e.requirement_qty,
           status: "upcoming",
           display_order: idx + 1,
         }));
@@ -357,6 +365,24 @@ export default function AddClientPage() {
                         );
                       })}
                     </div>
+                    {ev.requirements.length > 0 && (
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {ev.requirements.map((rv) => {
+                          const opt = REQUIREMENT_OPTIONS.find((o) => o.value === rv);
+                          const qty = ev.requirement_qty[rv] ?? 1;
+                          return (
+                            <div key={rv} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 px-3 py-1.5">
+                              <span className="text-xs font-medium text-foreground truncate">{opt?.label || rv}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button type="button" onClick={() => setReqQty(i, rv, qty - 1)} className="h-6 w-6 rounded-md border border-border bg-background text-sm font-bold leading-none hover:bg-muted">-</button>
+                                <span className="w-6 text-center text-sm font-semibold tabular-nums">{qty}</span>
+                                <button type="button" onClick={() => setReqQty(i, rv, qty + 1)} className="h-6 w-6 rounded-md border border-border bg-background text-sm font-bold leading-none hover:bg-muted">+</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </Field>
                 </div>
               ))}

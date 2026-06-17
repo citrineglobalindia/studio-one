@@ -21,6 +21,7 @@ export interface DbEvent {
   status: EventStatus | string | null;
   display_order: number | null;
   requirements: string[] | null;
+  requirement_qty: Record<string, number> | null;
   is_finalized: boolean;
   finalized_at: string | null;
   finalized_by: string | null;

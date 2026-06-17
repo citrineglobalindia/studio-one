@@ -155,31 +155,34 @@ function AdminDashboard() {
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center"><Receipt className="h-4 w-4 text-amber-600" /></div>
             <div>
-              <p className="text-sm font-semibold text-foreground tracking-tight">Financial pipeline</p>
-              <p className="text-[10px] text-muted-foreground">Estimate → Proposal → Invoice → Collected · {conversion}% conversion rate</p>
+              <p className="text-sm font-semibold text-foreground tracking-tight">Billing pipeline</p>
+              <p className="text-[10px] text-muted-foreground">Invoiced → Collected · {collectedPct}% collected</p>
             </div>
           </div>
           {(currentRoleIsAccountsOrAdmin()) && organization && (
             <div className="hidden md:flex items-center gap-1.5">
-              <NewDocFromAccounts kind="estimation" organization={organization} className="h-8 text-xs" />
-              <NewDocFromAccounts kind="proposal"   organization={organization} className="h-8 text-xs" />
               <NewDocFromAccounts kind="invoice"    organization={organization} className="h-8 text-xs" />
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <PipelineCard label="Estimates"  count={quotations.length} total={estimatesTotal} color="amber"   icon={FileText}  onClick={() => navigate("/accounts")} />
-          <PipelineCard label="Proposals"  count={contracts.length}  total={proposalsTotal} color="violet"  icon={Briefcase} onClick={() => navigate("/accounts")} />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <PipelineCard label="Invoices"   count={invoices.length}   total={billedTotal}    color="blue"    icon={Receipt}   onClick={() => navigate("/accounts")} />
           <PipelineCard label="Collected"  count={liveInvoices.filter((i:any)=>Number(i.amount_paid)>0).length} total={collected} color="emerald" icon={Wallet} onClick={() => navigate("/accounts/ledger")} />
+          <button onClick={() => navigate("/calendar")} className="rounded-xl border border-border bg-card hover:border-indigo-500/40 transition p-3 text-left flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0"><CalendarDays className="h-4.5 w-4.5 text-indigo-500" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Calendar</p>
+              <p className="text-sm font-bold text-foreground">{todaysEvents.length} today</p>
+              <p className="text-[10px] text-muted-foreground truncate">{upcomingEvents.length} upcoming · open calendar</p>
+            </div>
+          </button>
         </div>
       </motion.section>
 
-      {/* 3-column: recent estimates / proposals / invoices */}
+      {/* Calendar widget + recent invoices */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <DocList title="Recent estimates" items={recentEstimates} amountKey="total_amount" numberKey="quotation_number" tone="amber"   onMore={() => navigate("/accounts")} navigate={navigate} />
-        <DocList title="Recent proposals" items={recentProposals} amountKey="contract_amount" numberKey="contract_number" tone="violet" onMore={() => navigate("/accounts")} navigate={navigate} />
+        <div className="md:col-span-2"><MiniCalendarCard events={events} navigate={navigate} /></div>
         <DocList title="Recent invoices"  items={recentInvoices}  amountKey="total_amount" numberKey="invoice_number"  tone="emerald" onMore={() => navigate("/accounts")} navigate={navigate} />
       </div>
 
@@ -249,6 +252,75 @@ function AdminDashboard() {
 }
 
 // ─────────────── Pipeline card with count + total ₹
+function MiniCalendarCard({ events, navigate }: { events: any[]; navigate: (p: string) => void }) {
+  const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
+  const first = new Date(y, m, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const todayDay = today.getDate();
+  const iso = (d: number) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const eventDays = new Set<number>();
+  for (const e of events) {
+    const ed = String(e.event_date || "");
+    if (ed.startsWith(`${y}-${String(m + 1).padStart(2, "0")}`)) eventDays.add(Number(ed.slice(8, 10)));
+  }
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const upcoming = [...events]
+    .filter((e) => String(e.event_date || "") >= iso(todayDay))
+    .sort((a, b) => String(a.event_date).localeCompare(String(b.event_date)))
+    .slice(0, 4);
+  const monthLabel = today.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-indigo-500/10 flex items-center justify-center"><CalendarDays className="h-4 w-4 text-indigo-500" /></div>
+          <p className="text-sm font-semibold text-foreground tracking-tight">Calendar · {monthLabel}</p>
+        </div>
+        <button onClick={() => navigate("/calendar")} className="text-[11px] text-primary hover:underline">Open</button>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="grid grid-cols-7 gap-0.5 text-center">
+            {["S","M","T","W","T","F","S"].map((d, i) => <span key={i} className="text-[9px] text-muted-foreground font-medium py-0.5">{d}</span>)}
+            {cells.map((d, i) => (
+              <button
+                key={i}
+                disabled={!d}
+                onClick={() => d && navigate(`/day/${iso(d)}`)}
+                className={
+                  "aspect-square rounded-md text-[11px] flex items-center justify-center relative transition " +
+                  (!d ? "" : d === todayDay
+                    ? "bg-primary text-primary-foreground font-bold"
+                    : eventDays.has(d) ? "bg-indigo-500/10 text-foreground font-medium hover:bg-indigo-500/20" : "text-muted-foreground hover:bg-muted")
+                }
+              >
+                {d || ""}
+                {d && eventDays.has(d) && d !== todayDay && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-indigo-500" />}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Upcoming</p>
+          {upcoming.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic py-2">No upcoming events</p>
+          ) : upcoming.map((e: any) => (
+            <button key={e.id} onClick={() => navigate(`/day/${e.event_date}`)} className="w-full text-left rounded-lg border border-border bg-background hover:border-indigo-500/40 transition px-2.5 py-1.5">
+              <p className="text-xs font-medium text-foreground truncate">{e.client_name ? `${String(e.client_name).split(" & ")[0]} · ` : ""}{e.name || e.event_type || "Event"}</p>
+              <p className="text-[10px] text-muted-foreground">{new Date(e.event_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PipelineCard({ label, count, total, color, icon: Icon, onClick }: { label: string; count: number; total: number; color: keyof typeof COLOR; icon: any; onClick: () => void }) {
   const c = COLOR[color];
   return (

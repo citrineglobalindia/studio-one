@@ -50,7 +50,7 @@ export default function AccountsPage() {
 
   const navigate = useNavigate();
   const { organization } = useOrg();
-  const [tab, setTab] = useState<Tab>("estimations");
+  const [tab, setTab] = useState<Tab>("invoices");
   const [search, setSearch] = useState("");
 
   const { rows: quotations, isLoading: lq } = useAllQuotations();
@@ -90,7 +90,7 @@ export default function AccountsPage() {
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Finance</p>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Accounts</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">All estimations, proposals and invoices in one place</p>
+            <p className="text-xs text-muted-foreground mt-0.5">All invoices in one place</p>
           </div>
         </div>
       </motion.div>
@@ -98,16 +98,14 @@ export default function AccountsPage() {
       <FinanceTabs />
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KpiCard label="Estimations" value={inr(kpis.estTotal)} count={quotations.length} icon={FileText} color="text-amber-500 bg-amber-500/10" />
-        <KpiCard label="Proposals" value={inr(kpis.propTotal)} count={contracts.length} icon={Briefcase} color="text-violet-500 bg-violet-500/10" />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label="Invoiced" value={inr(kpis.invTotal)} count={invoices.length} icon={Receipt} color="text-emerald-500 bg-emerald-500/10" />
         <KpiCard label="Collected" value={inr(kpis.invPaid)} icon={CheckCircle2} color="text-emerald-500 bg-emerald-500/10" />
         <KpiCard label="Outstanding" value={inr(kpis.invDue)} icon={AlertCircle} color="text-rose-500 bg-rose-500/10" />
       </div>
 
       {/* CHARTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <DonutCard
           title="Invoices by status"
           subtitle={`${invoices.length} invoices`}
@@ -117,32 +115,12 @@ export default function AccountsPage() {
             value: invoices.filter((r) => (r.status || "draft") === st).reduce((s, r) => s + Number(r.total_amount || 0), 0),
           }))}
         />
-        <DonutCard
-          title="Estimations by status"
-          subtitle={`${quotations.length} estimations`}
-          total={quotations.reduce((s, r) => s + Number(r.total_amount || 0), 0)}
-          data={["draft","sent","viewed","approved","rejected"].map((st) => ({
-            name: st,
-            value: quotations.filter((r) => (r.status || "draft") === st).reduce((s, r) => s + Number(r.total_amount || 0), 0),
-          }))}
-        />
-        <DonutCard
-          title="Proposals by status"
-          subtitle={`${contracts.length} proposals`}
-          total={contracts.reduce((s, r) => s + Number(r.contract_amount || 0), 0)}
-          data={["draft","sent","signed","cancelled"].map((st) => ({
-            name: st,
-            value: contracts.filter((r) => (r.status || "draft") === st).reduce((s, r) => s + Number(r.contract_amount || 0), 0),
-          }))}
-        />
       </div>
 
       {/* Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/40 border border-border w-fit">
           {([
-            { key: "estimations" as Tab, label: "Estimations", icon: FileText, n: quotations.length },
-            { key: "proposals" as Tab, label: "Proposals", icon: Briefcase, n: contracts.length },
             { key: "invoices" as Tab, label: "Invoices", icon: Receipt, n: invoices.length },
           ]).map(({ key, label, icon: Icon, n }) => {
             const active = tab === key;
@@ -164,7 +142,7 @@ export default function AccountsPage() {
           </div>
           {(currentRole === "admin" || currentRole === "accounts") && (
             <NewDocFromAccounts
-              kind={tab === "estimations" ? "estimation" : tab === "proposals" ? "proposal" : "invoice"}
+              kind="invoice"
               organization={organization}
               className="h-9 shrink-0"
             />
@@ -174,26 +152,8 @@ export default function AccountsPage() {
 
       {/* Table */}
       <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card overflow-hidden">
-        {(tab === "estimations" && lq) || (tab === "proposals" && lc) || (tab === "invoices" && li) ? (
+        {li ? (
           <div className="py-12 text-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" /></div>
-        ) : tab === "estimations" ? (
-          <DocTable
-            rows={quotations.filter((r) => matchFilter(r, search))}
-            kind="estimation"
-            navigate={navigate}
-            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("estimation", row, organization), "download")}
-            onOpenPdf={(row) => generateDocPdf(buildAccountsPdfPayload("estimation", row, organization), "open")}
-            extraCols={[{ key: "valid_until", label: "Valid until" }]}
-          />
-        ) : tab === "proposals" ? (
-          <DocTable
-            rows={contracts.filter((r) => matchFilter(r, search))}
-            kind="proposal"
-            navigate={navigate}
-            onPdf={(row) => generateDocPdf(buildAccountsPdfPayload("proposal", row, organization), "download")}
-            onOpenPdf={(row) => generateDocPdf(buildAccountsPdfPayload("proposal", row, organization), "open")}
-            extraCols={[{ key: "valid_until", label: "Valid until" }]}
-          />
         ) : (
           <DocTable
             rows={invoices.filter((r) => matchFilter(r, search))}
