@@ -48,7 +48,7 @@ export function canCreateRole(creator: AppRole | null | undefined, target: AppRo
 
 export type AppModule =
   | "dashboard" | "leads" | "clients"
-  | "events" | "calendar" | "editing" | "event-reports"
+  | "events" | "calendar" | "editing" | "event-reports" | "equipment"
   | "team"
   | "invoices" | "contracts" | "payment-requests" | "salary"
   | "hr-employees" | "hr-attendance" | "hr-leaves"
@@ -62,6 +62,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "calendar", label: "Calendar", group: "Operations" },
   { value: "editing", label: "Editing", group: "Operations" },
   { value: "event-reports", label: "Event Reports", group: "Operations" },
+  { value: "equipment", label: "Equipment", group: "Operations" },
   { value: "team", label: "Users", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
@@ -90,11 +91,11 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   editor: ["dashboard", "editing", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads + own attendance/leaves/expense
   telecaller: ["dashboard", "leads", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
-  videographer: ["dashboard", "events", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
-  photographer: ["dashboard", "events", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  videographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  photographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Vendors can still raise expenses (per-event payouts) but no internal HR
-  photographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
-  videographer_vendor: ["dashboard", "events", "calendar", "payment-requests", "notifications", "profile"],
+  photographer_vendor: ["dashboard", "events", "calendar", "equipment", "payment-requests", "notifications", "profile"],
+  videographer_vendor: ["dashboard", "events", "calendar", "equipment", "payment-requests", "notifications", "profile"],
   accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "event-reports", "hr-attendance", "hr-employees", "hr-leaves", "notifications", "profile"],
 };
 
