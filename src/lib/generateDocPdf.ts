@@ -14,6 +14,10 @@ export interface DocPdfStudio {
   website?: string | null;
   gst_number?: string | null;
   logo_url?: string | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+  bank_account_no?: string | null;
+  bank_ifsc?: string | null;
 }
 
 export interface DocPdfClient {
@@ -180,6 +184,9 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
 
   const itemRows = groupRows + manualRow;
 
+  const hasBank = !!(d.studio.bank_name || d.studio.bank_branch || d.studio.bank_account_no || d.studio.bank_ifsc);
+  const totalRows = (d.kind === "invoice" && d.amountPaid != null) ? 3 : 1;
+  const balanceDue = Math.max(0, d.total - (d.amountPaid || 0));
   const dueLine = (d.kind === "invoice" && d.amountPaid != null)
     ? `<tr><td style="border:1px solid #111;padding:3px 10px;text-align:right;color:#444">Amount Paid</td><td style="border:1px solid #111;padding:3px 10px;text-align:right">${inr2(d.amountPaid)}</td></tr>
        <tr><td style="border:1px solid #111;padding:3px 10px;text-align:right;font-weight:bold;color:${MAROON}">Balance Due</td><td style="border:1px solid #111;padding:3px 10px;text-align:right;font-weight:bold;color:${MAROON}">${inr2(Math.max(0, d.total - (d.amountPaid || 0)))}</td></tr>`
@@ -245,8 +252,15 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
 
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:-1px">
       <tr>
-        <td style="border:1px solid #111;padding:6px 10px;text-align:left;vertical-align:top" rowspan="${d.kind === "invoice" && d.amountPaid != null ? 3 : 1}">
-          <span style="font-style:italic;color:#444">Amount in words:</span> <b>${esc(inrWords(d.total))}</b>
+        ${hasBank ? `<td style="border:1px solid #111;padding:6px 10px;text-align:left;vertical-align:top;width:33%" rowspan="${totalRows}">
+          <p style="margin:0 0 3px 0;font-weight:bold;font-style:italic">Bank Details :</p>
+          ${d.studio.bank_name ? `<p style="margin:0">Bank Name : ${esc(d.studio.bank_name)}</p>` : ""}
+          ${d.studio.bank_branch ? `<p style="margin:0">Branch : ${esc(d.studio.bank_branch)}</p>` : ""}
+          ${d.studio.bank_account_no ? `<p style="margin:0">Account No. : ${esc(d.studio.bank_account_no)}</p>` : ""}
+          ${d.studio.bank_ifsc ? `<p style="margin:0">IFSC : ${esc(d.studio.bank_ifsc)}</p>` : ""}
+        </td>` : ""}
+        <td style="border:1px solid #111;padding:6px 10px;text-align:left;vertical-align:top" rowspan="${totalRows}">
+          <span style="font-style:italic;color:#444">Total Invoice Amount in Words :</span><br/><b>${esc(inrWords(d.total))}</b>
         </td>
         <td style="border:1px solid #111;padding:6px 10px;text-align:right;font-weight:bold;font-style:italic;width:140px">Grand Total (₹)</td>
         <td style="border:1px solid #111;padding:6px 10px;text-align:right;font-weight:bold;width:110px;font-size:13px">${inr2(d.total)}</td>
@@ -264,7 +278,7 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
       <tr>
         <td style="border:1px solid #111;padding:8px 10px;width:45%;vertical-align:top">
           <p style="margin:0"><b style="font-style:italic">Total Qty :</b> ${totalQty}</p>
-          <p style="margin:3px 0"><b style="font-style:italic">Status :</b> ₹ ${esc(d.status)}</p>
+          <p style="margin:3px 0"><b style="font-style:italic">Status :</b> ${d.kind === "invoice" ? (balanceDue > 0 ? `<b>₹ ${inr2(balanceDue)} Pending</b>` : `<b style="color:#0a7d2c">Paid</b>`) : `₹ ${esc(d.status)}`}</p>
           <p style="margin:8px 0 0 0;font-style:italic;color:#555">This is a computer-generated ${d.kind}. E. &amp; O. E.</p>
         </td>
         <td style="border:1px solid #111;padding:8px 10px;width:20%;text-align:center;vertical-align:middle;color:#999;font-style:italic">QR Code</td>

@@ -67,6 +67,10 @@ export default function SettingsPage() {
     address: "",
     city: "",
     gst_number: "",
+    bank_name: "",
+    bank_branch: "",
+    bank_account_no: "",
+    bank_ifsc: "",
   });
   const [studioSaving, setStudioSaving] = useState(false);
 
@@ -134,6 +138,10 @@ export default function SettingsPage() {
       address: (organization as any).address ?? "",
       city: organization.city ?? "",
       gst_number: (organization as any).gst_number ?? "",
+      bank_name: (organization as any).bank_name ?? "",
+      bank_branch: (organization as any).bank_branch ?? "",
+      bank_account_no: (organization as any).bank_account_no ?? "",
+      bank_ifsc: (organization as any).bank_ifsc ?? "",
     });
   }, [organization, ownerEmail]);
 
@@ -198,7 +206,11 @@ export default function SettingsPage() {
         address: studioForm.address || null,
         city: studioForm.city || null,
         gst_number: studioForm.gst_number || null,
-      })
+        bank_name: studioForm.bank_name || null,
+        bank_branch: studioForm.bank_branch || null,
+        bank_account_no: studioForm.bank_account_no || null,
+        bank_ifsc: studioForm.bank_ifsc || null,
+      } as any)
       .eq("id", organization.id);
     setStudioSaving(false);
 
@@ -405,6 +417,22 @@ export default function SettingsPage() {
                   onChange={(e) => setStudioForm({ ...studioForm, gst_number: e.target.value })}
                   placeholder="29ABCDE1234F1Z5"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-bank-name">Bank Name</Label>
+                <Input id="studio-bank-name" value={studioForm.bank_name} onChange={(e) => setStudioForm({ ...studioForm, bank_name: e.target.value })} placeholder="HDFC BANK" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-bank-branch">Bank Branch</Label>
+                <Input id="studio-bank-branch" value={studioForm.bank_branch} onChange={(e) => setStudioForm({ ...studioForm, bank_branch: e.target.value })} placeholder="Mahalakshmi Layout" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-bank-acc">Account No.</Label>
+                <Input id="studio-bank-acc" value={studioForm.bank_account_no} onChange={(e) => setStudioForm({ ...studioForm, bank_account_no: e.target.value })} placeholder="50200105682432" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-bank-ifsc">IFSC</Label>
+                <Input id="studio-bank-ifsc" value={studioForm.bank_ifsc} onChange={(e) => setStudioForm({ ...studioForm, bank_ifsc: e.target.value })} placeholder="HDFC0001754" />
               </div>
             </div>
             <div className="flex items-center gap-2 pt-2">

@@ -102,6 +102,10 @@ function buildPdfPayload(opts: {
       website: studio?.website || null,
       gst_number: studio?.gst_number || null,
       logo_url: studio?.logo_url || null,
+      bank_name: studio?.bank_name || null,
+      bank_branch: studio?.bank_branch || null,
+      bank_account_no: studio?.bank_account_no || null,
+      bank_ifsc: studio?.bank_ifsc || null,
     },
     client: {
       name: client?.name || "Client",
