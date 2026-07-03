@@ -182,9 +182,10 @@ function WhatsAppReminder({ invoice, clientName, phone, studio }: { invoice: Inv
       ``,
       `This is a gentle payment reminder from ${studioName}.`,
       `Invoice: ${invoice.invoice_number || "-"}`,
+      ``,
       `Total: ${inr(invoice.total_amount)}`,
-      `Received: ${inr(invoice.amount_paid)}`,
-      `*Balance due: ${inr(invoice.balance)}*`,
+      `Paid: ${inr(invoice.amount_paid)}`,
+      `*Balance: ${inr(invoice.balance)}*`,
       invoice.due_date ? `Due by: ${fmtDate(invoice.due_date)}` : ``,
       ``,
       `Kindly clear the balance at your convenience. Thank you!`,
@@ -206,6 +207,7 @@ function PaymentDialog({ invoice, onClose }: { invoice: InvoiceWithBalance; onCl
   const { payments, isLoading, record, remove } = useInvoicePayments(invoice.id);
   const [form, setForm] = useState({ amount: String(invoice.balance || ""), paid_on: todayIso(), method: "upi" as PaymentMethod, reference: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [lastRecorded, setLastRecorded] = useState<number | null>(null);
 
   const save = async () => {
     const amt = Number(form.amount);
@@ -213,8 +215,29 @@ function PaymentDialog({ invoice, onClose }: { invoice: InvoiceWithBalance; onCl
     setSaving(true);
     try {
       await record.mutateAsync({ amount: amt, paid_on: form.paid_on, method: form.method, reference: form.reference, notes: form.notes, client_id: invoice.client_id });
+      setLastRecorded(amt);
       setForm(f => ({ ...f, amount: "", reference: "", notes: "" }));
     } finally { setSaving(false); }
+  };
+
+  // Figures after the just-recorded payment (invoice prop is stale until parent refetch)
+  const newPaid = Number(invoice.amount_paid || 0) + (lastRecorded || 0);
+  const newBalance = Math.max(0, Number(invoice.total_amount || 0) - newPaid);
+  const clientName = (invoice.client?.partner_name ? `${invoice.client?.name} & ${invoice.client?.partner_name}` : invoice.client?.name) || invoice.client_name || "there";
+  const sendConfirmation = () => {
+    const lines = [
+      `Hello ${clientName},`,
+      ``,
+      `We have received your payment${lastRecorded ? ` of ${inr(lastRecorded)}` : ""}. Thank you!`,
+      `Invoice: ${invoice.invoice_number || "-"}`,
+      ``,
+      `Total: ${inr(invoice.total_amount)}`,
+      `Paid: ${inr(newPaid)}`,
+      newBalance > 0 ? `*Balance: ${inr(newBalance)}*` : `*Fully paid — thank you!*`,
+    ].filter(Boolean).join("\n");
+    const digits = (invoice.client?.phone || "").replace(/\D/g, "");
+    const wa = digits.length >= 10 ? `91${digits.slice(-10)}` : "";
+    window.open(`https://wa.me/${wa}?text=${encodeURIComponent(lines)}`, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -223,6 +246,18 @@ function PaymentDialog({ invoice, onClose }: { invoice: InvoiceWithBalance; onCl
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><IndianRupee className="h-5 w-5 text-emerald-500" /> Payments — {invoice.invoice_number || "Invoice"}</DialogTitle>
         </DialogHeader>
+
+        {lastRecorded != null && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center justify-between gap-2">
+            <div className="text-xs">
+              <p className="font-semibold text-emerald-700">Payment of {inr(lastRecorded)} recorded</p>
+              <p className="text-muted-foreground">Total {inr(invoice.total_amount)} · Paid {inr(newPaid)} · Balance {inr(newBalance)}</p>
+            </div>
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[11px] text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/10 shrink-0" onClick={sendConfirmation}>
+              <MessageCircle className="h-3.5 w-3.5" /> Send WhatsApp
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-lg border border-border bg-muted/30 p-2"><p className="text-[10px] uppercase text-muted-foreground">Bill</p><p className="text-sm font-bold tabular-nums">{inr(invoice.total_amount)}</p></div>
