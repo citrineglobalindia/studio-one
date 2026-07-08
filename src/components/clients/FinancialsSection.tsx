@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Receipt, FileText, Briefcase, Plus, Pencil, Trash2, Loader2,
@@ -19,6 +19,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { SERVICE_CATALOG } from "@/lib/serviceCatalog";
+import { useServices } from "@/hooks/useServices";
 import { useOrg } from "@/contexts/OrgContext";
 import { useClients } from "@/hooks/useClients";
 import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
@@ -429,15 +430,31 @@ export function EventsDocDialog({
   const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
   // Service catalog rows (priced). Built-in catalog merged with any saved #svc items.
   type SvcRow = { id: string; title: string; description: string; amount: number; checked: boolean; custom?: boolean };
-  const [serviceRows, setServiceRows] = useState<SvcRow[]>(() => {
-    const rows: SvcRow[] = SERVICE_CATALOG.map((c) => ({ id: c.key, title: c.title, description: c.description, amount: 0, checked: false }));
+  const makeServiceRows = (catalog: Array<{ key: string; title: string; description: string; amount: number }>): SvcRow[] => {
+    const rows: SvcRow[] = catalog.map((c) => ({ id: c.key, title: c.title, description: c.description, amount: Number(c.amount || 0), checked: false }));
     for (const svc of reconstructed.services) {
       const match = rows.find((r) => r.title.trim().toLowerCase() === svc.title.trim().toLowerCase());
       if (match) { match.checked = true; match.amount = svc.amount; if (svc.description) match.description = svc.description; }
       else rows.push({ id: `custom-${rows.length}-${Date.now()}`, title: svc.title, description: svc.description, amount: svc.amount, checked: true, custom: true });
     }
     return rows;
-  });
+  };
+  const catalogSource = () => dbCatalog.length > 0
+    ? dbCatalog.map((c) => ({ key: c.id, title: c.title, description: c.description || "", amount: Number(c.amount || 0) }))
+    : SERVICE_CATALOG.map((c) => ({ key: c.key, title: c.title, description: c.description, amount: 0 }));
+  const [serviceRows, setServiceRows] = useState<SvcRow[]>(() => makeServiceRows(catalogSource()));
+  // Re-seed rows once the DB catalog loads (async), preserving any reconstructed selections.
+  const dbSeeded = useRef(dbCatalog.length > 0);
+  useEffect(() => {
+    if (dbSeeded.current || dbCatalog.length === 0) return;
+    dbSeeded.current = true;
+    setServiceRows((prev) => {
+      // if the user already interacted (any checked non-reconstructed), keep as-is
+      const rebuilt = makeServiceRows(catalogSource());
+      return rebuilt;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbCatalog.length]);
   const [svcSearch, setSvcSearch] = useState("");
   const toggleSvc = (id: string) => setServiceRows((p) => p.map((r) => r.id === id ? { ...r, checked: !r.checked } : r));
   const setSvcAmount = (id: string, v: number) => setServiceRows((p) => p.map((r) => r.id === id ? { ...r, amount: Math.max(0, v), checked: r.checked || v > 0 } : r));
