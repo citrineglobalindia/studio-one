@@ -9,6 +9,9 @@ export interface DbAssignment {
   event_id: string;
   team_member_id: string;
   assigned_at: string;
+  data_copied?: boolean;
+  data_copied_at?: string | null;
+  data_copied_by?: string | null;
 }
 
 /**
@@ -141,4 +144,24 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     assignMember,
     unassignMember,
   };
+}
+
+/** Toggle the "data copied" flag on a single assignment (assigned member or admin). */
+export function useToggleDataCopied() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, value, userId }: { id: string; value: boolean; userId?: string | null }) => {
+      const { error } = await (supabase as any)
+        .from("event_team_assignments")
+        .update({ data_copied: value, data_copied_at: value ? new Date().toISOString() : null, data_copied_by: value ? (userId ?? null) : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-event-assignments"] });
+      qc.invalidateQueries({ queryKey: ["event-assignments"] });
+      qc.invalidateQueries({ queryKey: ["day-assignments"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 }

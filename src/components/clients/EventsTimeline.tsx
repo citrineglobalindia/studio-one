@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useToggleDataCopied } from "@/hooks/useEventAssignments";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useQuery } from "@tanstack/react-query";
@@ -69,11 +71,11 @@ function useClientEventAssignments(clientId: string, eventIds: string[]) {
       if (!orgId || eventIds.length === 0) return [] as { event_id: string; team_member_id: string }[];
       const { data, error } = await supabase
         .from("event_team_assignments")
-        .select("event_id, team_member_id")
+        .select("id, event_id, team_member_id, data_copied")
         .eq("organization_id", orgId)
         .in("event_id", eventIds);
       if (error) throw error;
-      return (data ?? []) as { event_id: string; team_member_id: string }[];
+      return (data ?? []) as { id: string; event_id: string; team_member_id: string; data_copied: boolean }[];
     },
   });
 }
@@ -88,10 +90,16 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
   const eventIds = events.map((e) => e.id);
   const { data: assignmentRows = [] } = useClientEventAssignments(clientId, eventIds);
   const assignmentsByEvent = new Map<string, string[]>();
+  const assignmentMeta = new Map<string, { id: string; data_copied: boolean }>();
   for (const row of assignmentRows) {
     if (!assignmentsByEvent.has(row.event_id)) assignmentsByEvent.set(row.event_id, []);
     assignmentsByEvent.get(row.event_id)!.push(row.team_member_id);
+    assignmentMeta.set(`${row.event_id}:${row.team_member_id}`, { id: (row as any).id, data_copied: !!(row as any).data_copied });
   }
+  const { user } = useAuth();
+  const toggleCopied = useToggleDataCopied();
+  const myTeamMemberIds = new Set(members.filter((m) => m.user_id === user?.id).map((m) => m.id));
+  const canMarkCopied = (memberId: string) => canManage || myTeamMemberIds.has(memberId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DbEvent | null>(null);
@@ -246,6 +254,11 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                         <div className="md:border-l md:border-border/60 md:pl-3 flex flex-col min-w-0 md:max-w-[60%]">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
                             Assigned team ({(assignmentsByEvent.get(e.id) ?? []).length})
+                            {(() => {
+                              const ids = assignmentsByEvent.get(e.id) ?? [];
+                              const copied = ids.filter((mid) => assignmentMeta.get(`${e.id}:${mid}`)?.data_copied).length;
+                              return ids.length > 0 ? <span className="ml-1 text-emerald-600 normal-case">· {copied}/{ids.length} data copied</span> : null;
+                            })()}
                           </p>
                           {(assignmentsByEvent.get(e.id) ?? []).length === 0 ? (
                             <p className="text-[11px] text-muted-foreground italic">
@@ -264,9 +277,12 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                                   : (m.role || "").includes("editor")
                                   ? "from-emerald-500/25 to-emerald-500/5 border-emerald-500/30 text-emerald-600"
                                   : "from-primary/25 to-primary/5 border-primary/20 text-primary";
+                                const meta = assignmentMeta.get(`${e.id}:${mid}`);
+                                const copied = !!meta?.data_copied;
+                                const allowMark = canMarkCopied(mid);
                                 return (
                                   <div key={mid} title={`${m.full_name}${m.role ? " — " + m.role.replace(/_/g, " ") : ""}`}
-                                       className={"shrink-0 w-32 rounded-lg border bg-gradient-to-br " + roleColor + " p-2"}>
+                                       className={"shrink-0 w-36 rounded-lg border bg-gradient-to-br p-2 " + (copied ? "from-emerald-500/20 to-emerald-500/5 border-emerald-500/40 text-emerald-700" : roleColor)}>
                                     <div className="flex items-center gap-1.5">
                                       <div className={"h-7 w-7 rounded-full bg-background/60 border border-border flex items-center justify-center text-[10px] font-bold shrink-0"}>
                                         {init}
@@ -280,6 +296,22 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                                         )}
                                       </div>
                                     </div>
+                                    {meta && (
+                                      <button
+                                        type="button"
+                                        disabled={!allowMark || toggleCopied.isPending}
+                                        onClick={() => toggleCopied.mutate({ id: meta.id, value: !copied, userId: user?.id })}
+                                        className={"mt-1.5 w-full flex items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[9px] font-semibold transition " +
+                                          (copied ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-700" : "bg-background/60 border-border text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-700") +
+                                          (!allowMark ? " opacity-60 cursor-not-allowed" : "")}
+                                        title={allowMark ? "Toggle data-copied status" : "Only this member or an admin can mark this"}
+                                      >
+                                        <span className={"h-3 w-3 rounded-[3px] border inline-flex items-center justify-center " + (copied ? "bg-emerald-500 border-emerald-500 text-white" : "border-current")}>
+                                          {copied ? "\u2713" : ""}
+                                        </span>
+                                        {copied ? "Data copied" : "Mark data copied"}
+                                      </button>
+                                    )}
                                   </div>
                                 );
                               })}
