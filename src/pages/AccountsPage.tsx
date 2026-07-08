@@ -306,6 +306,8 @@ function buildAccountsPdfPayload(kind: DocPdfKind, doc: any, studio: any) {
   const total = Number(kind === "proposal" ? doc.contract_amount || (taxable + tax) : doc.total_amount || (taxable + tax));
   return {
     kind,
+    docId: doc?.id ?? null,
+    issueDate: doc?.created_at ?? null,
     studio: {
       name: studio?.name || "Studio",
       address: studio?.address || null,

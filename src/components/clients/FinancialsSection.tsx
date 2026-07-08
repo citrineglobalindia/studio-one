@@ -95,6 +95,8 @@ function buildPdfPayload(opts: {
   );
   return {
     kind,
+    docId: doc?.id ?? null,
+    issueDate: doc?.created_at ?? null,
     studio: {
       name: studio?.name || "Studio",
       address: studio?.address || null,

@@ -49,6 +49,9 @@ export interface DocPdfData {
   body?: string | null;
   terms?: string | null;
   notes?: string | null;
+  docId?: string | null;
+  issueDate?: string | null;
+  payments?: Array<{ paid_on?: string | null; description?: string | null; method?: string | null; amount?: number }>;
 }
 
 const MAROON = "#5e0b21";
@@ -110,18 +113,19 @@ function evtIdOf(desc: string): string | null {
 
 function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): string {
   const titleMap: Record<DocPdfKind, string> = { estimation: "ESTIMATION", proposal: "PROPOSAL", invoice: "INVOICE" };
-  const noLabelMap: Record<DocPdfKind, string> = { estimation: "Estimation No.", proposal: "Proposal No.", invoice: "Invoice No." };
   const title = titleMap[d.kind];
-  const numLabel = noLabelMap[d.kind];
-
   const coupleName = d.client.partner_name ? `${d.client.name} & ${d.client.partner_name}` : d.client.name;
-  const studioAddress = [d.studio.address, d.studio.city].filter(Boolean).map(esc).join(", ");
+  const addressLines = [d.studio.address, d.studio.city].filter(Boolean).map(esc).join("<br/>");
 
-  // Group items by their event marker so requirements show under each event
-  type Line = { description: string; quantity: number; rate: number; amount: number; isReq: boolean };
+  const TEAL = "#0d9488";
+  const RED = "#dc2626";
+  const BLACK = "#111827";
+
+  // ── Group items ──
+  type Line = { description: string; quantity: number; rate: number; amount: number };
   const groups = new Map<string, { info: EventInfo; lines: Line[]; amount: number }>();
-  const manualLines: Line[] = [];
   const serviceLines: Line[] = [];
+  const manualLines: Line[] = [];
   let totalQty = 0;
 
   for (const raw of (d.items || [])) {
@@ -130,191 +134,159 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
     const qty = Number(raw.quantity || 1);
     const amt = Number(raw.amount ?? 0);
     const rate = Number(raw.rate ?? raw.amount ?? 0);
-    const isReq = /#req:/i.test(raw.description || "");
     totalQty += qty;
-    const evt = evtIdOf(raw.description);
-    const isManual = /#manual/i.test(raw.description || "");
     const isSvc = /#svc\s*$/i.test(raw.description || "");
-    if (isSvc) {
-      serviceLines.push({ description: desc, quantity: qty, rate, amount: amt, isReq: false });
-      continue;
-    }
-    if (isManual || !evt) {
-      manualLines.push({ description: desc, quantity: qty, rate, amount: amt, isReq: false });
-      continue;
-    }
+    const isManual = /#manual/i.test(raw.description || "");
+    const evt = evtIdOf(raw.description);
+    if (isSvc) { serviceLines.push({ description: desc, quantity: qty, rate, amount: amt }); continue; }
+    if (isManual || !evt) { manualLines.push({ description: desc, quantity: qty, rate, amount: amt }); continue; }
     if (!groups.has(evt)) groups.set(evt, { info: eventsById[evt] || {}, lines: [], amount: 0 });
     const g = groups.get(evt)!;
-    g.lines.push({ description: desc, quantity: qty, rate, amount: amt, isReq });
+    g.lines.push({ description: desc, quantity: qty, rate, amount: amt });
     g.amount += amt;
   }
+  const manualAmount = manualLines.reduce((s2, l) => s2 + l.amount, 0);
 
-  // The single "final amount" (manual) is the package price — attribute to the doc, shown as its own row.
-  const manualAmount = manualLines.reduce((s, l) => s + l.amount, 0);
+  const cellTop = "padding:9px 8px;vertical-align:top;border-bottom:1px solid #e5e7eb";
+  const cellQty = "padding:9px 6px;vertical-align:top;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600";
+  const cellAmt = "padding:9px 8px;vertical-align:top;text-align:right;border-bottom:1px solid #e5e7eb;white-space:nowrap";
 
-  let rowNo = 0;
   const groupRows = Array.from(groups.values()).map((g) => {
-    rowNo += 1;
     const headLabel = g.info.name || g.info.event_type || "Event";
-    const sub = [g.info.event_type && g.info.event_type !== headLabel ? g.info.event_type : null,
-                 g.info.event_date ? fmtDate(g.info.event_date) : null,
-                 g.info.venue || null].filter(Boolean).map(esc).join(" · ");
-    const reqLines = g.lines.map((l) => `
-      <div style="display:flex;justify-content:space-between;padding:1px 0;font-size:10.5px;color:#333">
-        <span>• ${esc(l.description)}${l.quantity > 1 ? ` <span style="color:#888">×${l.quantity}</span>` : ""}</span>
-        ${l.amount > 0 ? `<span style="color:#111;font-weight:500">${inr2(l.amount)}</span>` : ""}
-      </div>`).join("");
+    const sub = [g.info.event_date ? fmtDate(g.info.event_date) : null, g.info.venue || null].filter(Boolean).map(esc).join(" · ");
+    const reqs = g.lines.map((l) => `<div style="padding:1px 0;color:#374151;font-size:10.5px">${esc(l.description)}${l.quantity > 1 ? ` <span style="color:#9ca3af">×${l.quantity}</span>` : ""}</div>`).join("");
     return `
     <tr>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo}</td>
-      <td style="border:1px solid #111;padding:6px 8px;vertical-align:top">
-        <p style="margin:0;font-weight:bold;font-style:italic;font-size:12px">${esc(headLabel)}</p>
-        ${sub ? `<p style="margin:1px 0 4px 0;font-size:10px;color:#666">${sub}</p>` : ""}
-        <div style="margin-top:3px">${reqLines || '<span style="font-size:10px;color:#999">No requirements listed</span>'}</div>
+      <td style="${cellQty}">1</td>
+      <td style="${cellTop}">
+        <div style="color:${TEAL};font-weight:800;text-transform:uppercase;letter-spacing:.3px;font-size:12px">${esc(headLabel)}</div>
+        ${sub ? `<div style="font-size:9.5px;color:#9ca3af;margin:1px 0 3px">${sub}</div>` : ""}
+        <div style="margin-top:3px">${reqs || '<span style="font-size:10px;color:#9ca3af">—</span>'}</div>
       </td>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">1</td>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">no.s</td>
-      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${g.amount > 0 ? inr2(g.amount) : "0.00"}</td>
-      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${g.amount > 0 ? inr2(g.amount) : "0.00"}</td>
+      <td style="${cellAmt}">${g.amount > 0 ? "₹ " + inr2(g.amount) : "₹ 0.00"}</td>
+      <td style="${cellAmt}">${g.amount > 0 ? "₹ " + inr2(g.amount) : "₹ 0.00"}</td>
     </tr>`;
   }).join("");
 
-  const serviceRowsHtml = serviceLines.map((l) => {
-    rowNo += 1;
+  const serviceRows = serviceLines.map((l) => {
     const nl = l.description.indexOf("\n");
-    const svcTitle = nl >= 0 ? l.description.slice(0, nl) : l.description;
-    const svcDesc = nl >= 0 ? l.description.slice(nl + 1) : "";
+    const t = nl >= 0 ? l.description.slice(0, nl) : l.description;
+    const dsc = nl >= 0 ? l.description.slice(nl + 1) : "";
     return `
     <tr>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo}</td>
-      <td style="border:1px solid #111;padding:6px 8px;vertical-align:top">
-        <p style="margin:0;font-weight:bold;font-style:italic;font-size:12px">${esc(svcTitle)}</p>
-        ${svcDesc ? `<div style="margin-top:2px;font-size:10.5px;color:#333;line-height:1.45">${esc(svcDesc)}</div>` : ""}
+      <td style="${cellQty}">${l.quantity || 1}</td>
+      <td style="${cellTop}">
+        <div style="font-weight:700;font-size:12px;color:#111827">${esc(t)}</div>
+        ${dsc ? `<div style="margin-top:2px;color:#374151;font-size:10.5px;line-height:1.5">${esc(dsc)}</div>` : ""}
       </td>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">${l.quantity || 1}</td>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">no.s</td>
-      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${inr2(l.rate)}</td>
-      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${inr2(l.amount)}</td>
+      <td style="${cellAmt}">₹ ${inr2(l.rate)}</td>
+      <td style="${cellAmt}">₹ ${inr2(l.amount)}</td>
     </tr>`;
   }).join("");
 
   const manualRow = manualAmount > 0 ? `
     <tr>
-      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo + 1}</td>
-      <td style="border:1px solid #111;padding:6px 8px;vertical-align:top"><span style="font-weight:bold;font-style:italic">Package Amount</span></td>
-      <td style="border:1px solid #111;padding:6px;text-align:center">1</td>
-      <td style="border:1px solid #111;padding:6px;text-align:center">no.s</td>
-      <td style="border:1px solid #111;padding:6px 8px;text-align:right">${inr2(manualAmount)}</td>
-      <td style="border:1px solid #111;padding:6px 8px;text-align:right">${inr2(manualAmount)}</td>
+      <td style="${cellQty}">1</td>
+      <td style="${cellTop}"><div style="font-weight:700;font-size:12px">Package Amount</div></td>
+      <td style="${cellAmt}">₹ ${inr2(manualAmount)}</td>
+      <td style="${cellAmt}">₹ ${inr2(manualAmount)}</td>
     </tr>` : "";
 
-  const itemRows = groupRows + serviceRowsHtml + manualRow;
+  const rows = groupRows + serviceRows + manualRow ||
+    `<tr><td colspan="4" style="padding:16px;text-align:center;color:#9ca3af">No line items</td></tr>`;
 
-  const hasBank = !!(d.studio.bank_name || d.studio.bank_branch || d.studio.bank_account_no || d.studio.bank_ifsc);
-  const totalRows = (d.kind === "invoice" && d.amountPaid != null) ? 3 : 1;
-  const balanceDue = Math.max(0, d.total - (d.amountPaid || 0));
-  const dueLine = (d.kind === "invoice" && d.amountPaid != null)
-    ? `<tr><td style="border:1px solid #111;padding:3px 10px;text-align:right;color:#444">Amount Paid</td><td style="border:1px solid #111;padding:3px 10px;text-align:right">${inr2(d.amountPaid)}</td></tr>
-       <tr><td style="border:1px solid #111;padding:3px 10px;text-align:right;font-weight:bold;color:${MAROON}">Balance Due</td><td style="border:1px solid #111;padding:3px 10px;text-align:right;font-weight:bold;color:${MAROON}">${inr2(Math.max(0, d.total - (d.amountPaid || 0)))}</td></tr>`
-    : "";
+  const advance = Number(d.amountPaid || 0);
+  const balance = Math.max(0, d.total - advance);
+
+  const paymentRows = (d.payments || []).filter((p) => Number(p.amount || 0) !== 0).map((p) => `
+    <tr>
+      <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;white-space:nowrap">${esc(fmtDate(p.paid_on))}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb">${esc(p.description || `Payment for ${coupleName}`)}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-transform:uppercase;font-size:10px;color:#4b5563">${esc(p.method || "—")}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap;font-weight:600;color:#16a34a">₹ ${inr2(p.amount)}</td>
+    </tr>`).join("");
+
+  const totalRow = (label: string, val: string, bg?: string) => `
+    <tr${bg ? ` style="background:${bg};color:#fff"` : ""}>
+      <td style="padding:${bg ? "9px" : "6px"} 12px;text-align:left;font-weight:${bg ? "800" : "500"};${bg ? "" : "color:#374151"}">${label}</td>
+      <td style="padding:${bg ? "9px" : "6px"} 12px;text-align:right;font-weight:${bg ? "800" : "600"};white-space:nowrap">${val}</td>
+    </tr>`;
 
   return `
-  <div style="font-family:Georgia, 'Times New Roman', serif;color:#1a1a1a;background:#fff;width:794px;box-sizing:border-box">
+  <div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#1f2937;background:#fff;width:794px;padding:34px 36px;box-sizing:border-box;font-size:12px">
 
-    <div style="position:relative;background:linear-gradient(135deg, ${MAROON} 0%, ${MAROON_DARK} 100%);padding:18px 20px;min-height:70px;text-align:center;border:2px solid #111;border-bottom:none">
-      <div style="position:absolute;right:18px;top:14px;color:#fff;font-size:11px;font-weight:bold;letter-spacing:0.5px">
-        ${d.studio.phone ? `PHONE - ${esc(d.studio.phone)}` : ""}
+    <!-- HEADER -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #111827;padding-bottom:16px">
+      <div style="max-width:58%">
+        ${d.studio.logo_url ? `<img src="${esc(d.studio.logo_url)}" crossorigin="anonymous" style="max-height:52px;margin-bottom:6px" />` : ""}
+        <div style="font-size:17px;font-weight:800;letter-spacing:.3px;color:#111827">${esc(d.studio.name)}</div>
+        ${addressLines ? `<div style="font-size:10.5px;color:#4b5563;line-height:1.55;margin-top:4px">${addressLines}</div>` : ""}
+        ${d.studio.phone ? `<div style="font-size:11px;color:#4b5563;margin-top:3px;font-weight:600">${esc(d.studio.phone)}</div>` : ""}
+        ${d.studio.gst_number ? `<div style="font-size:10px;color:#6b7280;margin-top:1px">GSTIN: ${esc(d.studio.gst_number)}</div>` : ""}
       </div>
-      ${d.studio.logo_url
-        ? `<img src="${esc(d.studio.logo_url)}" crossorigin="anonymous" style="max-height:56px;display:inline-block" />`
-        : `<div style="color:${GOLD};font-size:34px;font-weight:bold;letter-spacing:3px;font-family:Georgia,serif">${esc(d.studio.name)}</div>`}
-    </div>
-    <div style="background:${MAROON};color:#fff;text-align:center;padding:7px 10px;font-size:10.5px;font-weight:bold;letter-spacing:0.4px;border:2px solid #111;border-top:none">
-      ${studioAddress || ""}${d.studio.gst_number ? ` &nbsp;|&nbsp; GSTIN: ${esc(d.studio.gst_number)}` : ""}
-    </div>
-
-    <h1 style="text-align:center;font-style:italic;font-weight:bold;font-size:26px;margin:22px 0 6px;letter-spacing:1px">${title}</h1>
-
-    <div style="text-align:right;padding:0 6px 12px 0;font-size:12px;line-height:1.7">
-      <p style="margin:0"><b style="font-style:italic">${numLabel} :</b> <span style="font-weight:bold;font-size:15px">${esc(d.number || "—")} ${esc(coupleName)}</span></p>
-      <p style="margin:0"><b style="font-style:italic">Date :</b> ${esc(fmtDate(d.date || new Date().toISOString()))}</p>
-      ${d.notes ? `<p style="margin:0"><b style="font-style:italic">Ref. :</b> ${esc(d.notes)}</p>` : ""}
+      <div style="text-align:right;min-width:236px">
+        <div style="font-size:27px;font-weight:800;letter-spacing:3px;color:#111827">${title}</div>
+        <div style="margin-top:12px;font-size:11.5px;line-height:1.75">
+          <div style="font-weight:700;color:#111827">${esc(coupleName)}</div>
+          ${d.client.phone || d.client.partner_phone ? `<div style="color:#4b5563">${esc(d.client.phone || d.client.partner_phone)}</div>` : ""}
+          <div style="margin-top:4px"><span style="color:#6b7280">Bill No:</span> <b>${esc(d.number || "—")}</b></div>
+          <div><span style="color:#6b7280">Date:</span> ${esc(fmtDate(d.issueDate || new Date().toISOString()))}</div>
+          ${d.date ? `<div><span style="color:#6b7280">Bill Due Date:</span> ${esc(fmtDate(d.date))}</div>` : ""}
+        </div>
+      </div>
     </div>
 
-    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:0">
-      <tr>
-        <td style="border:1px solid #111;padding:7px 10px;width:50%;vertical-align:top">
-          <p style="margin:0 0 4px 0;font-weight:bold;font-style:italic">Billing Address</p>
-          <p style="margin:0;font-weight:bold">Mr. ${esc(coupleName)}</p>
-          <p style="margin:0">${esc(d.client.address || ".")}</p>
-          <p style="margin:0">${esc(d.client.city || "")}</p>
-          <p style="margin:5px 0 0 0"><b style="font-style:italic">Phone :</b> ${esc(d.client.phone || d.client.partner_phone || "")}</p>
-        </td>
-        <td style="border:1px solid #111;padding:7px 10px;width:50%;vertical-align:top">
-          <p style="margin:0 0 4px 0;font-weight:bold;font-style:italic">Shipping Address</p>
-          <p style="margin:0;font-weight:bold">Mr. ${esc(coupleName)}</p>
-          <p style="margin:0">${esc(d.client.address || ".")}</p>
-          <p style="margin:0">${esc(d.client.city || "")}</p>
-          <p style="margin:5px 0 0 0"><b style="font-style:italic">Phone :</b> ${esc(d.client.phone || d.client.partner_phone || "")}</p>
-        </td>
-      </tr>
-    </table>
-
-    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:-1px">
+    <!-- ITEMS -->
+    <table style="width:100%;border-collapse:collapse;margin-top:16px">
       <thead>
-        <tr style="background:#f3f3f3">
-          <th style="border:1px solid #111;padding:6px;width:34px;font-style:italic">No.</th>
-          <th style="border:1px solid #111;padding:6px;text-align:left;font-style:italic">Item &amp; Description</th>
-          <th style="border:1px solid #111;padding:6px;width:42px;font-style:italic">Qty</th>
-          <th style="border:1px solid #111;padding:6px;width:50px;font-style:italic">Unit</th>
-          <th style="border:1px solid #111;padding:6px;width:100px;font-style:italic">Rate (₹)</th>
-          <th style="border:1px solid #111;padding:6px;width:110px;font-style:italic">Amount (₹)</th>
+        <tr style="background:#f3f4f6;color:#374151;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px">
+          <th style="text-align:center;padding:9px 6px;width:66px;border-bottom:1px solid #d1d5db">Quantity</th>
+          <th style="text-align:left;padding:9px 8px;border-bottom:1px solid #d1d5db">Description</th>
+          <th style="text-align:right;padding:9px 8px;width:112px;border-bottom:1px solid #d1d5db">Price</th>
+          <th style="text-align:right;padding:9px 8px;width:112px;border-bottom:1px solid #d1d5db">Amount</th>
         </tr>
       </thead>
-      <tbody>
-        ${itemRows || `<tr><td colspan="6" style="border:1px solid #111;padding:14px;text-align:center;color:#888">No line items</td></tr>`}
-      </tbody>
+      <tbody>${rows}</tbody>
     </table>
 
-    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:-1px">
-      <tr>
-        ${hasBank ? `<td style="border:1px solid #111;padding:6px 10px;text-align:left;vertical-align:top;width:33%" rowspan="${totalRows}">
-          <p style="margin:0 0 3px 0;font-weight:bold;font-style:italic">Bank Details :</p>
-          ${d.studio.bank_name ? `<p style="margin:0">Bank Name : ${esc(d.studio.bank_name)}</p>` : ""}
-          ${d.studio.bank_branch ? `<p style="margin:0">Branch : ${esc(d.studio.bank_branch)}</p>` : ""}
-          ${d.studio.bank_account_no ? `<p style="margin:0">Account No. : ${esc(d.studio.bank_account_no)}</p>` : ""}
-          ${d.studio.bank_ifsc ? `<p style="margin:0">IFSC : ${esc(d.studio.bank_ifsc)}</p>` : ""}
-        </td>` : ""}
-        <td style="border:1px solid #111;padding:6px 10px;text-align:left;vertical-align:top" rowspan="${totalRows}">
-          <span style="font-style:italic;color:#444">Total Invoice Amount in Words :</span><br/><b>${esc(inrWords(d.total))}</b>
-        </td>
-        <td style="border:1px solid #111;padding:6px 10px;text-align:right;font-weight:bold;font-style:italic;width:140px">Grand Total (₹)</td>
-        <td style="border:1px solid #111;padding:6px 10px;text-align:right;font-weight:bold;width:110px;font-size:13px">${inr2(d.total)}</td>
-      </tr>
-      ${dueLine}
-    </table>
+    <!-- TOTALS -->
+    <div style="display:flex;justify-content:flex-end;margin-top:6px">
+      <table style="width:330px;border-collapse:collapse;font-size:12px">
+        ${totalRow("SubTotal", "₹ " + inr2(d.subtotal || d.total))}
+        ${totalRow("TOTAL", "₹ " + inr2(d.total), RED)}
+        ${totalRow("Advance", "₹ " + inr2(advance))}
+        ${totalRow("Balance", "₹ " + inr2(balance), BLACK)}
+      </table>
+    </div>
 
     ${d.terms ? `
-    <div style="border:1px solid #111;border-top:none;padding:8px 10px;font-size:10.5px;line-height:1.55">
-      <p style="margin:0 0 5px 0;font-weight:bold;font-style:italic;font-size:11.5px">Terms &amp; Conditions :</p>
-      <div style="white-space:pre-wrap;color:#222">${esc(d.terms)}</div>
+    <div style="margin-top:22px">
+      <div style="font-weight:800;font-size:12.5px;letter-spacing:.4px;color:#111827">TERMS &amp; CONDITIONS</div>
+      <div style="white-space:pre-wrap;color:#374151;font-size:10.5px;line-height:1.6;margin-top:6px">${esc(d.terms)}</div>
     </div>` : ""}
 
-    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:-1px">
-      <tr>
-        <td style="border:1px solid #111;padding:8px 10px;width:45%;vertical-align:top">
-          <p style="margin:0"><b style="font-style:italic">Total Qty :</b> ${totalQty}</p>
-          <p style="margin:3px 0"><b style="font-style:italic">Status :</b> ${d.kind === "invoice" ? (balanceDue > 0 ? `<b>₹ ${inr2(balanceDue)} Pending</b>` : `<b style="color:#0a7d2c">Paid</b>`) : `₹ ${esc(d.status)}`}</p>
-          <p style="margin:8px 0 0 0;font-style:italic;color:#555">This is a computer-generated ${d.kind}. E. &amp; O. E.</p>
-        </td>
-        <td style="border:1px solid #111;padding:8px 10px;width:20%;text-align:center;vertical-align:middle;color:#999;font-style:italic">QR Code</td>
-        <td style="border:1px solid #111;padding:8px 10px;width:35%;text-align:right;vertical-align:bottom">
-          <p style="margin:0 0 34px 0">For, <b>${esc(d.studio.name)}</b></p>
-          <p style="margin:0;font-weight:bold;font-style:italic;border-top:1px solid #111;display:inline-block;padding-top:3px">Authorised Signatory</p>
-        </td>
-      </tr>
-    </table>
+    ${paymentRows ? `
+    <div style="margin-top:24px">
+      <div style="font-weight:800;font-size:13px;color:#111827;border-bottom:2px solid #111827;padding-bottom:4px">Payments</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
+        <thead>
+          <tr style="color:#6b7280;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px">
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db">Date</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db">Description</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db">Method</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #d1d5db">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${paymentRows}</tbody>
+      </table>
+    </div>` : ""}
 
+    <!-- FOOTER -->
+    <div style="margin-top:26px;border-top:1px solid #e5e7eb;padding-top:12px">
+      <div style="font-weight:800;color:#111827;font-size:12px">Follow Me on social media:</div>
+      ${d.studio.phone ? `<div style="margin-top:3px;color:#16a34a;font-weight:700;font-size:11.5px">&#128241; ${esc(d.studio.phone)}</div>` : ""}
+      <div style="margin-top:6px;font-size:9.5px;color:#9ca3af;font-style:italic">This is a computer-generated ${d.kind}.</div>
+    </div>
   </div>`;
 }
 
@@ -394,6 +366,21 @@ export async function generateDocPdf(d: DocPdfData, mode: "download" | "open" = 
         const { data: evs } = await (supabase as any).from("events").select("id,name,event_type,event_date,venue").in("id", evtIds);
         for (const ev of (evs ?? [])) eventsById[ev.id] = ev;
       } catch (_e) { /* names optional */ }
+    }
+    // Fetch recorded payments for invoices (Payments section)
+    if (d.kind === "invoice" && d.docId) {
+      setProgress(50, "Fetching payments…");
+      try {
+        const { data: pays } = await (supabase as any)
+          .from("payments")
+          .select("paid_on, amount, method, reference, notes")
+          .eq("invoice_id", d.docId)
+          .order("paid_on", { ascending: true });
+        safeData = { ...safeData, payments: (pays ?? []).map((pp: any) => ({
+          paid_on: pp.paid_on, amount: Number(pp.amount || 0), method: pp.method,
+          description: pp.notes || pp.reference || `Payment for ${d.client.partner_name ? d.client.name + " & " + d.client.partner_name : d.client.name}`,
+        })) };
+      } catch (_e) { /* payments optional */ }
     }
     setProgress(55, "Laying out document…");
     wrapper.innerHTML = buildHtml(safeData, eventsById);
