@@ -24,17 +24,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Only swap the user object when the user *id* changes, so routine token
+    // refreshes / tab-focus events don't re-trigger downstream role reloads
+    // (which would flash the app spinner and could bounce the user off a page).
+    const applyUser = (nextUser: User | null) => {
+      setUser((prev) => {
+        const prevId = prev?.id ?? null;
+        const nextId = nextUser?.id ?? null;
+        return prevId === nextId ? prev : nextUser;
+      });
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
+        applyUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      applyUser(session?.user ?? null);
       setLoading(false);
     });
 
