@@ -18,6 +18,7 @@ import {
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
+import { SERVICE_CATALOG } from "@/lib/serviceCatalog";
 import { useOrg } from "@/contexts/OrgContext";
 import { useClients } from "@/hooks/useClients";
 import { generateDocPdf, type DocPdfKind } from "@/lib/generateDocPdf";
@@ -377,8 +378,18 @@ export function EventsDocDialog({
     const rates: Record<string, number> = {};
     const customs: Record<string, Array<{ description: string; quantity: number; rate: number }>> = {};
     let manual = 0;
-    if (!Array.isArray(items)) return { rates, customs, manual };
+    const services: Array<{ title: string; description: string; amount: number }> = [];
+    if (!Array.isArray(items)) return { rates, customs, manual, services };
     for (const it of items) {
+      const svcMatch = /#svc\s*$/.exec(it.description || "");
+      if (svcMatch) {
+        const clean = (it.description || "").replace(/\s*#svc\s*$/, "");
+        const nl = clean.indexOf("\n");
+        const title = (nl >= 0 ? clean.slice(0, nl) : clean).trim();
+        const desc = nl >= 0 ? clean.slice(nl + 1).trim() : "";
+        services.push({ title, description: desc, amount: Number(it.rate || it.amount || 0) });
+        continue;
+      }
       const reqMatch = /#evt:([0-9a-f-]+)#req:([a-z_]+)/.exec(it.description || "");
       if (reqMatch) {
         rates[itemKey(reqMatch[1], reqMatch[2])] = Number(it.rate || it.amount || 0);
@@ -400,7 +411,7 @@ export function EventsDocDialog({
         manual += Number(it.rate || it.amount || 0);
       }
     }
-    return { rates, customs, manual };
+    return { rates, customs, manual, services };
   };
 
   const reconstructed = reconstructState(editing?.items);
@@ -416,6 +427,24 @@ export function EventsDocDialog({
   );
 
   const [customByEvent, setCustomByEvent] = useState<Record<string, Array<{ description: string; quantity: number; rate: number }>>>(() => reconstructed.customs);
+  // Service catalog rows (priced). Built-in catalog merged with any saved #svc items.
+  type SvcRow = { id: string; title: string; description: string; amount: number; checked: boolean; custom?: boolean };
+  const [serviceRows, setServiceRows] = useState<SvcRow[]>(() => {
+    const rows: SvcRow[] = SERVICE_CATALOG.map((c) => ({ id: c.key, title: c.title, description: c.description, amount: 0, checked: false }));
+    for (const svc of reconstructed.services) {
+      const match = rows.find((r) => r.title.trim().toLowerCase() === svc.title.trim().toLowerCase());
+      if (match) { match.checked = true; match.amount = svc.amount; if (svc.description) match.description = svc.description; }
+      else rows.push({ id: `custom-${rows.length}-${Date.now()}`, title: svc.title, description: svc.description, amount: svc.amount, checked: true, custom: true });
+    }
+    return rows;
+  });
+  const [svcSearch, setSvcSearch] = useState("");
+  const toggleSvc = (id: string) => setServiceRows((p) => p.map((r) => r.id === id ? { ...r, checked: !r.checked } : r));
+  const setSvcAmount = (id: string, v: number) => setServiceRows((p) => p.map((r) => r.id === id ? { ...r, amount: Math.max(0, v), checked: r.checked || v > 0 } : r));
+  const addCustomSvc = () => setServiceRows((p) => [...p, { id: `custom-${p.length}-${Date.now()}`, title: "", description: "", amount: 0, checked: true, custom: true }]);
+  const updateCustomSvc = (id: string, patch: Partial<SvcRow>) => setServiceRows((p) => p.map((r) => r.id === id ? { ...r, ...patch } : r));
+  const removeSvc = (id: string) => setServiceRows((p) => p.filter((r) => r.id !== id));
+  const servicesTotal = serviceRows.filter((r) => r.checked).reduce((sm, r) => sm + Number(r.amount || 0), 0);
   const [docNumber, setDocNumber] = useState<string>(editing?.[numberField] || "");
   const [status, setStatus] = useState<string>(editing?.status || statuses[0]);
   const [gst, setGst] = useState<boolean>(Boolean(editing?.gst_applicable ?? false));
@@ -442,8 +471,8 @@ export function EventsDocDialog({
   // In the new workflow, ALL itemized docs use a single final amount (manualAmount).
   // Line items are just markers showing what's included. So subtotal = manualAmount.
   const subtotal = useMemo(
-    () => manualAmount || 0,
-    [manualAmount]
+    () => (manualAmount || 0) + servicesTotal,
+    [manualAmount, servicesTotal]
   );
   const discountVal = Math.max(0, discount);
   const taxable = Math.max(0, subtotal - discountVal);
@@ -474,6 +503,16 @@ export function EventsDocDialog({
           rate: 0,
           amount: 0,
         });
+      });
+    }
+    // Priced service catalog rows
+    for (const r of serviceRows) {
+      if (!r.checked || !r.title.trim()) continue;
+      items.push({
+        description: `${r.title.trim()}${r.description.trim() ? "\n" + r.description.trim() : ""}  #svc`,
+        quantity: 1,
+        rate: Number(r.amount || 0),
+        amount: Number(r.amount || 0),
       });
     }
     // Final single amount as the #manual line
@@ -681,10 +720,51 @@ export function EventsDocDialog({
               )}
             </div>
 
-          {/* FINAL AMOUNT — single input for the whole package (all doc kinds) */}
+          {/* SERVICE CATALOG — priced, checkable list (Amount | Title | Description) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Services &amp; packages</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">{serviceRows.filter((r) => r.checked).length} selected · {inr(servicesTotal)}</span>
+                <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={addCustomSvc}><Plus className="h-3 w-3" /> Custom</Button>
+              </div>
+            </div>
+            <Input value={svcSearch} onChange={(e) => setSvcSearch(e.target.value)} placeholder="Search services…" className="h-8 text-xs" />
+            <div className="rounded-xl border border-border overflow-hidden">
+              <div className="grid grid-cols-[auto_120px_1fr] gap-2 px-3 py-2 bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                <span></span><span>Amount (₹)</span><span>Title &amp; Description</span>
+              </div>
+              <div className="divide-y divide-border max-h-72 overflow-y-auto">
+                {serviceRows
+                  .filter((r) => !svcSearch.trim() || (r.title + " " + r.description).toLowerCase().includes(svcSearch.trim().toLowerCase()))
+                  .map((r) => (
+                  <div key={r.id} className={"grid grid-cols-[auto_120px_1fr] gap-2 px-3 py-2 items-start " + (r.checked ? "bg-primary/[0.03]" : "")}>
+                    <button type="button" onClick={() => toggleSvc(r.id)} className={"mt-1 h-4 w-4 rounded border inline-flex items-center justify-center shrink-0 " + (r.checked ? "bg-primary border-primary text-primary-foreground" : "border-border bg-background")}>{r.checked && <Check className="h-3 w-3" />}</button>
+                    <Input type="number" value={r.amount || ""} onChange={(e) => setSvcAmount(r.id, Number(e.target.value || 0))} placeholder="0.00" className="h-8 text-right tabular-nums text-xs" />
+                    <div className="min-w-0">
+                      {r.custom ? (
+                        <>
+                          <Input value={r.title} onChange={(e) => updateCustomSvc(r.id, { title: e.target.value })} placeholder="Service title" className="h-8 text-xs font-semibold mb-1" />
+                          <Textarea value={r.description} onChange={(e) => updateCustomSvc(r.id, { description: e.target.value })} placeholder="Description / deliverables" rows={2} className="text-[11px]" />
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-semibold text-foreground">{r.title}</p>
+                          <p className="text-[10px] text-muted-foreground whitespace-pre-line leading-snug">{r.description}</p>
+                        </>
+                      )}
+                    </div>
+                    {r.custom && <button type="button" onClick={() => removeSvc(r.id)} className="col-start-3 justify-self-end text-[10px] text-rose-500 hover:underline">remove</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* FINAL AMOUNT — optional extra/adjustment on top of services */}
           <div className="rounded-xl border-2 border-primary/30 p-5 bg-primary/[0.04]">
-            <Label className="text-[11px] uppercase tracking-wide text-primary font-semibold">Final amount (₹)</Label>
-            <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">One total price for everything ticked above</p>
+            <Label className="text-[11px] uppercase tracking-wide text-primary font-semibold">Additional / package amount (₹)</Label>
+            <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">Optional — added on top of the selected services above. Leave 0 if pricing per service.</p>
             <Input
               type="number"
               value={manualAmount || ""}

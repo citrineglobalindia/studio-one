@@ -97,6 +97,7 @@ function cleanDesc(desc: string) {
   return (desc || "")
     .replace(/\s*#evt:[0-9a-f-]+#(req:[a-z_]+|custom)\s*$/i, "")
     .replace(/\s*#manual\s*$/i, "")
+    .replace(/\s*#svc\s*$/i, "")
     .trim();
 }
 
@@ -120,6 +121,7 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
   type Line = { description: string; quantity: number; rate: number; amount: number; isReq: boolean };
   const groups = new Map<string, { info: EventInfo; lines: Line[]; amount: number }>();
   const manualLines: Line[] = [];
+  const serviceLines: Line[] = [];
   let totalQty = 0;
 
   for (const raw of (d.items || [])) {
@@ -132,6 +134,11 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
     totalQty += qty;
     const evt = evtIdOf(raw.description);
     const isManual = /#manual/i.test(raw.description || "");
+    const isSvc = /#svc\s*$/i.test(raw.description || "");
+    if (isSvc) {
+      serviceLines.push({ description: desc, quantity: qty, rate, amount: amt, isReq: false });
+      continue;
+    }
     if (isManual || !evt) {
       manualLines.push({ description: desc, quantity: qty, rate, amount: amt, isReq: false });
       continue;
@@ -172,6 +179,25 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
     </tr>`;
   }).join("");
 
+  const serviceRowsHtml = serviceLines.map((l) => {
+    rowNo += 1;
+    const nl = l.description.indexOf("\n");
+    const svcTitle = nl >= 0 ? l.description.slice(0, nl) : l.description;
+    const svcDesc = nl >= 0 ? l.description.slice(nl + 1) : "";
+    return `
+    <tr>
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo}</td>
+      <td style="border:1px solid #111;padding:6px 8px;vertical-align:top">
+        <p style="margin:0;font-weight:bold;font-style:italic;font-size:12px">${esc(svcTitle)}</p>
+        ${svcDesc ? `<div style="margin-top:2px;font-size:10.5px;color:#333;line-height:1.45">${esc(svcDesc)}</div>` : ""}
+      </td>
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">${l.quantity || 1}</td>
+      <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top">no.s</td>
+      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${inr2(l.rate)}</td>
+      <td style="border:1px solid #111;padding:6px 8px;text-align:right;vertical-align:top">${inr2(l.amount)}</td>
+    </tr>`;
+  }).join("");
+
   const manualRow = manualAmount > 0 ? `
     <tr>
       <td style="border:1px solid #111;padding:6px;text-align:center;vertical-align:top;font-style:italic">${rowNo + 1}</td>
@@ -182,7 +208,7 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
       <td style="border:1px solid #111;padding:6px 8px;text-align:right">${inr2(manualAmount)}</td>
     </tr>` : "";
 
-  const itemRows = groupRows + manualRow;
+  const itemRows = groupRows + serviceRowsHtml + manualRow;
 
   const hasBank = !!(d.studio.bank_name || d.studio.bank_branch || d.studio.bank_account_no || d.studio.bank_ifsc);
   const totalRows = (d.kind === "invoice" && d.amountPaid != null) ? 3 : 1;
