@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLeads, LEAD_STATUSES, LEAD_SOURCES, type DbLead, type LeadStatus } from "@/hooks/useLeads";
-import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useSalesExecutives } from "@/hooks/useSalesExecutives";
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 
@@ -49,20 +49,27 @@ export default function LeadsPage() {
   const { currentRole } = useRole();
   const allowed = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts" || currentRole === "telecaller";
   const { leads, isLoading, add, update, remove, setStatus, bulkImport, convertToClient } = useLeads();
-  const { members } = useTeamMembers();
+  const { executives } = useSalesExecutives();
 
-  const executives = useMemo(
-    () => members
-      .filter((m) => m.user_id && SALES_ROLES.has(String(m.role || "")))
-      .map((m) => ({ user_id: m.user_id as string, name: m.full_name, role: m.role || "" })),
-    [members],
-  );
   const execName = (uid: string | null | undefined) =>
     executives.find((e) => e.user_id === uid)?.name || null;
 
   const assignLead = (leadId: string, uid: string | null) => {
     const name = uid ? (execName(uid) || null) : null;
     update.mutate({ id: leadId, assigned_user_id: uid, assigned_to: name } as any);
+  };
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) => setSelected((p) => {
+    const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+  const bulkAssign = async (uid: string | null) => {
+    const name = uid ? (execName(uid) || null) : null;
+    const ids = [...selected];
+    for (const id of ids) {
+      await update.mutateAsync({ id, assigned_user_id: uid, assigned_to: name } as any);
+    }
+    setSelected(new Set());
+    toast.success(uid ? `Assigned ${ids.length} lead${ids.length > 1 ? "s" : ""} to ${name}` : `Unassigned ${ids.length} lead${ids.length > 1 ? "s" : ""}`);
   };
 
   const [search, setSearch] = useState("");
@@ -241,9 +248,33 @@ export default function LeadsPage() {
         </div>
       ) : view === "table" ? (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/[0.06] border-b border-border">
+              <span className="text-xs font-medium text-foreground">{selected.size} selected</span>
+              <div className="flex items-center gap-2">
+                <Select onValueChange={(v) => bulkAssign(v === "unassigned" ? null : v)}>
+                  <SelectTrigger className="h-8 w-52 text-xs"><SelectValue placeholder="Assign to executive…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassign</SelectItem>
+                    {executives.map((ex) => (
+                      <SelectItem key={ex.user_id} value={ex.user_id}>
+                        <span className="inline-flex items-center gap-2">
+                          <span className={"h-5 w-5 rounded-full text-white text-[9px] font-semibold flex items-center justify-center " + colorFor(ex.user_id)}>{initials(ex.name)}</span>
+                          {ex.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                    {executives.length === 0 && <div className="px-2 py-1.5 text-[11px] text-muted-foreground">No sales executives found</div>}
+                  </SelectContent>
+                </Select>
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setSelected(new Set())}>Clear</Button>
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed min-w-[1280px]">
               <colgroup>
+                <col className="w-[36px]" />
                 <col className="w-[17%]" />
                 <col className="w-[15%]" />
                 <col className="w-[8%]" />
@@ -256,6 +287,15 @@ export default function LeadsPage() {
               </colgroup>
               <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <tr>
+                  <th className="px-2 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all leads"
+                      className="h-3.5 w-3.5 accent-primary cursor-pointer"
+                      checked={filtered.length > 0 && selected.size === filtered.length}
+                      onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((l) => l.id)) : new Set())}
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 font-semibold">Lead</th>
                   <th className="text-left px-3 py-3 font-semibold">Contact</th>
                   <th className="text-left px-3 py-3 font-semibold">Source</th>
@@ -269,7 +309,16 @@ export default function LeadsPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((l) => (
-                  <tr key={l.id} className="hover:bg-muted/20 transition-colors align-middle">
+                  <tr key={l.id} className={"hover:bg-muted/20 transition-colors align-middle " + (selected.has(l.id) ? "bg-primary/[0.04]" : "")}>
+                    <td className="px-2 py-3 align-middle">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${l.name}`}
+                        className="h-3.5 w-3.5 accent-primary cursor-pointer"
+                        checked={selected.has(l.id)}
+                        onChange={() => toggleSelect(l.id)}
+                      />
+                    </td>
                     {/* Lead name + city */}
                     <td className="px-4 py-3 align-middle">
                       <p className="font-semibold text-foreground truncate" title={l.name}>{l.name}</p>
