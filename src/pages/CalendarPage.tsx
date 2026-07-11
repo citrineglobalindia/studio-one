@@ -585,15 +585,7 @@ export default function CalendarPage() {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" />
         </div>
       )}
-    </div>
-  );
-}
 
-function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
-      {children}
       {assignEvent && (
         <AssignTeamDialog
           open
@@ -609,6 +601,15 @@ function FilterField({ label, children }: { label: string; children: React.React
           teamMemberId={myTeamMember?.id ?? null}
         />
       )}
+    </div>
+  );
+}
+
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
+      {children}
     </div>
   );
 }

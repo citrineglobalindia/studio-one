@@ -375,6 +375,7 @@ export function EventsDocDialog({
   numberLabel, dateLabel, dateField, numberField, extraAmountField, onSubmit,
 }: EventsDocDialogProps) {
   const { events: clientEvents } = useClientEvents(clientId);
+  const { services: dbCatalog } = useServices();
 
   // Reconstruct rates + custom items + manualAmount from saved items
   const reconstructState = (items: LineItem[] | null | undefined) => {

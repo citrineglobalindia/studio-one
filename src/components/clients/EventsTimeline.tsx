@@ -75,7 +75,7 @@ function useClientEventAssignments(clientId: string, eventIds: string[]) {
         .eq("organization_id", orgId)
         .in("event_id", eventIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; event_id: string; team_member_id: string; data_copied: boolean }[];
+      return ((data ?? []) as unknown) as { id: string; event_id: string; team_member_id: string; data_copied: boolean }[];
     },
   });
 }
