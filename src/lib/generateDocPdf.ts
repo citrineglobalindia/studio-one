@@ -148,7 +148,7 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
   const manualAmount = manualLines.reduce((s2, l) => s2 + l.amount, 0);
 
   const cellTop = "padding:9px 8px;vertical-align:top;border-bottom:1px solid #e5e7eb";
-  const cellQty = "padding:9px 6px;vertical-align:top;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600";
+  const cellQty = "padding:9px 6px;vertical-align:middle;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600";
   const cellAmt = "padding:9px 8px;vertical-align:top;text-align:right;border-bottom:1px solid #e5e7eb;white-space:nowrap";
 
   const groupRows = Array.from(groups.values()).map((g) => {
@@ -159,7 +159,7 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
     <tr>
       <td style="${cellQty}">1</td>
       <td style="${cellTop}">
-        <div style="color:${TEAL};font-weight:800;text-transform:uppercase;letter-spacing:.3px;font-size:12px">${esc(headLabel)}</div>
+        <div style="color:${RED};font-weight:800;text-transform:uppercase;letter-spacing:.3px;font-size:12px">${esc(headLabel)}</div>
         ${sub ? `<div style="font-size:9.5px;color:#9ca3af;margin:1px 0 3px">${sub}</div>` : ""}
         <div style="margin-top:3px">${reqs || '<span style="font-size:10px;color:#9ca3af">—</span>'}</div>
       </td>
@@ -192,8 +192,13 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
       <td style="${cellAmt}">₹ ${inr2(manualAmount)}</td>
     </tr>` : "";
 
-  const rows = groupRows + serviceRows + manualRow ||
-    `<tr><td colspan="4" style="padding:16px;text-align:center;color:#9ca3af">No line items</td></tr>`;
+  const itemBody = groupRows + serviceRows + manualRow;
+  const groupLabel = itemBody
+    ? `<tr><td colspan="4" style="background:#f1f5f9;color:${RED};font-weight:800;font-size:12px;padding:6px 12px">All Events :-</td></tr>`
+    : "";
+  const rows = itemBody
+    ? groupLabel + itemBody
+    : `<tr><td colspan="4" style="padding:16px;text-align:center;color:#9ca3af">No line items</td></tr>`;
 
   const advance = Number(d.amountPaid || 0);
   const balance = Math.max(0, d.total - advance);
@@ -218,14 +223,14 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
     <!-- HEADER -->
     <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #111827;padding-bottom:16px">
       <div style="max-width:58%">
-        ${d.studio.logo_url ? `<img src="${esc(d.studio.logo_url)}" crossorigin="anonymous" style="max-height:52px;margin-bottom:6px" />` : ""}
         <div style="font-size:17px;font-weight:800;letter-spacing:.3px;color:#111827">${esc(d.studio.name)}</div>
         ${addressLines ? `<div style="font-size:10.5px;color:#4b5563;line-height:1.55;margin-top:4px">${addressLines}</div>` : ""}
         ${d.studio.phone ? `<div style="font-size:11px;color:#4b5563;margin-top:3px;font-weight:600">${esc(d.studio.phone)}</div>` : ""}
         ${d.studio.gst_number ? `<div style="font-size:10px;color:#6b7280;margin-top:1px">GSTIN: ${esc(d.studio.gst_number)}</div>` : ""}
       </div>
       <div style="text-align:right;min-width:236px">
-        <div style="font-size:27px;font-weight:800;letter-spacing:3px;color:#111827">${title}</div>
+        ${d.studio.logo_url ? `<img src="${esc(d.studio.logo_url)}" crossorigin="anonymous" style="max-height:46px;display:inline-block;margin-bottom:8px" />` : ""}
+        <div style="font-size:27px;font-weight:800;letter-spacing:3px;color:${RED}">${title}</div>
         <div style="margin-top:12px;font-size:11.5px;line-height:1.75">
           <div style="font-weight:700;color:#111827">${esc(coupleName)}</div>
           ${d.client.phone || d.client.partner_phone ? `<div style="color:#4b5563">${esc(d.client.phone || d.client.partner_phone)}</div>` : ""}
@@ -239,11 +244,11 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
     <!-- ITEMS -->
     <table style="width:100%;border-collapse:collapse;margin-top:16px">
       <thead>
-        <tr style="background:#f3f4f6;color:#374151;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px">
-          <th style="text-align:center;padding:9px 6px;width:66px;border-bottom:1px solid #d1d5db">Quantity</th>
-          <th style="text-align:left;padding:9px 8px;border-bottom:1px solid #d1d5db">Description</th>
-          <th style="text-align:right;padding:9px 8px;width:112px;border-bottom:1px solid #d1d5db">Price</th>
-          <th style="text-align:right;padding:9px 8px;width:112px;border-bottom:1px solid #d1d5db">Amount</th>
+        <tr style="background:#111827;color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px">
+          <th style="text-align:center;padding:10px 8px;width:66px">Quantity</th>
+          <th style="text-align:left;padding:10px 12px">Description</th>
+          <th style="text-align:right;padding:10px 8px;width:112px">Price</th>
+          <th style="text-align:right;padding:10px 12px;width:112px">Amount</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -261,7 +266,7 @@ function buildHtml(d: DocPdfData, eventsById: Record<string, EventInfo> = {}): s
 
     ${d.terms ? `
     <div style="margin-top:22px">
-      <div style="font-weight:800;font-size:12.5px;letter-spacing:.4px;color:#111827">TERMS &amp; CONDITIONS</div>
+      <div style="font-weight:800;font-size:12.5px;letter-spacing:.4px;color:#111827;text-decoration:underline;text-underline-offset:3px">TERMS &amp; CONDITIONS</div>
       <div style="white-space:pre-wrap;color:#374151;font-size:10.5px;line-height:1.6;margin-top:6px">${esc(d.terms)}</div>
     </div>` : ""}
 
