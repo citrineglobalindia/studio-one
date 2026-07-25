@@ -2,9 +2,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays, Plus, Pencil, Trash2, ArrowUp, ArrowDown,
-  Clock, MapPin, Loader2, CalendarX, CheckCircle2, Users, Lock, Unlock,
+  Clock, MapPin, Loader2, CalendarX, CheckCircle2, Users, Lock, Unlock, MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { useRole } from "@/contexts/RoleContext";
@@ -78,6 +79,42 @@ function useClientEventAssignments(clientId: string, eventIds: string[]) {
       return ((data ?? []) as unknown) as { id: string; event_id: string; team_member_id: string; data_copied: boolean }[];
     },
   });
+}
+
+const WA_REQ_LABELS: Record<string, string> = {
+  traditional_photographer: "Traditional Photographer",
+  traditional_videographer: "Traditional Videographer",
+  candid_photographer: "Candid Photographer",
+  candid_videographer: "Candid Videographer",
+  drone_shoot: "Drone Shoot",
+  led_wall: "LED Wall",
+  live_streaming: "Live Streaming",
+};
+
+function shareAssignmentWhatsApp(member: any, ev: any) {
+  const dateStr = ev.event_date
+    ? new Date(ev.event_date).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "short", year: "numeric" })
+    : "";
+  const t = (x?: string | null) => (x ? String(x).slice(0, 5) : "");
+  const time = t(ev.start_time) ? `${t(ev.start_time)}${t(ev.end_time) ? " - " + t(ev.end_time) : ""}` : "";
+  const reqs = Array.isArray(ev.requirements) ? ev.requirements.map((r: string) => WA_REQ_LABELS[r] || r).join(", ") : "";
+  const lines = [
+    `Hi ${member.full_name},`,
+    ``,
+    `You have been assigned to an event:`,
+    `*${ev.event_type || ev.name || "Event"}*`,
+    dateStr ? `Date: ${dateStr}` : "",
+    time ? `Time: ${time}` : "",
+    ev.venue ? `Venue: ${ev.venue}` : "",
+    ev.venue_map_url ? `Location: ${ev.venue_map_url}` : "",
+    reqs ? `Requirements: ${reqs}` : "",
+    ev.notes ? `Notes: ${ev.notes}` : "",
+    ``,
+    `Please confirm your availability. Thank you!`,
+  ].filter(Boolean);
+  const digits = (member.phone || "").replace(/\D/g, "");
+  const wa = digits.length >= 10 ? `91${digits.slice(-10)}` : "";
+  window.open(`https://wa.me/${wa}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank", "noopener,noreferrer");
 }
 
 export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; defaultVenue: string | null }) {
@@ -312,6 +349,14 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                                         {copied ? "Data copied" : "Mark data copied"}
                                       </button>
                                     )}
+                                    <button
+                                      type="button"
+                                      onClick={() => { if (!m.phone) { toast.error(`No phone number saved for ${m.full_name}`); return; } shareAssignmentWhatsApp(m, e); }}
+                                      className="mt-1 w-full flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 px-1.5 py-1 text-[9px] font-semibold hover:bg-emerald-500/20 transition"
+                                      title={m.phone ? "Share event details on WhatsApp" : "No phone number saved"}
+                                    >
+                                      <MessageCircle className="h-3 w-3" /> Share WhatsApp
+                                    </button>
                                   </div>
                                 );
                               })}
