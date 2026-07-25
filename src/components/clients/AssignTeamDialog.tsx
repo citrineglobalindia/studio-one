@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Search, Camera, Video, Edit3, Briefcase, UserCheck,
-  CheckCircle2, AlertCircle, Loader2, X, Plus,
+  CheckCircle2, AlertCircle, Loader2, X, Plus, MessageCircle, MapPin,
 } from "lucide-react";
 import { useTeamMembers, type DbTeamMember } from "@/hooks/useTeamMembers";
 import { useEventAssignments } from "@/hooks/useEventAssignments";
@@ -24,6 +24,48 @@ const ROLE_META: Record<string, { label: string; icon: typeof Camera; color: str
 
 function initials(name: string) {
   return (name || "?").split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+}
+
+const REQ_LABELS: Record<string, string> = {
+  traditional_photographer: "Traditional Photographer",
+  traditional_videographer: "Traditional Videographer",
+  candid_photographer: "Candid Photographer",
+  candid_videographer: "Candid Videographer",
+  drone_shoot: "Drone Shoot",
+  led_wall: "LED Wall",
+  live_streaming: "Live Streaming",
+};
+
+function fmtTime(t?: string | null) { return t ? String(t).slice(0, 5) : ""; }
+
+function buildAssignmentMessage(member: DbTeamMember, event: DbEvent): string {
+  const dateStr = event.event_date
+    ? new Date(event.event_date).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "short", year: "numeric" })
+    : "";
+  const time = fmtTime(event.start_time) ? `${fmtTime(event.start_time)}${fmtTime(event.end_time) ? " - " + fmtTime(event.end_time) : ""}` : "";
+  const reqs = Array.isArray(event.requirements) ? event.requirements.map((r) => REQ_LABELS[r] || r).join(", ") : "";
+  const lines = [
+    `Hi ${member.full_name},`,
+    ``,
+    `You have been assigned to an event:`,
+    `*${event.event_type || event.name || "Event"}*`,
+    dateStr ? `Date: ${dateStr}` : "",
+    time ? `Time: ${time}` : "",
+    event.venue ? `Venue: ${event.venue}` : "",
+    (event as any).venue_map_url ? `Location: ${(event as any).venue_map_url}` : "",
+    reqs ? `Requirements: ${reqs}` : "",
+    event.notes ? `Notes: ${event.notes}` : "",
+    ``,
+    `Please confirm your availability. Thank you!`,
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function sendAssignmentWhatsApp(member: DbTeamMember, event: DbEvent) {
+  const digits = (member.phone || "").replace(/\D/g, "");
+  const wa = digits.length >= 10 ? `91${digits.slice(-10)}` : "";
+  const text = encodeURIComponent(buildAssignmentMessage(member, event));
+  window.open(`https://wa.me/${wa}?text=${text}`, "_blank", "noopener,noreferrer");
 }
 
 export function AssignTeamDialog({
@@ -141,13 +183,14 @@ export function AssignTeamDialog({
                       const conflictEvent = conflicts.get(m.id);
                       const blocked = !isAssigned && !!conflictEvent;
                       return (
-                        <button
+                        <div
                           key={m.id}
-                          type="button"
-                          disabled={blocked}
-                          onClick={() => toggle(m)}
+                          role="button"
+                          tabIndex={blocked ? -1 : 0}
+                          onClick={() => { if (!blocked) toggle(m); }}
+                          onKeyDown={(e) => { if (!blocked && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(m); } }}
                           className={
-                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition " +
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer " +
                             (isAssigned
                               ? "border-primary bg-primary/[0.07] ring-1 ring-primary/30"
                               : blocked
@@ -176,7 +219,17 @@ export function AssignTeamDialog({
                               </div>
                             )}
                           </div>
-                          <div className="shrink-0">
+                          <div className="shrink-0 flex items-center gap-1.5">
+                            {isAssigned && event && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); if (!m.phone) { toast.error(`No phone number saved for ${m.full_name}`); return; } sendAssignmentWhatsApp(m, event); }}
+                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 px-2 py-1 text-[11px] font-medium hover:bg-emerald-500/20 transition"
+                                title={m.phone ? "Send event details on WhatsApp" : "No phone number saved"}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                              </button>
+                            )}
                             {isAssigned ? (
                               <span className="inline-flex items-center gap-1 text-[11px] text-primary font-medium">
                                 <CheckCircle2 className="h-3.5 w-3.5" /> Assigned
@@ -191,7 +244,7 @@ export function AssignTeamDialog({
                               </span>
                             )}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
