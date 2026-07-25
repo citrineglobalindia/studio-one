@@ -22,7 +22,7 @@ export function useCalendarEvents(fromIso: string, toIso: string) {
   const { currentRole } = useRole();
   const orgId = organization?.id ?? null;
   const userId = user?.id ?? null;
-  const canSeeAll = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts";
+  const canSeeAll = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts" || currentRole === "telecaller";
 
   return useQuery({
     queryKey: ["calendar-events", orgId, fromIso, toIso, currentRole, userId],

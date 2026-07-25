@@ -91,7 +91,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
     .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
   editor: ["dashboard", "editing", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads + own attendance/leaves/expense
-  telecaller: ["dashboard", "leads", "calendar", "productivity", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  telecaller: ["dashboard", "leads", "clients", "calendar", "productivity", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   videographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   photographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Vendors can still raise expenses (per-event payouts) but no internal HR
