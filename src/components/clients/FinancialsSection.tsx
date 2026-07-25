@@ -144,7 +144,7 @@ export function FinancialsSection({ clientId, clientName }: { clientId: string; 
   const client = clients.find((c) => c.id === clientId);
   const studioName = organization?.name || "Studio";
   const { currentRole } = useRole();
-  const allowed = currentRole === "admin" || currentRole === "accounts";
+  const allowed = currentRole === "admin" || currentRole === "accounts" || currentRole === "telecaller";
   const [tab, setTab] = useState<Tab>("invoices");
   if (!allowed) return null;
 
