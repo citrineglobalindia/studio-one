@@ -112,6 +112,10 @@ function ProtectedRoutes() {
         <Route path="/pnl" element={<PnLPage />} />
         <Route path="/client-pnl" element={<ClientPnlPage />} />
         <Route path="/services" element={<ServicesPage />} />
+        <Route path="/accounts/expenses" element={<Navigate to="/expenses" replace />} />
+        <Route path="/accounts/ledger" element={<Navigate to="/ledger" replace />} />
+        <Route path="/accounts/pnl" element={<Navigate to="/pnl" replace />} />
+        <Route path="/accounts/payments" element={<Navigate to="/payments" replace />} />
         <Route path="/hr" element={<HREmployeesPage />} />
         <Route path="/hr/salary" element={<HRSalaryPage />} />
         <Route path="/hr/payslips" element={<HRPayslipsPage />} />
