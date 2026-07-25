@@ -48,7 +48,7 @@ export function canCreateRole(creator: AppRole | null | undefined, target: AppRo
 
 export type AppModule =
   | "dashboard" | "leads" | "clients"
-  | "events" | "calendar" | "editing" | "event-reports" | "equipment"
+  | "events" | "calendar" | "editing" | "event-reports" | "equipment" | "productivity"
   | "team"
   | "invoices" | "contracts" | "payment-requests" | "salary"
   | "hr-employees" | "hr-attendance" | "hr-leaves"
@@ -63,6 +63,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "editing", label: "Editing", group: "Operations" },
   { value: "event-reports", label: "Event Reports", group: "Operations" },
   { value: "equipment", label: "Equipment", group: "Operations" },
+  { value: "productivity", label: "Productivity", group: "Operations" },
   { value: "team", label: "Users", group: "Operations" },
   { value: "invoices", label: "Invoices", group: "Finance" },
   { value: "contracts", label: "Contracts", group: "Finance" },
@@ -90,7 +91,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
     .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
   editor: ["dashboard", "editing", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads + own attendance/leaves/expense
-  telecaller: ["dashboard", "leads", "calendar", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  telecaller: ["dashboard", "leads", "calendar", "productivity", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   videographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   photographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Vendors can still raise expenses (per-event payouts) but no internal HR

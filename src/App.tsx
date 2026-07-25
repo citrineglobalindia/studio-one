@@ -35,6 +35,7 @@ import LeadsPage from "./pages/LeadsPage";
 import EditingPage from "./pages/EditingPage";
 import EventReportsPage from "./pages/EventReportsPage";
 import EquipmentPage from "./pages/EquipmentPage";
+import ProductivityPage from "./pages/ProductivityPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import EditorLogsPage from "./pages/EditorLogsPage";
 import DayDetailPage from "./pages/DayDetailPage";
@@ -101,6 +102,7 @@ function ProtectedRoutes() {
         <Route path="/editor-logs" element={<EditorLogsPage />} />
         <Route path="/event-reports" element={<EventReportsPage />} />
         <Route path="/equipment" element={<EquipmentPage />} />
+        <Route path="/productivity" element={<ProductivityPage />} />
         <Route path="/day/:date" element={<DayDetailPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/accounts" element={<AccountsPage />} />
