@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EditorWorkLogPanel } from "@/components/calendar/EditorWorkLogPanel";
 import { useRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 function todayIso() { return new Date().toISOString().slice(0, 10); }
 function shift(iso: string, days: number) { const d = new Date(iso); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 
 export default function EditorLogsPage() {
   const { currentRole } = useRole();
+  const { user } = useAuth();
   const canManage = currentRole === "admin" || currentRole === "administrator";
   const allowed = canManage || currentRole === "accounts" || currentRole === "editor";
   const [date, setDate] = useState<string>(todayIso());
@@ -54,7 +56,7 @@ export default function EditorLogsPage() {
         </div>
       </motion.div>
 
-      <EditorWorkLogPanel dateIso={date} canManage={canManage} />
+      <EditorWorkLogPanel dateIso={date} canManage={canManage} role={currentRole} userId={user?.id ?? null} />
     </div>
   );
 }

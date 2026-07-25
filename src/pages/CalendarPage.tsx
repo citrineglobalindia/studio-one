@@ -573,7 +573,7 @@ export default function CalendarPage() {
 
             {/* Editor work log for this day */}
             <div className="mt-4">
-              <EditorWorkLogPanel dateIso={selectedDay} canManage={canManageWorkLog} />
+              <EditorWorkLogPanel dateIso={selectedDay} canManage={canManageWorkLog} role={currentRole} userId={user?.id ?? null} />
             </div>
           </>
           )}

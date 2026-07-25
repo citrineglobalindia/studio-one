@@ -187,7 +187,7 @@ export default function DayDetailPage() {
       )}
 
       {/* Editor work log */}
-      <EditorWorkLogPanel dateIso={date} canManage={canManageTeam} />
+      <EditorWorkLogPanel dateIso={date} canManage={canManageTeam} role={currentRole} userId={user?.id ?? null} />
 
       {assignEvent && <AssignTeamDialog open onOpenChange={(v) => { if (!v) setAssignEvent(null); }} event={assignEvent} />}
       {checkInEvent && <CheckInDialog open onOpenChange={() => setCheckInEvent(null)} event={checkInEvent} teamMemberId={myTeamMember?.id ?? null} />}

@@ -25,6 +25,9 @@ export interface DbWorkLog {
   status: WorkLogStatus;
   notes: string | null;
   display_order: number;
+  submitted: boolean;
+  submitted_at: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,7 +58,10 @@ export function useEditorWorkLogs(dateIso: string | null) {
   const add = useMutation({
     mutationFn: async (p: Partial<DbWorkLog> & { log_date: string; editor_code: string }) => {
       if (!orgId) throw new Error("No studio");
-      const { error } = await (supabase as any).from("editor_work_logs").insert({ ...p, organization_id: orgId });
+      const uid = (await supabase.auth.getUser()).data.user?.id ?? null;
+      const { error } = await (supabase as any).from("editor_work_logs").insert({
+        ...p, organization_id: orgId, created_by: uid, submitted: p.submitted ?? false,
+      });
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["editor-work-logs"] }); qc.invalidateQueries({ queryKey: ["editor-work-logs-range"] }); toast.success("Row added"); },
@@ -80,7 +86,19 @@ export function useEditorWorkLogs(dateIso: string | null) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { logs: query.data ?? [], isLoading: query.isLoading, add, update, remove };
+  const send = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("editor_work_logs")
+        .update({ submitted: true, submitted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["editor-work-logs"] }); qc.invalidateQueries({ queryKey: ["editor-work-logs-range"] }); toast.success("Sent to admin"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { logs: query.data ?? [], isLoading: query.isLoading, add, update, remove, send };
 }
 
 /** Count of logs per date in a range — used to badge calendar day cells */
