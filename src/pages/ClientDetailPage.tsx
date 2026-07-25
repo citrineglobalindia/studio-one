@@ -16,6 +16,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useClients, type DbClient } from "@/hooks/useClients";
+import { useRole } from "@/contexts/RoleContext";
 import { EventsTimeline } from "@/components/clients/EventsTimeline";
 import { FinancialsSection } from "@/components/clients/FinancialsSection";
 import { toast } from "sonner";
@@ -23,7 +24,20 @@ import { toast } from "sonner";
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { currentRole } = useRole();
+  const canViewClients = currentRole === "admin" || currentRole === "administrator" || currentRole === "telecaller";
   const { clients, isLoading, updateClient, deleteClient } = useClients();
+
+  if (!canViewClients) {
+    return (
+      <div className="w-full px-3 md:px-5 lg:px-6 py-10 max-w-3xl mx-auto text-center space-y-3">
+        <Lock className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+        <p className="text-base font-semibold text-foreground">Client details are restricted</p>
+        <p className="text-sm text-muted-foreground">Only Sales, Administrator and Admin can view client details.</p>
+        <Button onClick={() => navigate("/")} variant="outline" size="sm">Back to dashboard</Button>
+      </div>
+    );
+  }
 
   const client = useMemo(() => clients.find((c) => c.id === id), [clients, id]);
 

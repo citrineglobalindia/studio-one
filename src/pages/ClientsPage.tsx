@@ -5,10 +5,24 @@ import { Users, Plus, Search, Phone, Mail, MapPin, ChevronRight, Loader2 } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClients, type DbClient } from "@/hooks/useClients";
+import { useRole } from "@/contexts/RoleContext";
+import { Lock } from "lucide-react";
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const { currentRole } = useRole();
+  const canViewClients = currentRole === "admin" || currentRole === "administrator" || currentRole === "telecaller";
   const { clients, isLoading } = useClients();
+
+  if (!canViewClients) {
+    return (
+      <div className="w-full px-3 md:px-5 lg:px-6 py-10 max-w-3xl mx-auto text-center space-y-3">
+        <Lock className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+        <p className="text-base font-semibold text-foreground">Clients are restricted</p>
+        <p className="text-sm text-muted-foreground">Only Sales, Administrator and Admin can view clients.</p>
+      </div>
+    );
+  }
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
