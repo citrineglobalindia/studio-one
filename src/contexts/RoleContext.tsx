@@ -81,7 +81,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
 
 // Accounts/finance-only modules (Administrator does NOT get these by default)
 const ACCOUNTS_ONLY_MODULES: AppModule[] = [
-  "invoices", "contracts", "payment-requests", "accounts-page", "salary",
+  "invoices", "contracts", "accounts-page", "salary",
 ];
 
 const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {

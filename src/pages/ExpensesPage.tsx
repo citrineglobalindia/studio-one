@@ -33,6 +33,7 @@ function fmtDate(d?: string | null) {
 
 export default function ExpensesPage() {
   const { currentRole } = useRole();
+  const isFinance = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts";
   const { user } = useAuth();
   const { expenses, isLoading, canApprove, canProcessPayment, add, update, remove, approve, reject, markPaid } = useExpenses();
 
@@ -88,7 +89,7 @@ export default function ExpensesPage() {
         </div>
       </motion.div>
 
-      <FinanceTabs />
+      {isFinance && <FinanceTabs />}
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

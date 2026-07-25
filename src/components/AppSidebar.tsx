@@ -66,6 +66,7 @@ const operationsItems: SidebarItem[] = [
 
 const financeItems: SidebarItem[] = [
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts-page" },
+  { title: "Expense", url: "/expenses", icon: Receipt, module: "payment-requests" },
 ];
 
 const hrItems: SidebarItem[] = [
