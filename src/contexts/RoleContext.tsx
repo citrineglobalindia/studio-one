@@ -48,7 +48,7 @@ export function canCreateRole(creator: AppRole | null | undefined, target: AppRo
 
 export type AppModule =
   | "dashboard" | "leads" | "clients"
-  | "events" | "calendar" | "editing" | "event-reports" | "equipment" | "productivity"
+  | "events" | "calendar" | "editing" | "editor-logs" | "event-reports" | "equipment" | "productivity"
   | "team"
   | "invoices" | "contracts" | "payment-requests" | "salary"
   | "hr-employees" | "hr-attendance" | "hr-leaves"
@@ -61,6 +61,7 @@ export const ALL_MODULES: { value: AppModule; label: string; group: string }[] =
   { value: "events", label: "Events", group: "Operations" },
   { value: "calendar", label: "Calendar", group: "Operations" },
   { value: "editing", label: "Editing", group: "Operations" },
+  { value: "editor-logs", label: "Editor Logs", group: "Operations" },
   { value: "event-reports", label: "Event Reports", group: "Operations" },
   { value: "equipment", label: "Equipment", group: "Operations" },
   { value: "productivity", label: "Productivity", group: "Operations" },
@@ -89,7 +90,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   administrator: ALL_MODULES
     .map((m) => m.value)
     .filter((m) => !ACCOUNTS_ONLY_MODULES.includes(m)),
-  editor: ["dashboard", "editing", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  editor: ["dashboard", "editing", "editor-logs", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads + own attendance/leaves/expense
   telecaller: ["dashboard", "leads", "clients", "calendar", "productivity", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   videographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
@@ -97,7 +98,7 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   // Vendors can still raise expenses (per-event payouts) but no internal HR
   photographer_vendor: ["dashboard", "events", "calendar", "equipment", "payment-requests", "notifications", "profile"],
   videographer_vendor: ["dashboard", "events", "calendar", "equipment", "payment-requests", "notifications", "profile"],
-  accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "event-reports", "hr-attendance", "hr-employees", "hr-leaves", "notifications", "profile"],
+  accounts: ["dashboard", "invoices", "contracts", "payment-requests", "accounts-page", "salary", "event-reports", "editor-logs", "hr-attendance", "hr-employees", "hr-leaves", "notifications", "profile"],
 };
 
 /** Where this user is allowed to sign in: web dashboard, mobile PWA, or both. */

@@ -58,7 +58,7 @@ const salesItems: SidebarItem[] = [
 
 const operationsItems: SidebarItem[] = [
   { title: "Editing", url: "/editing", icon: Scissors, module: "editing" },
-  { title: "Editor Logs", url: "/editor-logs", icon: ClipboardList, module: "editing" },
+  { title: "Editor Logs", url: "/editor-logs", icon: ClipboardList, module: "editor-logs" },
   { title: "Event Reports", url: "/event-reports", icon: Camera, module: "event-reports" },
   { title: "Equipment", url: "/equipment", icon: PackageOpen, module: "equipment" },
   { title: "Productivity", url: "/productivity", icon: ListChecks, module: "productivity" },
