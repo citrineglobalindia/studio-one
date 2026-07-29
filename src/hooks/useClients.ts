@@ -94,8 +94,13 @@ export function useClients() {
 
   const deleteClient = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clients").delete().eq("id", id);
+      // Return the deleted rows so we can detect a silent 0-row delete
+      // (which happens when a row-level security rule blocks it without erroring).
+      const { data, error } = await supabase.from("clients").delete().eq("id", id).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Couldn't delete this client. You may not have permission, or it has linked records.");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients", orgId] });
