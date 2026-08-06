@@ -5,11 +5,13 @@ import { Shield } from "lucide-react";
 export function RoleSwitcher() {
   const { currentRole, setCurrentRole, isAdmin, studioDisabledRoles } = useRole();
 
+  const roleLabel = ALL_ROLES.find((r) => r.value === currentRole)?.label || currentRole;
+
   if (!isAdmin) {
     return (
       <div className="flex items-center gap-2">
         <Shield className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground capitalize">{currentRole}</span>
+        <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
       </div>
     );
   }
