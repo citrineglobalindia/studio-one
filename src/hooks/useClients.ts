@@ -81,8 +81,9 @@ export function useClients() {
         .update(patch as any)
         .eq("id", id)
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Couldn't update this client — you may not have permission.");
       return (data as unknown) as DbClient;
     },
     onSuccess: () => {
