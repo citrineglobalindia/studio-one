@@ -84,8 +84,9 @@ export function useClientEvents(clientId: string | undefined) {
         .update(patch as any)
         .eq("id", id)
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Couldn't update this event — you may not have permission.");
       return (data as unknown) as DbEvent;
     },
     onSuccess: () => {
@@ -119,8 +120,9 @@ export function useClientEvents(clientId: string | undefined) {
         } as any)
         .eq("id", id)
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Couldn't update this event — you may not have permission.");
       return (data as unknown) as DbEvent;
     },
     onSuccess: (_d, vars) => {

@@ -119,7 +119,7 @@ function shareAssignmentWhatsApp(member: any, ev: any) {
 
 export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; defaultVenue: string | null }) {
   const { currentRole } = useRole();
-  const canManage = currentRole === "admin" || currentRole === "administrator";
+  const canManage = currentRole === "admin" || currentRole === "administrator" || currentRole === "telecaller";
 
   const { events, isLoading, addEvent, updateEvent, deleteEvent, swapOrder, finalizeEvent } = useClientEvents(clientId);
   const { members } = useTeamMembers();
