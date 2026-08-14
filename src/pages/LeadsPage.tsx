@@ -48,6 +48,7 @@ function fmtDate(d?: string | null) {
 export default function LeadsPage() {
   const { currentRole } = useRole();
   const allowed = currentRole === "admin" || currentRole === "administrator" || currentRole === "accounts" || currentRole === "telecaller";
+  const isAdmin = currentRole === "admin" || currentRole === "administrator";
   const { leads, isLoading, add, update, remove, setStatus, bulkImport, convertToClient } = useLeads();
   const { executives } = useSalesExecutives();
 
@@ -77,6 +78,8 @@ export default function LeadsPage() {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterCity, setFilterCity] = useState<string>("");
   const [filterExec, setFilterExec] = useState<string>("all");
+  const [filterFrom, setFilterFrom] = useState<string>("");
+  const [filterTo, setFilterTo] = useState<string>("");
   const [view, setView] = useState<"table" | "kanban">("table");
   const [editing, setEditing] = useState<DbLead | null | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -87,10 +90,12 @@ export default function LeadsPage() {
     if (filterSource !== "all") list = list.filter((l) => l.source === filterSource);
     if (filterCity.trim()) list = list.filter((l) => (l.city || "").toLowerCase().includes(filterCity.trim().toLowerCase()));
     if (filterExec !== "all") list = list.filter((l) => (filterExec === "unassigned" ? !l.assigned_user_id : l.assigned_user_id === filterExec));
+    if (filterFrom) list = list.filter((l) => l.event_date && l.event_date >= filterFrom);
+    if (filterTo) list = list.filter((l) => l.event_date && l.event_date <= filterTo);
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((l) => [l.name, l.phone, l.email, l.notes, l.event_type, l.city].filter(Boolean).join(" ").toLowerCase().includes(q));
     return list;
-  }, [leads, filterStatus, filterSource, filterCity, filterExec, search]);
+  }, [leads, filterStatus, filterSource, filterCity, filterExec, filterFrom, filterTo, search]);
 
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -98,7 +103,7 @@ export default function LeadsPage() {
     for (const l of leads) counts[String(l.status)] = (counts[String(l.status)] || 0) + 1;
     return counts;
   }, [leads]);
-  const activeFilterCount = [filterStatus !== "all", filterSource !== "all", filterCity.trim(), filterExec !== "all", search.trim()].filter(Boolean).length;
+  const activeFilterCount = [filterStatus !== "all", filterSource !== "all", filterCity.trim(), filterExec !== "all", filterFrom, filterTo, search.trim()].filter(Boolean).length;
 
   const exportCSV = () => {
     if (filtered.length === 0) { toast.info("Nothing to export"); return; }
@@ -216,16 +221,23 @@ export default function LeadsPage() {
           </SelectContent>
         </Select>
         <Input value={filterCity} onChange={(e) => setFilterCity(e.target.value)} placeholder="City filter" className="h-9 w-full sm:w-36" />
-        <Select value={filterExec} onValueChange={setFilterExec}>
-          <SelectTrigger className="h-9 w-full sm:w-44 text-xs"><SelectValue placeholder="Executive" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All executives</SelectItem>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
-            {executives.map((e) => <SelectItem key={e.user_id} value={e.user_id}>{e.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1">
+          <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-9 w-full sm:w-36 text-xs" title="Event date from" />
+          <span className="text-xs text-muted-foreground">–</span>
+          <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-9 w-full sm:w-36 text-xs" title="Event date to" />
+        </div>
+        {isAdmin && (
+          <Select value={filterExec} onValueChange={setFilterExec}>
+            <SelectTrigger className="h-9 w-full sm:w-44 text-xs"><SelectValue placeholder="Executive" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All executives</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {executives.map((e) => <SelectItem key={e.user_id} value={e.user_id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         {activeFilterCount > 0 && (
-          <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => { setSearch(""); setFilterStatus("all"); setFilterSource("all"); setFilterCity(""); setFilterExec("all"); }}>
+          <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => { setSearch(""); setFilterStatus("all"); setFilterSource("all"); setFilterCity(""); setFilterExec("all"); setFilterFrom(""); setFilterTo(""); }}>
             <FilterX className="h-3.5 w-3.5" /> Clear
           </Button>
         )}

@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Users, Plus, Search, Phone, Mail, MapPin, ChevronRight, Loader2 } from "lucide-react";
+import { Users, Plus, Search, Phone, Mail, MapPin, ChevronRight, Loader2, FilterX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClients, type DbClient } from "@/hooks/useClients";
+import { useSalesExecutives } from "@/hooks/useSalesExecutives";
 import { useRole } from "@/contexts/RoleContext";
 import { Lock } from "lucide-react";
 
@@ -12,7 +14,28 @@ export default function ClientsPage() {
   const navigate = useNavigate();
   const { currentRole } = useRole();
   const canViewClients = currentRole === "admin" || currentRole === "administrator" || currentRole === "telecaller";
+  const isAdmin = currentRole === "admin" || currentRole === "administrator";
   const { clients, isLoading } = useClients();
+  const { executives } = useSalesExecutives();
+
+  const [search, setSearch] = useState("");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [filterExec, setFilterExec] = useState("all");
+
+  const filtered = useMemo(() => {
+    let list = clients as any[];
+    if (filterFrom) list = list.filter((c) => c.event_date && c.event_date >= filterFrom);
+    if (filterTo) list = list.filter((c) => c.event_date && c.event_date <= filterTo);
+    if (isAdmin && filterExec !== "all") {
+      list = list.filter((c) => (filterExec === "unassigned" ? !c.created_by : c.created_by === filterExec));
+    }
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter((c) => [c.name, c.partner_name, c.phone, c.email, c.city].filter(Boolean).join(" ").toLowerCase().includes(q));
+    return list as DbClient[];
+  }, [clients, search, filterFrom, filterTo, filterExec, isAdmin]);
+
+  const activeFilters = [filterFrom, filterTo, isAdmin && filterExec !== "all", search.trim()].filter(Boolean).length;
 
   if (!canViewClients) {
     return (
@@ -23,16 +46,6 @@ export default function ClientsPage() {
       </div>
     );
   }
-  const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return clients;
-    return clients.filter((c) => {
-      const hay = [c.name, c.partner_name, c.phone, c.email, c.city].filter(Boolean).join(" ").toLowerCase();
-      return hay.includes(q);
-    });
-  }, [clients, search]);
 
   return (
     <div className="w-full px-3 md:px-5 lg:px-6 py-4 md:py-6 space-y-5">
@@ -43,7 +56,7 @@ export default function ClientsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">Clients</h1>
-            <p className="text-xs text-muted-foreground">{clients.length} total</p>
+            <p className="text-xs text-muted-foreground">{filtered.length} of {clients.length}</p>
           </div>
         </div>
         <Button onClick={() => navigate("/clients/new")} className="gap-2">
@@ -51,9 +64,31 @@ export default function ClientsPage() {
         </Button>
       </motion.div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, email, city…" className="pl-9" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, email, city…" className="pl-9 h-9" />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-9 w-full sm:w-36 text-xs" title="Event date from" />
+          <span className="text-xs text-muted-foreground">–</span>
+          <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-9 w-full sm:w-36 text-xs" title="Event date to" />
+        </div>
+        {isAdmin && (
+          <Select value={filterExec} onValueChange={setFilterExec}>
+            <SelectTrigger className="h-9 w-full sm:w-44 text-xs"><SelectValue placeholder="Sales person" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sales people</SelectItem>
+              <SelectItem value="unassigned">No owner</SelectItem>
+              {executives.map((e) => <SelectItem key={e.user_id} value={e.user_id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {activeFilters > 0 && (
+          <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs shrink-0" onClick={() => { setSearch(""); setFilterFrom(""); setFilterTo(""); setFilterExec("all"); }}>
+            <FilterX className="h-3.5 w-3.5" /> Clear
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
