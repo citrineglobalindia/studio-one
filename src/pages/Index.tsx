@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
 import { useLeads, LEAD_STATUSES } from "@/hooks/useLeads";
 import { useAllInvoices, useAllQuotations, useAllContracts } from "@/hooks/useFinancials";
+import { usePaymentTracking } from "@/hooks/usePayments";
 import { NewDocFromAccounts } from "@/components/accounts/NewDocFromAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
@@ -119,11 +120,12 @@ function AdminDashboard() {
   const sevenDaysOut = plusDaysIso(7);
 
   // Exclude cancelled/void/draft invoices from money roll-ups so totals reflect real billing.
-  const liveInvoices = invoices.filter((r: any) => !["cancelled","void","voided","draft"].includes(String(r.status || "").toLowerCase()));
-  const collected = liveInvoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
-  const outstanding = liveInvoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
-  const billedTotal = liveInvoices.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
-  const billedMonth = liveInvoices.filter((r: any) => (r.created_at || "").slice(0,7) === today.slice(0,7))
+  // Money roll-ups come from the SAME source as the Accounts / Payments page so the numbers always match.
+  const { invoices: payInvoices, totalBilled, totalReceived, totalBalance } = usePaymentTracking();
+  const collected = totalReceived;
+  const outstanding = totalBalance;
+  const billedTotal = totalBilled;
+  const billedMonth = payInvoices.filter((r: any) => (r.created_at || "").slice(0,7) === today.slice(0,7))
                               .reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const estimatesTotal = quotations.reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const proposalsTotal = contracts.reduce((s, r: any) => s + Number(r.contract_amount || r.total_amount || 0), 0);
@@ -144,7 +146,7 @@ function AdminDashboard() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="Collected" value={inr(collected)} hint={collectedPct > 0 ? `${collectedPct}% of ₹${(billedTotal/1000).toFixed(0)}k billed` : "all-time"} icon={Wallet} color="emerald" onClick={() => navigate("/accounts/ledger")} />
-        <Kpi label="Outstanding" value={inr(outstanding)} hint={`${invoices.filter((i:any)=> Number(i.total_amount)>Number(i.amount_paid||0)).length} unpaid`} icon={AlertCircle} color="rose" onClick={() => navigate("/accounts")} />
+        <Kpi label="Outstanding" value={inr(outstanding)} hint={`${payInvoices.filter((i:any)=> i.balance>0).length} unpaid`} icon={AlertCircle} color="rose" onClick={() => navigate("/accounts")} />
         <Kpi label="Billed this month" value={inr(billedMonth)} hint={new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })} icon={TrendingUp} color="blue" onClick={() => navigate("/accounts")} />
         <Kpi label="Active clients" value={String(clients.length)} hint={`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`} icon={Users} color="violet" onClick={() => navigate("/clients")} />
       </div>
@@ -168,7 +170,7 @@ function AdminDashboard() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <PipelineCard label="Invoices"   count={invoices.length}   total={billedTotal}    color="blue"    icon={Receipt}   onClick={() => navigate("/accounts")} />
-          <PipelineCard label="Collected"  count={liveInvoices.filter((i:any)=>Number(i.amount_paid)>0).length} total={collected} color="emerald" icon={Wallet} onClick={() => navigate("/accounts/ledger")} />
+          <PipelineCard label="Collected"  count={payInvoices.filter((i:any)=>Number(i.amount_paid)>0).length} total={collected} color="emerald" icon={Wallet} onClick={() => navigate("/accounts/ledger")} />
           <button onClick={() => navigate("/calendar")} className="rounded-xl border border-border bg-card hover:border-indigo-500/40 transition p-3 text-left flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0"><CalendarDays className="h-4.5 w-4.5 text-indigo-500" /></div>
             <div className="min-w-0">
@@ -399,10 +401,10 @@ function AccountsDashboard() {
   const { expenses } = useExpenses();
 
   const today = todayIso().slice(0, 7);
-  const liveInvoices = invoices.filter((r: any) => !["cancelled","void","voided","draft"].includes(String(r.status || "").toLowerCase()));
-  const collected = liveInvoices.reduce((s, r: any) => s + Number(r.amount_paid || 0), 0);
-  const outstanding = liveInvoices.reduce((s, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)), 0);
-  const billedMonth = liveInvoices.filter((r: any) => (r.created_at || "").slice(0,7) === today)
+  const { invoices: payInvoices, totalReceived, totalBalance } = usePaymentTracking();
+  const collected = totalReceived;
+  const outstanding = totalBalance;
+  const billedMonth = payInvoices.filter((r: any) => (r.created_at || "").slice(0,7) === today)
                               .reduce((s, r: any) => s + Number(r.total_amount || 0), 0);
   const drafts = [
     ...quotations.filter((r: any) => (r.status || "draft") === "draft"),
