@@ -22,7 +22,9 @@ const SOURCES = ["Instagram", "Referral", "Website", "Google", "WhatsApp", "Face
 const EVENT_TYPES = [
   "Wedding", "Pre-Wedding", "Engagement", "Reception",
   "Sangeet", "Haldi", "Mehendi", "Roka",
-  "Birthday", "Anniversary", "Corporate", "Other",
+  "Birthday", "Anniversary", "Corporate",
+  "360° Camera", "Semi-Candid Photography", "Baby Shower Photography",
+  "Maternity Shoot", "Couple Shoot", "Album", "Other",
 ];
 
 const REQUIREMENT_OPTIONS = [
@@ -30,6 +32,8 @@ const REQUIREMENT_OPTIONS = [
   { value: "traditional_videographer", label: "Trad Videographer" },
   { value: "candid_photographer",     label: "Candid Photographer" },
   { value: "candid_videographer",     label: "Candid Videographer" },
+  { value: "semi_candid_photographer", label: "Semi-Candid Photographer" },
+  { value: "semi_candid_videographer", label: "Semi-Candid Videographer" },
   { value: "drone_shoot",             label: "Drone Shoot" },
   { value: "led_wall",                label: "LED Wall" },
   { value: "live_streaming",          label: "Live Streaming" },
@@ -180,15 +184,23 @@ export default function AddClientPage() {
     if (!createdId) { navigate("/clients"); return; }
     setSaving(true);
     try {
-      // Insert any events that have at least a date — these flow straight to the Calendar.
+      // Insert any events the user actually filled in (date is optional).
       const rows = events
-        .filter((e) => e.event_date)
+        .filter((e) =>
+          e.event_date ||
+          (e.requirements && e.requirements.length > 0) ||
+          e.venue.trim() ||
+          e.venue_map_url.trim() ||
+          e.start_time ||
+          e.end_time ||
+          (e.event_type && e.event_type !== "Wedding")
+        )
         .map((e, idx) => ({
           organization_id: organization?.id ?? null,
           client_id: createdId,
           event_type: e.event_type,
           name: e.event_type,
-          event_date: e.event_date,
+          event_date: e.event_date || null,
           start_time: e.start_time || null,
           end_time: e.end_time || null,
           venue: (e.venue.trim() || s2.venue_name.trim()) || null,
@@ -339,6 +351,18 @@ export default function AddClientPage() {
                       })}
                     </div>
                   </Field>
+
+                  {ev.event_type === "Album" && (
+                    <Field label="Number of album pages">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={(ev.requirement_qty as any)?.album_pages ?? ""}
+                        onChange={(e) => uEvent(i, { requirement_qty: { ...ev.requirement_qty, album_pages: Number(e.target.value) } })}
+                        placeholder="e.g. 40"
+                      />
+                    </Field>
+                  )}
 
                   <Row>
                     <Field label="Date"><div className="relative"><CalendarDays className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" /><Input type="date" className="pl-9" value={ev.event_date} onChange={(e) => uEvent(i, { event_date: e.target.value })} /></div></Field>

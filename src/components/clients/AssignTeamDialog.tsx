@@ -31,6 +31,8 @@ const REQ_LABELS: Record<string, string> = {
   traditional_videographer: "Traditional Videographer",
   candid_photographer: "Candid Photographer",
   candid_videographer: "Candid Videographer",
+  semi_candid_photographer: "Semi-Candid Photographer",
+  semi_candid_videographer: "Semi-Candid Videographer",
   drone_shoot: "Drone Shoot",
   led_wall: "LED Wall",
   live_streaming: "Live Streaming",

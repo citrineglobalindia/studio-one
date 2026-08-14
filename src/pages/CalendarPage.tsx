@@ -344,6 +344,8 @@ export default function CalendarPage() {
                         ["traditional_videographer", "Trad Video"],
                         ["candid_photographer",     "Candid Photo"],
                         ["candid_videographer",     "Candid Video"],
+                        ["semi_candid_photographer", "Semi Photo"],
+                        ["semi_candid_videographer", "Semi Video"],
                         ["drone_shoot",             "Drone"],
                         ["led_wall",                "LED Wall"],
                         ["live_streaming",          "Live Stream"],

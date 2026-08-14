@@ -15,7 +15,9 @@ import type { DbEvent, EventStatus } from "@/hooks/useEvents";
 const EVENT_TYPES = [
   "Wedding", "Pre-Wedding", "Engagement", "Reception",
   "Sangeet", "Haldi", "Mehendi", "Roka",
-  "Birthday", "Anniversary", "Corporate", "Other",
+  "Birthday", "Anniversary", "Corporate",
+  "360° Camera", "Semi-Candid Photography", "Baby Shower Photography",
+  "Maternity Shoot", "Couple Shoot", "Album", "Other",
 ];
 
 const STATUSES: EventStatus[] = ["upcoming", "in-progress", "completed", "cancelled"];
@@ -25,6 +27,8 @@ const REQUIREMENT_OPTIONS: { value: string; label: string; icon: typeof Camera; 
   { value: "traditional_videographer", label: "Traditional Videographer", icon: Video, color: "from-purple-500 to-fuchsia-500" },
   { value: "candid_photographer",     label: "Candid Photographer",     icon: Camera, color: "from-rose-500 to-pink-500" },
   { value: "candid_videographer",     label: "Candid Videographer",     icon: Video,  color: "from-amber-500 to-orange-500" },
+  { value: "semi_candid_photographer", label: "Semi-Candid Photographer", icon: Camera, color: "from-teal-500 to-emerald-500" },
+  { value: "semi_candid_videographer", label: "Semi-Candid Videographer", icon: Video,  color: "from-sky-500 to-blue-500" },
   { value: "drone_shoot",             label: "Drone Shoot",             icon: Plane,  color: "from-emerald-500 to-teal-500" },
   { value: "led_wall",                label: "LED Wall",                icon: Monitor, color: "from-indigo-500 to-violet-500" },
   { value: "live_streaming",          label: "Live Streaming",          icon: Radio,  color: "from-red-500 to-rose-500" },
@@ -50,6 +54,7 @@ export function EventDialog({
     notes: "",
     requirements: [] as string[],
     requirement_qty: {} as Record<string, number>,
+    album_pages: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -67,6 +72,7 @@ export function EventDialog({
         notes: editing.notes || "",
         requirements: Array.isArray(editing.requirements) ? editing.requirements : [],
         requirement_qty: (editing as any).requirement_qty || {},
+        album_pages: String((editing as any).requirement_qty?.album_pages ?? ""),
       });
     } else {
       setForm({
@@ -80,6 +86,7 @@ export function EventDialog({
         notes: "",
         requirements: [],
         requirement_qty: {},
+        album_pages: "",
       });
     }
   }, [open, editing]);
@@ -98,7 +105,12 @@ export function EventDialog({
         notes: form.notes.trim() || null,
         name: form.event_type, // mirror type into name for display
         requirements: form.requirements,
-        requirement_qty: form.requirement_qty,
+        requirement_qty: {
+          ...form.requirement_qty,
+          ...(form.event_type === "Album" && form.album_pages
+            ? { album_pages: Number(form.album_pages) }
+            : {}),
+        },
       });
       onOpenChange(false);
     } finally {
@@ -145,6 +157,23 @@ export function EventDialog({
               })}
             </div>
           </div>
+
+          {/* Album page count */}
+          {form.event_type === "Album" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs text-muted-foreground">Number of album pages</Label>
+              </div>
+              <Input
+                type="number"
+                min={1}
+                value={form.album_pages}
+                onChange={(e) => setForm((p) => ({ ...p, album_pages: e.target.value }))}
+                placeholder="e.g. 40"
+              />
+            </div>
+          )}
 
           {/* Date + Status */}
           <div className="grid grid-cols-2 gap-3">
