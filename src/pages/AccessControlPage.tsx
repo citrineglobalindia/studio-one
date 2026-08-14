@@ -37,6 +37,7 @@ const ROLE_META: Record<string, { icon: React.ElementType; color: string; descri
   administrator: { icon: Shield, color: "text-indigo-400", description: "Studio administrator (all access except finance)" },
   editor: { icon: Pencil, color: "text-purple-400", description: "Photo & video editors" },
   telecaller: { icon: Phone, color: "text-green-400", description: "Sales / lead callers" },
+  crm: { icon: FolderKanban, color: "text-cyan-400", description: "Operations / CRM coordinator" },
   videographer: { icon: Video, color: "text-rose-400", description: "In-office video team" },
   photographer: { icon: Camera, color: "text-amber-400", description: "In-office photography team" },
   videographer_vendor: { icon: Video, color: "text-rose-300", description: "External videographer (paid per event)" },

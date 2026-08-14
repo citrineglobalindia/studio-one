@@ -7,6 +7,7 @@ export type AppRole =
   | "administrator"
   | "accounts"
   | "telecaller"
+  | "crm"
   | "editor"
   | "videographer"
   | "photographer"
@@ -18,6 +19,7 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
   { value: "administrator", label: "Administrator" },
   { value: "accounts", label: "Accounts" },
   { value: "telecaller", label: "Sales" },
+  { value: "crm", label: "CRM" },
   { value: "editor", label: "Editor" },
   { value: "photographer", label: "Photographer (Office)" },
   { value: "videographer", label: "Videographer (Office)" },
@@ -31,7 +33,7 @@ export const ALL_ROLES: { value: AppRole; label: string }[] = [
 //   Anyone else -> cannot create users
 export const ROLES_ADMIN_CAN_CREATE: AppRole[] = ["administrator", "accounts"];
 export const ROLES_ADMINISTRATOR_CAN_CREATE: AppRole[] = [
-  "telecaller", "editor",
+  "telecaller", "crm", "editor",
   "photographer", "videographer",
   "photographer_vendor", "videographer_vendor",
 ];
@@ -93,6 +95,8 @@ const DEFAULT_ACCESS: Record<AppRole, AppModule[]> = {
   editor: ["dashboard", "editing", "editor-logs", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Sales (telecaller): leads + own attendance/leaves/expense
   telecaller: ["dashboard", "leads", "clients", "calendar", "productivity", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
+  // CRM: full Operations access (events, calendar, editing, reports, equipment, productivity) + self-service basics
+  crm: ["dashboard", "events", "calendar", "editing", "editor-logs", "event-reports", "equipment", "productivity", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   videographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   photographer: ["dashboard", "events", "calendar", "equipment", "hr-attendance", "hr-leaves", "payment-requests", "notifications", "profile"],
   // Vendors can still raise expenses (per-event payouts) but no internal HR
@@ -131,7 +135,7 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 const VALID_ROLES: AppRole[] = [
-  "admin", "administrator", "accounts", "telecaller", "editor",
+  "admin", "administrator", "accounts", "telecaller", "crm", "editor",
   "videographer", "photographer", "videographer_vendor", "photographer_vendor",
 ];
 

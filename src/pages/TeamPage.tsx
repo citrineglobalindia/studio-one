@@ -106,6 +106,7 @@ const ROLE_BADGE: Record<string, string> = {
   videographer: "bg-rose-500/15 text-rose-500 border-rose-500/30",
   editor: "bg-purple-500/15 text-purple-500 border-purple-500/30",
   telecaller: "bg-green-500/15 text-green-500 border-green-500/30",
+  crm: "bg-cyan-500/15 text-cyan-500 border-cyan-500/30",
   vendor: "bg-slate-500/15 text-slate-400 border-slate-500/30",
 };
 
