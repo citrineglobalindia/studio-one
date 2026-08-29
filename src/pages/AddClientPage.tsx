@@ -61,6 +61,7 @@ type Step2 = {
 
 type EventRow = {
   event_type: string;
+  custom_type: string;
   event_date: string;
   start_time: string;
   end_time: string;
@@ -88,6 +89,7 @@ const BLANK2: Step2 = {
 
 const blankEvent = (): EventRow => ({
   event_type: "Wedding",
+  custom_type: "",
   event_date: "",
   start_time: "",
   end_time: "",
@@ -198,8 +200,8 @@ export default function AddClientPage() {
         .map((e, idx) => ({
           organization_id: organization?.id ?? null,
           client_id: createdId,
-          event_type: e.event_type,
-          name: e.event_type,
+          event_type: (e.event_type === "Other" ? (e.custom_type?.trim() || "Other") : e.event_type),
+          name: (e.event_type === "Other" ? (e.custom_type?.trim() || "Other") : e.event_type),
           event_date: e.event_date || null,
           start_time: e.start_time || null,
           end_time: e.end_time || null,
@@ -351,6 +353,12 @@ export default function AddClientPage() {
                       })}
                     </div>
                   </Field>
+
+                  {ev.event_type === "Other" && (
+                    <Field label="Custom event name">
+                      <Input value={ev.custom_type} onChange={(e) => uEvent(i, { custom_type: e.target.value })} placeholder="Type the event name…" />
+                    </Field>
+                  )}
 
                   {ev.event_type === "Album" && (
                     <Field label="Number of album pages">

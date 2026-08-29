@@ -45,6 +45,7 @@ export function EventDialog({
 }) {
   const [form, setForm] = useState({
     event_type: "Wedding",
+    custom_type: "",
     event_date: "",
     start_time: "",
     end_time: "",
@@ -62,7 +63,8 @@ export function EventDialog({
     if (!open) return;
     if (editing) {
       setForm({
-        event_type: editing.event_type || "Wedding",
+        event_type: EVENT_TYPES.includes(editing.event_type || "") ? (editing.event_type as string) : "Other",
+        custom_type: EVENT_TYPES.includes(editing.event_type || "") ? "" : (editing.event_type || ""),
         event_date: editing.event_date || "",
         start_time: editing.start_time ? String(editing.start_time).slice(0, 5) : "",
         end_time: editing.end_time ? String(editing.end_time).slice(0, 5) : "",
@@ -77,6 +79,7 @@ export function EventDialog({
     } else {
       setForm({
         event_type: "Wedding",
+        custom_type: "",
         event_date: "",
         start_time: "",
         end_time: "",
@@ -92,10 +95,11 @@ export function EventDialog({
   }, [open, editing]);
 
   const submit = async () => {
+    const finalType = form.event_type === "Other" ? (form.custom_type.trim() || "Other") : form.event_type;
     setSaving(true);
     try {
       await onSubmit({
-        event_type: form.event_type,
+        event_type: finalType,
         event_date: form.event_date || null,
         start_time: form.start_time || null,
         end_time: form.end_time || null,
@@ -103,7 +107,7 @@ export function EventDialog({
         venue_map_url: form.venue_map_url.trim() || null,
         status: form.status,
         notes: form.notes.trim() || null,
-        name: form.event_type, // mirror type into name for display
+        name: finalType, // mirror type into name for display
         requirements: form.requirements,
         requirement_qty: {
           ...form.requirement_qty,
@@ -157,6 +161,22 @@ export function EventDialog({
               })}
             </div>
           </div>
+
+          {/* Custom event name when "Other" is selected */}
+          {form.event_type === "Other" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs text-muted-foreground">Custom event name</Label>
+              </div>
+              <Input
+                value={form.custom_type}
+                onChange={(e) => setForm((p) => ({ ...p, custom_type: e.target.value }))}
+                placeholder="Type the event name…"
+                autoFocus
+              />
+            </div>
+          )}
 
           {/* Album page count */}
           {form.event_type === "Album" && (
