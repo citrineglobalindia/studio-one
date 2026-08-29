@@ -69,6 +69,7 @@ export function EditorWorkLogPanel({ dateIso, canManage, role, userId }: {
                 <th className="text-left px-2 py-2 font-semibold">Client</th>
                 <th className="text-left px-2 py-2 font-semibold">Work</th>
                 <th className="text-right px-2 py-2 font-semibold">Count</th>
+                <th className="text-right px-2 py-2 font-semibold">Hrs</th>
                 <th className="text-right px-2 py-2 font-semibold">Total</th>
                 <th className="text-center px-2 py-2 font-semibold">Done</th>
                 <th className="text-left px-2 py-2 font-semibold">Status</th>
@@ -102,9 +103,9 @@ function LogRow({ log, showActionsCol, showEditor, editorRowSpan, editorTotal, s
   onUpdate: (p: Partial<DbWorkLog>) => void; onRemove: () => void; onSend: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ client_name: log.client_name || "", work_type: log.work_type || "", work_count: log.work_count, notes: log.notes || "" });
+  const [draft, setDraft] = useState({ client_name: log.client_name || "", work_type: log.work_type || "", work_count: log.work_count, hours: (log as any).hours ?? 0, notes: log.notes || "" });
   const sMeta = STATUS_META[log.status];
-  const save = () => { onUpdate({ client_name: draft.client_name || null, work_type: draft.work_type || null, work_count: Number(draft.work_count) || 0, notes: draft.notes || null }); setEditing(false); };
+  const save = () => { onUpdate({ client_name: draft.client_name || null, work_type: draft.work_type || null, work_count: Number(draft.work_count) || 0, hours: Number(draft.hours) || 0, notes: draft.notes || null } as any); setEditing(false); };
 
   return (
     <tr className={"hover:bg-muted/20 align-middle " + (log.submitted ? "" : "bg-amber-500/[0.04]")}>
@@ -122,6 +123,7 @@ function LogRow({ log, showActionsCol, showEditor, editorRowSpan, editorTotal, s
         </Select>
       ) : (log.work_type || "—")}</td>
       <td className="px-2 py-2 text-right tabular-nums">{editing ? <Input type="number" value={draft.work_count} onChange={(e) => setDraft(d => ({ ...d, work_count: Number(e.target.value) }))} className="h-7 text-xs text-right w-16 ml-auto" /> : (log.work_count || 0)}</td>
+      <td className="px-2 py-2 text-right tabular-nums">{editing ? <Input type="number" value={draft.hours} onChange={(e) => setDraft(d => ({ ...d, hours: Number(e.target.value) }))} className="h-7 text-xs text-right w-14 ml-auto" /> : ((log as any).hours || 0)}</td>
       {showTotal ? <td className="px-2 py-2 text-right tabular-nums font-semibold border-r border-border/50" rowSpan={editorRowSpan}>{editorTotal}</td> : null}
       <td className="px-2 py-2 text-center">
         <button disabled={!canEdit} onClick={() => canEdit && onUpdate({ is_done: !log.is_done })} className={"inline-flex " + (!canEdit ? "cursor-default" : "")}>
@@ -170,13 +172,13 @@ function LogRow({ log, showActionsCol, showEditor, editorRowSpan, editorTotal, s
 }
 
 function AddRow({ dateIso, submittedDefault, onCancel, onSave }: { dateIso: string; submittedDefault: boolean; onCancel: () => void; onSave: (p: any) => Promise<void> }) {
-  const [f, setF] = useState({ editor_code: "", editor_name: "", client_name: "", work_type: "", work_count: 0, status: "pending" as WorkLogStatus, notes: "" });
+  const [f, setF] = useState({ editor_code: "", editor_name: "", client_name: "", work_type: "", work_count: 0, hours: 0, status: "pending" as WorkLogStatus, notes: "" });
   const [saving, setSaving] = useState(false);
   const save = async () => {
     if (!f.editor_code.trim()) return;
     setSaving(true);
     try {
-      await onSave({ log_date: dateIso, editor_code: f.editor_code.trim(), editor_name: f.editor_name.trim() || null, client_name: f.client_name.trim() || null, work_type: f.work_type || null, work_count: Number(f.work_count) || 0, status: f.status, notes: f.notes.trim() || null, submitted: submittedDefault });
+      await onSave({ log_date: dateIso, editor_code: f.editor_code.trim(), editor_name: f.editor_name.trim() || null, client_name: f.client_name.trim() || null, work_type: f.work_type || null, work_count: Number(f.work_count) || 0, hours: Number(f.hours) || 0, status: f.status, notes: f.notes.trim() || null, submitted: submittedDefault });
     } finally { setSaving(false); }
   };
   return (
@@ -190,6 +192,7 @@ function AddRow({ dateIso, submittedDefault, onCancel, onSave }: { dateIso: stri
         </Select>
       </td>
       <td className="px-2 py-2"><Input type="number" value={f.work_count} onChange={(e) => setF(p => ({ ...p, work_count: Number(e.target.value) }))} className="h-7 text-xs text-right w-16 ml-auto" /></td>
+      <td className="px-2 py-2"><Input type="number" value={f.hours} onChange={(e) => setF(p => ({ ...p, hours: Number(e.target.value) }))} className="h-7 text-xs text-right w-14 ml-auto" /></td>
       <td className="px-2 py-2"></td>
       <td className="px-2 py-2"></td>
       <td className="px-2 py-2">

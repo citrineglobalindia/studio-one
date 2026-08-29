@@ -21,6 +21,7 @@ export interface DbWorkLog {
   client_name: string | null;
   work_type: string | null;
   work_count: number;
+  hours: number;
   is_done: boolean;
   status: WorkLogStatus;
   notes: string | null;
@@ -120,6 +121,39 @@ export function useWorkLogCountsByDate(fromIso: string, toIso: string) {
       const m: Record<string, number> = {};
       for (const r of (data ?? [])) m[r.log_date] = (m[r.log_date] || 0) + 1;
       return m;
+    },
+  });
+}
+
+
+/** Per-editor aggregate (hours, work count, entries) across a date range — Admin/HR summary. */
+export interface WorkLogEditorSummary { editor_code: string; editor_name: string | null; hours: number; work_count: number; entries: number; }
+export function useWorkLogSummary(fromIso: string, toIso: string) {
+  const { organization } = useOrg();
+  const orgId = organization?.id ?? null;
+  return useQuery({
+    queryKey: ["editor-work-logs-summary", orgId, fromIso, toIso],
+    enabled: !!orgId,
+    queryFn: async () => {
+      if (!orgId) return [] as WorkLogEditorSummary[];
+      const { data, error } = await (supabase as any)
+        .from("editor_work_logs")
+        .select("*")
+        .eq("organization_id", orgId)
+        .gte("log_date", fromIso)
+        .lte("log_date", toIso);
+      if (error) throw error;
+      const m = new Map<string, WorkLogEditorSummary>();
+      for (const r of (data ?? [])) {
+        const key = r.editor_code || "-";
+        const cur = m.get(key) || { editor_code: key, editor_name: r.editor_name ?? null, hours: 0, work_count: 0, entries: 0 };
+        cur.hours += Number(r.hours || 0);
+        cur.work_count += Number(r.work_count || 0);
+        cur.entries += 1;
+        if (!cur.editor_name && r.editor_name) cur.editor_name = r.editor_name;
+        m.set(key, cur);
+      }
+      return Array.from(m.values()).sort((a, b) => b.hours - a.hours || b.work_count - a.work_count);
     },
   });
 }
