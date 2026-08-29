@@ -10,6 +10,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, X, Plus, MessageCircle, MapPin,
 } from "lucide-react";
 import { useTeamMembers, type DbTeamMember } from "@/hooks/useTeamMembers";
+import { WhatsAppSendDialog } from "@/components/WhatsAppSendDialog";
 import { useEventAssignments } from "@/hooks/useEventAssignments";
 import type { DbEvent } from "@/hooks/useEvents";
 import { toast } from "sonner";
@@ -63,13 +64,6 @@ function buildAssignmentMessage(member: DbTeamMember, event: DbEvent): string {
   return lines.join("\n");
 }
 
-function sendAssignmentWhatsApp(member: DbTeamMember, event: DbEvent) {
-  const digits = (member.phone || "").replace(/\D/g, "");
-  const wa = digits.length >= 10 ? `91${digits.slice(-10)}` : "";
-  const text = encodeURIComponent(buildAssignmentMessage(member, event));
-  window.open(`https://wa.me/${wa}?text=${text}`, "_blank", "noopener,noreferrer");
-}
-
 export function AssignTeamDialog({
   open, onOpenChange, event,
 }: {
@@ -84,6 +78,7 @@ export function AssignTeamDialog({
   } = useEventAssignments(event?.id, event?.event_date);
 
   const [search, setSearch] = useState("");
+  const [wa, setWa] = useState<{ open: boolean; phone: string | null; body: string; name: string }>({ open: false, phone: null, body: "", name: "" });
 
   // Only operational team members (skip admin/accounts/sales)
   const operationalMembers = useMemo(
@@ -225,7 +220,7 @@ export function AssignTeamDialog({
                             {isAssigned && event && (
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); if (!m.phone) { toast.error(`No phone number saved for ${m.full_name}`); return; } sendAssignmentWhatsApp(m, event); }}
+                                onClick={(e) => { e.stopPropagation(); if (event) setWa({ open: true, phone: m.phone ?? null, body: buildAssignmentMessage(m, event), name: m.full_name }); }}
                                 className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 px-2 py-1 text-[11px] font-medium hover:bg-emerald-500/20 transition"
                                 title={m.phone ? "Send event details on WhatsApp" : "No phone number saved"}
                               >
@@ -260,6 +255,7 @@ export function AssignTeamDialog({
           <Button onClick={() => onOpenChange(false)}>Done</Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+          <WhatsAppSendDialog open={wa.open} onOpenChange={(v) => setWa((p) => ({ ...p, open: v }))} phone={wa.phone} title={`Event details — ${wa.name}`} templates={wa.body ? [{ label: "Assignment details", body: wa.body }] : []} defaultBody={wa.body} />
+</Dialog>
   );
 }

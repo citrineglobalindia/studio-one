@@ -17,6 +17,7 @@ import { useOrg } from "@/contexts/OrgContext";
 import { useQuery } from "@tanstack/react-query";
 import { EventDialog } from "./EventDialog";
 import { AssignTeamDialog } from "./AssignTeamDialog";
+import { WhatsAppSendDialog } from "@/components/WhatsAppSendDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   upcoming: "bg-blue-500/15 text-blue-600 border-blue-500/30",
@@ -95,7 +96,7 @@ const WA_REQ_LABELS: Record<string, string> = {
   live_streaming: "Live Streaming",
 };
 
-function shareAssignmentWhatsApp(member: any, ev: any) {
+function buildShareMessage(member: any, ev: any): string {
   const dateStr = ev.event_date
     ? new Date(ev.event_date).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "short", year: "numeric" })
     : "";
@@ -116,9 +117,7 @@ function shareAssignmentWhatsApp(member: any, ev: any) {
     ``,
     `Please confirm your availability. Thank you!`,
   ].filter(Boolean);
-  const digits = (member.phone || "").replace(/\D/g, "");
-  const wa = digits.length >= 10 ? `91${digits.slice(-10)}` : "";
-  window.open(`https://wa.me/${wa}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank", "noopener,noreferrer");
+  return lines.join("\n");
 }
 
 export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; defaultVenue: string | null }) {
@@ -143,6 +142,7 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
   const canMarkCopied = (memberId: string) => canManage || myTeamMemberIds.has(memberId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [wa, setWa] = useState<{ open: boolean; phone: string | null; body: string; name: string }>({ open: false, phone: null, body: "", name: "" });
   const [editing, setEditing] = useState<DbEvent | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignFor, setAssignFor] = useState<DbEvent | null>(null);
@@ -355,7 +355,7 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                                     )}
                                     <button
                                       type="button"
-                                      onClick={() => { if (!m.phone) { toast.error(`No phone number saved for ${m.full_name}`); return; } shareAssignmentWhatsApp(m, e); }}
+                                      onClick={() => setWa({ open: true, phone: m.phone ?? null, body: buildShareMessage(m, e), name: m.full_name })}
                                       className="mt-1 w-full flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 px-1.5 py-1 text-[9px] font-semibold hover:bg-emerald-500/20 transition"
                                       title={m.phone ? "Share event details on WhatsApp" : "No phone number saved"}
                                     >
@@ -405,6 +405,8 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
           </div>
         )}
       </div>
+
+      <WhatsAppSendDialog open={wa.open} onOpenChange={(v) => setWa((p) => ({ ...p, open: v }))} phone={wa.phone} title={`Event details — ${wa.name}`} templates={wa.body ? [{ label: "Assignment details", body: wa.body }] : []} defaultBody={wa.body} />
 
       <EventDialog
         open={dialogOpen}
