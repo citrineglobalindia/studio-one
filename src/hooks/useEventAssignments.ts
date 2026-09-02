@@ -38,8 +38,9 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
     },
   });
 
-  // Time-overlap conflict set: members booked on this date with overlapping times.
-  // If either event lacks times, treat as date conflict (safe default).
+  // Time-overlap conflict set: a member is only blocked when the two events actually
+  // overlap in time. Multiple non-overlapping slots on the same day are allowed
+  // (e.g. 11:00-17:00 then 18:00 onwards). Events without times do NOT block the day.
   const conflictsQ = useQuery({
     queryKey: ["event-time-conflicts", orgId, eventDate, eventId],
     enabled: !!orgId && !!eventDate,
@@ -71,10 +72,15 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
       const others = sameDayEvents.filter((e) => e.id !== eventId);
       if (others.length === 0) return map;
 
-      // Filter by time-overlap
+      // Filter by time-overlap. Only block when BOTH events have times and they overlap.
+      // Missing times (open-ended events) do not block — availability is time-based.
       const overlapping = others.filter((e) => {
-        if (!thisStart || !thisEnd || !e.start_time || !e.end_time) return true; // safe default
-        return thisStart < e.end_time && e.start_time < thisEnd;
+        if (!thisStart || !e.start_time) return false; // can't compare start → no block
+        const aStart = thisStart;
+        const aEnd = thisEnd || "23:59";   // open-ended self → treat as end of day
+        const bStart = e.start_time;
+        const bEnd = e.end_time || "23:59"; // open-ended other → treat as end of day
+        return aStart < bEnd && bStart < aEnd; // strict overlap; adjacent slots (17:00/17:00) are allowed
       });
       if (overlapping.length === 0) return map;
 
