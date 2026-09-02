@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useClientEvents, type DbEvent } from "@/hooks/useEvents";
 import { useRole } from "@/contexts/RoleContext";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
-import { useToggleDataCopied } from "@/hooks/useEventAssignments";
+import { useToggleDataCopied, useToggleDataVerified } from "@/hooks/useEventAssignments";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
@@ -75,11 +75,11 @@ function useClientEventAssignments(clientId: string, eventIds: string[]) {
       if (!orgId || eventIds.length === 0) return [] as { event_id: string; team_member_id: string }[];
       const { data, error } = await supabase
         .from("event_team_assignments")
-        .select("id, event_id, team_member_id, data_copied")
+        .select("id, event_id, team_member_id, data_copied, data_verified")
         .eq("organization_id", orgId)
         .in("event_id", eventIds);
       if (error) throw error;
-      return ((data ?? []) as unknown) as { id: string; event_id: string; team_member_id: string; data_copied: boolean }[];
+      return ((data ?? []) as unknown) as { id: string; event_id: string; team_member_id: string; data_copied: boolean; data_verified: boolean }[];
     },
   });
 }
@@ -123,6 +123,7 @@ function buildShareMessage(member: any, ev: any): string {
 export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; defaultVenue: string | null }) {
   const { currentRole } = useRole();
   const canManage = currentRole === "admin" || currentRole === "administrator" || currentRole === "telecaller";
+  const canVerify = currentRole === "admin" || currentRole === "administrator";
 
   const { events, isLoading, addEvent, updateEvent, deleteEvent, swapOrder, finalizeEvent } = useClientEvents(clientId);
   const { members } = useTeamMembers();
@@ -130,14 +131,15 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
   const eventIds = events.map((e) => e.id);
   const { data: assignmentRows = [] } = useClientEventAssignments(clientId, eventIds);
   const assignmentsByEvent = new Map<string, string[]>();
-  const assignmentMeta = new Map<string, { id: string; data_copied: boolean }>();
+  const assignmentMeta = new Map<string, { id: string; data_copied: boolean; data_verified: boolean }>();
   for (const row of assignmentRows) {
     if (!assignmentsByEvent.has(row.event_id)) assignmentsByEvent.set(row.event_id, []);
     assignmentsByEvent.get(row.event_id)!.push(row.team_member_id);
-    assignmentMeta.set(`${row.event_id}:${row.team_member_id}`, { id: (row as any).id, data_copied: !!(row as any).data_copied });
+    assignmentMeta.set(`${row.event_id}:${row.team_member_id}`, { id: (row as any).id, data_copied: !!(row as any).data_copied, data_verified: !!(row as any).data_verified });
   }
   const { user } = useAuth();
   const toggleCopied = useToggleDataCopied();
+  const toggleVerified = useToggleDataVerified();
   const myTeamMemberIds = new Set(members.filter((m) => m.user_id === user?.id).map((m) => m.id));
   const canMarkCopied = (memberId: string) => canManage || myTeamMemberIds.has(memberId);
 
@@ -298,7 +300,8 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                             {(() => {
                               const ids = assignmentsByEvent.get(e.id) ?? [];
                               const copied = ids.filter((mid) => assignmentMeta.get(`${e.id}:${mid}`)?.data_copied).length;
-                              return ids.length > 0 ? <span className="ml-1 text-emerald-600 normal-case">· {copied}/{ids.length} data copied</span> : null;
+                              const verified = ids.filter((mid) => assignmentMeta.get(`${e.id}:${mid}`)?.data_verified).length;
+                              return ids.length > 0 ? <span className="ml-1 normal-case"><span className="text-emerald-600">· {copied}/{ids.length} copied</span> <span className="text-blue-600">· {verified}/{ids.length} verified</span></span> : null;
                             })()}
                           </p>
                           {(assignmentsByEvent.get(e.id) ?? []).length === 0 ? (
@@ -353,6 +356,25 @@ export function EventsTimeline({ clientId, defaultVenue }: { clientId: string; d
                                         {copied ? "Data copied" : "Mark data copied"}
                                       </button>
                                     )}
+                                    {meta && (() => {
+                                      const verified = !!meta.data_verified;
+                                      return (
+                                        <button
+                                          type="button"
+                                          disabled={!canVerify || toggleVerified.isPending}
+                                          onClick={() => toggleVerified.mutate({ id: meta.id, value: !verified, userId: user?.id })}
+                                          className={"mt-1 w-full flex items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[9px] font-semibold transition " +
+                                            (verified ? "bg-blue-500/15 border-blue-500/40 text-blue-700" : "bg-background/60 border-border text-muted-foreground hover:border-blue-500/40 hover:text-blue-700") +
+                                            (!canVerify ? " opacity-60 cursor-not-allowed" : "")}
+                                          title={canVerify ? "Toggle data-verified status" : "Only an admin can verify"}
+                                        >
+                                          <span className={"h-3 w-3 rounded-[3px] border inline-flex items-center justify-center " + (verified ? "bg-blue-500 border-blue-500 text-white" : "border-current")}>
+                                            {verified ? "\u2713" : ""}
+                                          </span>
+                                          {verified ? "Verified data" : "Verify data"}
+                                        </button>
+                                      );
+                                    })()}
                                     <button
                                       type="button"
                                       onClick={() => setWa({ open: true, phone: m.phone ?? null, body: buildShareMessage(m, e), name: m.full_name })}

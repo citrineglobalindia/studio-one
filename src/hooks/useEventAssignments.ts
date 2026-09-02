@@ -12,6 +12,9 @@ export interface DbAssignment {
   data_copied?: boolean;
   data_copied_at?: string | null;
   data_copied_by?: string | null;
+  data_verified?: boolean;
+  data_verified_at?: string | null;
+  data_verified_by?: string | null;
 }
 
 /**
@@ -166,6 +169,27 @@ export function useToggleDataCopied() {
       const { error } = await (supabase as any)
         .from("event_team_assignments")
         .update({ data_copied: value, data_copied_at: value ? new Date().toISOString() : null, data_copied_by: value ? (userId ?? null) : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-event-assignments"] });
+      qc.invalidateQueries({ queryKey: ["event-assignments"] });
+      qc.invalidateQueries({ queryKey: ["day-assignments"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+
+/** Toggle the "data verified" flag on a single assignment (admin verification step). */
+export function useToggleDataVerified() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, value, userId }: { id: string; value: boolean; userId?: string | null }) => {
+      const { error } = await (supabase as any)
+        .from("event_team_assignments")
+        .update({ data_verified: value, data_verified_at: value ? new Date().toISOString() : null, data_verified_by: value ? (userId ?? null) : null })
         .eq("id", id);
       if (error) throw error;
     },
