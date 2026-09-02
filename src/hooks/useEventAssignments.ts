@@ -62,12 +62,13 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
       // Other events on this date
       const eventsRes = await (supabase as any)
         .from("events")
-        .select("id, name, start_time, end_time")
+        .select("id, name, event_type, start_time, end_time, client:clients(name, partner_name)")
         .eq("organization_id", orgId)
         .eq("event_date", eventDate);
       if (eventsRes.error) throw eventsRes.error;
       const sameDayEvents = (eventsRes.data ?? []) as Array<{
-        id: string; name: string | null; start_time: string | null; end_time: string | null;
+        id: string; name: string | null; event_type: string | null; start_time: string | null; end_time: string | null;
+        client?: { name?: string | null; partner_name?: string | null } | null;
       }>;
       const others = sameDayEvents.filter((e) => e.id !== eventId);
       if (others.length === 0) return map;
@@ -91,8 +92,13 @@ export function useEventAssignments(eventId: string | undefined, eventDate: stri
         .in("event_id", overlapping.map((e) => e.id));
       if (assignRes.error) throw assignRes.error;
       const labelById = new Map(overlapping.map((e) => {
-        const t = (e.start_time && e.end_time) ? ` (${String(e.start_time).slice(0,5)}–${String(e.end_time).slice(0,5)})` : "";
-        return [e.id, (e.name || "another event") + t];
+        const t = (e.start_time && e.end_time)
+          ? ` ${String(e.start_time).slice(0,5)}–${String(e.end_time).slice(0,5)}`
+          : (e.start_time ? ` ${String(e.start_time).slice(0,5)} onwards` : "");
+        const evName = e.event_type || e.name || "another event";
+        const cli = e.client ? (e.client.partner_name ? `${e.client.name} & ${e.client.partner_name}` : e.client.name) : "";
+        const label = cli ? `${evName} — ${cli}${t}` : `${evName}${t}`;
+        return [e.id, label];
       }));
       for (const row of (assignRes.data ?? []) as Array<{ team_member_id: string; event_id: string }>) {
         map.set(row.team_member_id, labelById.get(row.event_id) || "another event");
